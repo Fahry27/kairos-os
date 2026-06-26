@@ -3,14 +3,13 @@
 ## Overview
 
 Kairos OS is planned as a modular system with an API service, a dashboard
-experience, shared documentation, and supporting infrastructure. This document
-captures the initial architectural intent only; implementation details will be
-added as the system is designed and built.
+experience, shared documentation, and supporting infrastructure. Kairos Core API
+v0.1 is the first implemented application component.
 
 ## Repository Boundaries
 
 ```text
-apps/api/        Future FastAPI service code.
+apps/api/        FastAPI service code.
 apps/dashboard/  Future Next.js dashboard code.
 data/            Reserved data workspace.
 docs/            Architecture, development, and product documentation.
@@ -19,16 +18,16 @@ infra/config/    Portable infrastructure configuration.
 scripts/         Development and operations helper scripts.
 ```
 
-The `apps/api/` and `apps/dashboard/` directories are intentionally empty in
-the foundation repository.
+The `apps/dashboard/` directory is intentionally empty until dashboard
+implementation begins.
 
 ## Planned Components
 
 ### API
 
-The API is reserved for future FastAPI service code, including domain,
-persistence, and integration logic. No FastAPI application code has been added
-in this foundation phase.
+The API is implemented with FastAPI and SQLAlchemy. It exposes health checks and
+basic CRUD modules for Projects, Tasks, and Memories. PostgreSQL is the primary
+database target, configured through environment variables.
 
 ### Dashboard
 
@@ -84,8 +83,7 @@ needed.
 
 ## Open Decisions
 
-- FastAPI package manager and project layout.
 - Next.js package manager and project layout.
 - Authentication and authorization model.
-- Data model and storage requirements.
+- API migration strategy.
 - Production backup, restore, and update strategy.

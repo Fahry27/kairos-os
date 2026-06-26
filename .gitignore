@@ -8,11 +8,15 @@ node_modules/
 vendor/
 .venv/
 venv/
+__pycache__/
+*.py[cod]
 
 # Build output
 dist/
 build/
 coverage/
+.pytest_cache/
+.ruff_cache/
 .next/
 .turbo/
 

@@ -1,11 +1,10 @@
 # Kairos OS
 
 Kairos OS is a development-stage operating layer for personal and team workflows.
-This repository currently contains only the project foundation: documentation,
-environment conventions, infrastructure placeholders, and empty application
-directories.
+This repository contains the project foundation and the first Kairos Core API
+implementation.
 
-No API or dashboard application code has been implemented yet.
+The dashboard application has not been implemented yet.
 
 ## Repository Structure
 
@@ -39,7 +38,8 @@ No API or dashboard application code has been implemented yet.
 ## Current Status
 
 - Foundation repository initialized.
-- API and dashboard directories are reserved but intentionally empty.
+- Kairos Core API v0.1 is implemented with FastAPI under `apps/api/`.
+- The dashboard directory is reserved but intentionally empty.
 - Data, scripts, and infrastructure configuration directories are reserved.
 - Local development services are described in `infra/docker-compose.dev.yml`.
 - Architecture and development notes live in `docs/`.
@@ -62,6 +62,16 @@ No API or dashboard application code has been implemented yet.
 
    ```sh
    docker compose -f infra/docker-compose.dev.yml up -d
+   ```
+
+4. Install and run the API:
+
+   ```sh
+   cd apps/api
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -e .
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
 ## Documentation

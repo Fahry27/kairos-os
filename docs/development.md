@@ -3,11 +3,12 @@
 ## Prerequisites
 
 - Git
+- Python 3.12 or newer
 - Docker Desktop or a compatible Docker Engine
 - Docker Compose v2
 
-No application runtime is required yet because API and dashboard code have not
-been implemented.
+The API runtime lives in `apps/api/`. The dashboard has not been implemented
+yet.
 
 ## Initial Setup
 
@@ -40,15 +41,47 @@ Remove local service data:
 docker compose -f infra/docker-compose.dev.yml down -v
 ```
 
+## API Development
+
+Install API dependencies:
+
+```sh
+cd apps/api
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+```
+
+Run the API:
+
+```sh
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Run API tests:
+
+```sh
+pytest
+```
+
+The API reads configuration from environment variables and the repository root
+`.env` file. `DATABASE_URL` should point at PostgreSQL for local development.
+
+Verify the health endpoint:
+
+```sh
+curl http://localhost:8000/health
+curl http://localhost:8000/api/v1/health
+```
+
 ## Application Directories
 
 The following directories are reserved for future implementation work:
 
-- `apps/api/`
 - `apps/dashboard/`
 
-Do not add FastAPI or Next.js application code until the implementation scope
-has been defined.
+Do not add Next.js application code until the dashboard implementation scope has
+been defined.
 
 ## Reserved Support Directories
 
@@ -84,6 +117,13 @@ For foundation-only changes, verify:
 ```sh
 git status --short
 docker compose -f infra/docker-compose.dev.yml config
+```
+
+For API changes, also verify:
+
+```sh
+cd apps/api
+pytest
 ```
 
 The Docker Compose command requires Docker Compose to be installed locally.
