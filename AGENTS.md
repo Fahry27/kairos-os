@@ -5,9 +5,8 @@ repository.
 
 ## Project State
 
-Kairos OS now includes Kairos Core API v0.1 under `apps/api/`. The repository
-should remain free of dashboard application code until dashboard implementation
-work is explicitly requested.
+Kairos OS now includes Kairos Core API under `apps/api/` and Kairos Dashboard
+under `apps/dashboard/`.
 
 ## Working Principles
 
@@ -22,7 +21,7 @@ work is explicitly requested.
 ## Expected Layout
 
 - `apps/api/` contains the FastAPI service.
-- `apps/dashboard/` is reserved for the future Next.js dashboard.
+- `apps/dashboard/` contains the Next.js dashboard.
 - `data/` is reserved for local seed data, fixtures, exports, and generated
   runtime data that should be reviewed before committing.
 - `docs/` contains product, architecture, and development documentation.
@@ -37,7 +36,7 @@ Before handing off foundation work, confirm that:
 
 - Required files exist.
 - `apps/api/` contains only API implementation code.
-- `apps/dashboard/` contains no implementation code.
+- `apps/dashboard/` contains only dashboard implementation code.
 - Reserved data, scripts, and infrastructure configuration directories exist.
 - Docker Compose configuration is syntactically valid when Docker is available.
 - Documentation reflects the actual repository state.

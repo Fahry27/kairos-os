@@ -4,7 +4,7 @@ Kairos OS is a development-stage operating layer for personal and team workflows
 This repository contains the project foundation and the first Kairos Core API
 implementation.
 
-The dashboard application has not been implemented yet.
+The dashboard application now provides a read-only view of the Kairos Core API.
 
 ## Repository Structure
 
@@ -42,7 +42,7 @@ The dashboard application has not been implemented yet.
 - Kairos Core API is Dockerized for local development through
   `infra/docker-compose.dev.yml`.
 - Current milestone: Kairos Core API v0.2 adds the Docker Compose API service.
-- The dashboard directory is reserved but intentionally empty.
+- Kairos Dashboard v0.1 is implemented with Next.js under `apps/dashboard/`.
 - Data, scripts, and infrastructure configuration directories are reserved.
 - Local development services are described in `infra/docker-compose.dev.yml`.
 - Architecture and development notes live in `docs/`.
@@ -83,6 +83,19 @@ The dashboard application has not been implemented yet.
    python -m pip install -e .
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
+
+6. Run the dashboard:
+
+   ```sh
+   cd apps/dashboard
+   npm install
+   npm run dev
+   ```
+
+   Open `http://localhost:3000`.
+
+   Set `NEXT_PUBLIC_KAIROS_API_URL` if the API is not running at
+   `http://localhost:8000`.
 
 ## Documentation
 

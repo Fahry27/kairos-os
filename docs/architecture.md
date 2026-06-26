@@ -10,7 +10,7 @@ v0.1 is the first implemented application component.
 
 ```text
 apps/api/        FastAPI service code.
-apps/dashboard/  Future Next.js dashboard code.
+apps/dashboard/  Next.js dashboard code.
 data/            Reserved data workspace.
 docs/            Architecture, development, and product documentation.
 infra/           Infrastructure definitions and local service orchestration.
@@ -18,8 +18,7 @@ infra/config/    Portable infrastructure configuration.
 scripts/         Development and operations helper scripts.
 ```
 
-The `apps/dashboard/` directory is intentionally empty until dashboard
-implementation begins.
+The `apps/dashboard/` directory contains the read-only dashboard application.
 
 ## Planned Components
 
@@ -31,9 +30,8 @@ database target, configured through environment variables.
 
 ### Dashboard
 
-The dashboard is reserved for the future Next.js user interface. No Next.js
-application code, build system, or routing layer has been added in this
-foundation phase.
+The dashboard is implemented with Next.js as a read-only interface for Kairos
+Core API health, projects, tasks, and memories.
 
 ### Infrastructure
 

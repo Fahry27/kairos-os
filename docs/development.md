@@ -7,8 +7,8 @@
 - Docker Desktop or a compatible Docker Engine
 - Docker Compose v2
 
-The API runtime lives in `apps/api/`. The dashboard has not been implemented
-yet.
+The API runtime lives in `apps/api/`. The dashboard runtime lives in
+`apps/dashboard/`.
 
 ## Initial Setup
 
@@ -132,14 +132,50 @@ curl http://localhost:8000/health
 curl http://localhost:8000/api/v1/health
 ```
 
+## Dashboard Development
+
+The dashboard is a read-only Next.js App Router app that reads from the Kairos
+API at `http://localhost:8000` by default.
+
+Install dashboard dependencies:
+
+```sh
+cd apps/dashboard
+npm install
+```
+
+Run the dashboard:
+
+```sh
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+The dashboard displays API health, projects, tasks, and memories. Override the
+API URL with `NEXT_PUBLIC_KAIROS_API_URL` when needed.
+
+Verify the dashboard can read API data:
+
+```sh
+curl http://localhost:8000/health
+curl http://localhost:8000/api/v1/projects
+open http://localhost:3000
+```
+
 ## Application Directories
 
-The following directories are reserved for future implementation work:
+Application code is split by runtime:
 
-- `apps/dashboard/`
+- `apps/api/` contains the FastAPI service.
+- `apps/dashboard/` contains the read-only Next.js dashboard.
 
-Do not add Next.js application code until the dashboard implementation scope has
-been defined.
+Future dashboard modules beyond the v0.1 read-only surface should stay small,
+reviewable, and tied to an explicit implementation task.
 
 ## Reserved Support Directories
 
