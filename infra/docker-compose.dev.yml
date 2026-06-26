@@ -6,7 +6,7 @@ services:
     container_name: kairos-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-kairos_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-kairos}
       POSTGRES_USER: ${POSTGRES_USER:-kairos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kairos_dev_password}
     ports:
@@ -18,6 +18,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: kairos-qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - kairos_qdrant_data:/qdrant/storage
 
   redis:
     image: redis:7-alpine
@@ -36,4 +46,5 @@ services:
 
 volumes:
   kairos_postgres_data:
+  kairos_qdrant_data:
   kairos_redis_data:
