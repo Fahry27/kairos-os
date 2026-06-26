@@ -23,10 +23,16 @@ development.
 
 ## Local Infrastructure
 
-Start local services:
+Start all local services:
 
 ```sh
 docker compose -f infra/docker-compose.dev.yml up -d
+```
+
+Start the API and PostgreSQL only:
+
+```sh
+docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
 ```
 
 Stop local services:
@@ -41,9 +47,59 @@ Remove local service data:
 docker compose -f infra/docker-compose.dev.yml down -v
 ```
 
+## Kairos API via Docker Compose
+
+The recommended development path is Docker Compose. The `kairos-api` service
+builds `apps/api`, waits for the `postgres` service health check, mounts the API
+source into `/app`, connects to PostgreSQL through the internal Docker hostname
+`postgres`, and exposes the API on `http://localhost:8000`.
+
+Start the API:
+
+```sh
+docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
+```
+
+View API logs:
+
+```sh
+docker compose -f infra/docker-compose.dev.yml logs -f kairos-api
+```
+
+Verify the Dockerized API:
+
+```sh
+curl http://localhost:8000/health
+curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/v1/projects
+```
+
+Expected response:
+
+```json
+{"status":"ok","service":"Kairos API","version":"0.2.0"}
+```
+
+Stop the API:
+
+```sh
+docker compose -f infra/docker-compose.dev.yml stop kairos-api
+```
+
+If PostgreSQL was first started before `POSTGRES_DB=kairos` was configured, the
+existing Docker volume may not contain the `kairos` database. For a disposable
+development reset, stop services and remove volumes:
+
+```sh
+docker compose -f infra/docker-compose.dev.yml down -v
+docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
+```
+
+This deletes local development database data.
+
 ## API Development
 
-Install API dependencies:
+For direct local Python development, install API dependencies:
 
 ```sh
 cd apps/api
@@ -65,7 +121,9 @@ pytest
 ```
 
 The API reads configuration from environment variables and the repository root
-`.env` file. `DATABASE_URL` should point at PostgreSQL for local development.
+`.env` file. For direct local Python development, `DATABASE_URL` should point at
+PostgreSQL on `localhost`. Docker Compose overrides it to use
+`postgresql+psycopg://...@postgres:5432/...` inside the Compose network.
 
 Verify the health endpoint:
 

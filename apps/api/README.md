@@ -1,6 +1,6 @@
 # Kairos Core API
 
-Kairos Core API v0.1 is a FastAPI service for the first Kairos domain modules:
+Kairos Core API is a FastAPI service for the first Kairos domain modules:
 
 - Projects
 - Tasks
@@ -25,13 +25,39 @@ Copy the root environment example if needed:
 cp ../../.env.example ../../.env
 ```
 
-Start local infrastructure from the repository root:
+## Docker Compose
+
+Start the API and its PostgreSQL dependency through Docker Compose from the
+repository root:
 
 ```sh
-docker compose -f infra/docker-compose.dev.yml up -d postgres
+docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
 ```
 
-Run the API from `apps/api/`:
+The API container uses the Docker-internal hostname `postgres` for
+`DATABASE_URL`:
+
+```text
+postgresql+psycopg://kairos:kairos_dev_password@postgres:5432/kairos
+```
+
+View API logs:
+
+```sh
+docker compose -f infra/docker-compose.dev.yml logs -f kairos-api
+```
+
+Verify the Dockerized API:
+
+```sh
+curl http://localhost:8000/health
+curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/v1/projects
+```
+
+## Manual Uvicorn Run
+
+Run the API directly from `apps/api/` when you do not want to use Docker:
 
 ```sh
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -45,15 +71,15 @@ pytest
 
 ## Environment Variables
 
-- `APP_NAME`: service name, default `kairos-api`.
-- `APP_VERSION`: service version, default `0.1.0`.
+- `APP_NAME`: service name.
+- `APP_VERSION`: service version.
 - `API_V1_PREFIX`: versioned API prefix, default `/api/v1`.
 - `DATABASE_URL`: SQLAlchemy PostgreSQL URL.
 - `CORS_ORIGINS`: comma-separated list of allowed browser origins.
 - `CREATE_TABLES_ON_STARTUP`: create tables automatically for v0.1.
   Defaults to `true`.
 
-Local PostgreSQL default:
+Local host PostgreSQL default:
 
 ```text
 postgresql+psycopg://kairos:kairos_dev_password@localhost:5432/kairos

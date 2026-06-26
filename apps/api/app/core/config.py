@@ -1,15 +1,23 @@
 from functools import lru_cache
+import json
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+API_ROOT = Path(__file__).resolve().parents[2]
+
+
+def resolve_env_file() -> Path:
+    for parent in (API_ROOT, *API_ROOT.parents):
+        if (parent / ".env").exists() or (parent / ".env.example").exists():
+            return parent / ".env"
+    return API_ROOT / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=REPO_ROOT / ".env",
+        env_file=resolve_env_file(),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -25,17 +33,17 @@ class Settings(BaseSettings):
         default=True,
         validation_alias="CREATE_TABLES_ON_STARTUP",
     )
-    cors_origins: list[str] = Field(
-        default_factory=list,
+    cors_origins: str = Field(
+        default="",
         validation_alias="CORS_ORIGINS",
     )
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def split_cors_origins(cls, value: str | list[str]) -> list[str]:
-        if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+    @property
+    def cors_origin_list(self) -> list[str]:
+        if self.cors_origins.strip().startswith("["):
+            parsed = json.loads(self.cors_origins)
+            return [str(origin).strip() for origin in parsed if str(origin).strip()]
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache

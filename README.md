@@ -39,6 +39,9 @@ The dashboard application has not been implemented yet.
 
 - Foundation repository initialized.
 - Kairos Core API v0.1 is implemented with FastAPI under `apps/api/`.
+- Kairos Core API is Dockerized for local development through
+  `infra/docker-compose.dev.yml`.
+- Current milestone: Kairos Core API v0.2 adds the Docker Compose API service.
 - The dashboard directory is reserved but intentionally empty.
 - Data, scripts, and infrastructure configuration directories are reserved.
 - Local development services are described in `infra/docker-compose.dev.yml`.
@@ -61,10 +64,17 @@ The dashboard application has not been implemented yet.
 3. Start local infrastructure when needed:
 
    ```sh
-   docker compose -f infra/docker-compose.dev.yml up -d
+   docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
    ```
 
-4. Install and run the API:
+4. Verify the API:
+
+   ```sh
+   curl http://localhost:8000/health
+   curl http://localhost:8000/api/v1/health
+   ```
+
+5. Run the API without Docker if needed:
 
    ```sh
    cd apps/api
