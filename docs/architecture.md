@@ -18,7 +18,7 @@ infra/config/    Portable infrastructure configuration.
 scripts/         Development and operations helper scripts.
 ```
 
-The `apps/dashboard/` directory contains the read-only dashboard application.
+The `apps/dashboard/` directory contains the dashboard application.
 
 ## Planned Components
 
@@ -31,8 +31,10 @@ Compose runs use PostgreSQL through environment-based configuration.
 
 ### Dashboard
 
-The dashboard is implemented with Next.js as a read-only interface for Kairos
-Core API health, projects, tasks, and memories.
+The dashboard is implemented with Next.js as a simple local interface for Kairos
+Core API health, projects, tasks, and memories. v0.4 adds lightweight create
+actions while leaving authentication, editing, deletion, and richer workflows for
+later milestones.
 
 ### Infrastructure
 

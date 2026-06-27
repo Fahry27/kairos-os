@@ -4,7 +4,8 @@ Kairos OS is a development-stage operating layer for personal and team workflows
 This repository contains the project foundation and the first Kairos Core API
 implementation.
 
-The dashboard application now provides a read-only view of the Kairos Core API.
+The dashboard application provides a simple local interface for reading from and
+creating records through the Kairos Core API.
 
 ## Repository Structure
 
@@ -43,7 +44,8 @@ The dashboard application now provides a read-only view of the Kairos Core API.
   for direct local API development.
 - Kairos Core API is Dockerized for local development through
   `infra/docker-compose.dev.yml`.
-- Kairos Dashboard v0.1 is implemented with Next.js under `apps/dashboard/`.
+- Kairos Dashboard v0.4 is implemented with lightweight create actions for
+  projects, tasks, and memories under `apps/dashboard/`.
 - Data, scripts, and infrastructure configuration directories are reserved.
 - Local development services are described in `infra/docker-compose.dev.yml`.
 - Architecture and development notes live in `docs/`.

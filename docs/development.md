@@ -152,8 +152,8 @@ curl http://localhost:8000/api/v1/projects
 
 ## Dashboard Development
 
-The dashboard is a read-only Next.js App Router app that reads from the Kairos
-API at `http://localhost:8000` by default.
+The dashboard is a Next.js App Router app that reads from and writes to the
+Kairos API at `http://localhost:8000` by default.
 
 Install dashboard dependencies:
 
@@ -174,8 +174,9 @@ Open:
 http://localhost:3000
 ```
 
-The dashboard displays API health, projects, tasks, and memories. Override the
-API URL with `NEXT_PUBLIC_KAIROS_API_URL` when needed.
+The dashboard displays API health, projects, tasks, and memories. It also
+includes lightweight create actions for those three resources. Override the API
+URL with `NEXT_PUBLIC_KAIROS_API_URL` when needed.
 
 Verify the dashboard can read API data:
 
@@ -184,6 +185,9 @@ curl http://localhost:8000/health
 curl http://localhost:8000/api/v1/projects
 open http://localhost:3000
 ```
+
+Verify dashboard write actions by creating one project, task, and memory in the
+browser, then checking the API list endpoints again.
 
 ## Application Directories
 

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Kairos Dashboard",
-  description: "Read-only dashboard for Kairos Core API.",
+  description: "Local dashboard for Kairos Core API.",
 };
 
 export default function RootLayout({

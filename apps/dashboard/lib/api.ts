@@ -21,6 +21,12 @@ export type Project = {
   updated_at: string;
 };
 
+export type ProjectCreate = {
+  name: string;
+  description?: string;
+  priority?: string;
+};
+
 export type Task = {
   id: string;
   project_id?: string | null;
@@ -33,6 +39,13 @@ export type Task = {
   updated_at: string;
 };
 
+export type TaskCreate = {
+  title: string;
+  description?: string;
+  priority?: string;
+  project_id?: string;
+};
+
 export type Memory = {
   id: string;
   type: string;
@@ -42,6 +55,14 @@ export type Memory = {
   importance: string;
   created_at: string;
   updated_at: string;
+};
+
+export type MemoryCreate = {
+  type?: string;
+  content: string;
+  source?: string;
+  tags?: string[];
+  importance?: string;
 };
 
 export async function fetchFromApi<T>(path: string): Promise<ApiResult<T>> {
@@ -65,6 +86,33 @@ export async function fetchFromApi<T>(path: string): Promise<ApiResult<T>> {
   }
 }
 
+export async function postToApi<T, TPayload extends object>(
+  path: string,
+  payload: TPayload,
+): Promise<ApiResult<T>> {
+  try {
+    const response = await fetch(`${KAIROS_API_URL}${path}`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: `${response.status} ${response.statusText}` };
+    }
+
+    return { ok: true, data: (await response.json()) as T };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown request error",
+    };
+  }
+}
+
 export function getHealth() {
   return fetchFromApi<Health>("/health");
 }
@@ -73,10 +121,22 @@ export function getProjects() {
   return fetchFromApi<Project[]>("/api/v1/projects");
 }
 
+export function createProject(payload: ProjectCreate) {
+  return postToApi<Project, ProjectCreate>("/api/v1/projects", payload);
+}
+
 export function getTasks() {
   return fetchFromApi<Task[]>("/api/v1/tasks");
 }
 
+export function createTask(payload: TaskCreate) {
+  return postToApi<Task, TaskCreate>("/api/v1/tasks", payload);
+}
+
 export function getMemories() {
   return fetchFromApi<Memory[]>("/api/v1/memories");
+}
+
+export function createMemory(payload: MemoryCreate) {
+  return postToApi<Memory, MemoryCreate>("/api/v1/memories", payload);
 }

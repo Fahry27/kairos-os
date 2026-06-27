@@ -36,6 +36,39 @@ select {
   font: inherit;
 }
 
+button {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+input,
+textarea,
+select {
+  background: #ffffff;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  color: var(--text);
+  min-height: 38px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
 .page {
   margin: 0 auto;
   max-width: 1280px;
@@ -160,6 +193,31 @@ select {
 .stack {
   display: grid;
   gap: 12px;
+}
+
+.resourceForm {
+  background: #f8fafc;
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px;
+}
+
+.resourceForm label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.formFooter {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .record {

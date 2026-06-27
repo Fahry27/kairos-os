@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getTasks, type ApiResult, type Task } from "../lib/api";
+import { type FormEvent, useEffect, useState } from "react";
+import { createTask, getTasks, type ApiResult, type Task } from "../lib/api";
 
 function formatDate(value?: string | null) {
   return value ? new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value)) : "-";
@@ -9,11 +9,16 @@ function formatDate(value?: string | null) {
 
 export function TasksList() {
   const [result, setResult] = useState<ApiResult<Task[]> | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
-    getTasks().then((nextResult) => {
+    loadTasks().then((nextResult) => {
       if (mounted) {
         setResult(nextResult);
       }
@@ -24,6 +29,39 @@ export function TasksList() {
     };
   }, []);
 
+  async function loadTasks() {
+    return getTasks();
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitError(null);
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setSubmitError("Task title is required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const created = await createTask({
+      title: trimmedTitle,
+      description: description.trim() || undefined,
+      priority,
+    });
+
+    if (created.ok) {
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setResult(await loadTasks());
+    } else {
+      setSubmitError(`Unable to create task: ${created.error}`);
+    }
+
+    setIsSubmitting(false);
+  }
+
   return (
     <section className="card">
       <div className="sectionHeader">
@@ -32,6 +70,40 @@ export function TasksList() {
           <h2>Queue</h2>
         </div>
       </div>
+      <form className="resourceForm" onSubmit={handleSubmit}>
+        <label>
+          <span>Title</span>
+          <input
+            maxLength={255}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="New task"
+            value={title}
+          />
+        </label>
+        <label>
+          <span>Description</span>
+          <textarea
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Optional details"
+            rows={2}
+            value={description}
+          />
+        </label>
+        <div className="formFooter">
+          <label>
+            <span>Priority</span>
+            <select onChange={(event) => setPriority(event.target.value)} value={priority}>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <button disabled={isSubmitting} type="submit">
+            {isSubmitting ? "Creating..." : "Create Task"}
+          </button>
+        </div>
+        {submitError && <p className="errorText">{submitError}</p>}
+      </form>
       {!result && <p className="stateText">Loading tasks...</p>}
       {result && !result.ok && <p className="errorText">Unable to load tasks: {result.error}</p>}
       {result?.ok && result.data.length === 0 && (
