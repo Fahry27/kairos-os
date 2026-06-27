@@ -33,8 +33,12 @@ class Settings(BaseSettings):
         default=True,
         validation_alias="CREATE_TABLES_ON_STARTUP",
     )
+    use_mock_data: bool = Field(
+        default=True,
+        validation_alias="USE_MOCK_DATA",
+    )
     cors_origins: str = Field(
-        default="",
+        default="http://localhost:3000,http://127.0.0.1:3000",
         validation_alias="CORS_ORIGINS",
     )
 

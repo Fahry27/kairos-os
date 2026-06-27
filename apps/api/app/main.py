@@ -12,7 +12,7 @@ from app.db.base import create_db_and_tables
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    if settings.create_tables_on_startup:
+    if settings.create_tables_on_startup and not settings.use_mock_data:
         create_db_and_tables()
     yield
 
