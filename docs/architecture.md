@@ -4,7 +4,7 @@
 
 Kairos OS is planned as a modular system with an API service, a dashboard
 experience, shared documentation, and supporting infrastructure. Kairos Core API
-v0.1 is the first implemented application component.
+v0.3 is the current local API milestone.
 
 ## Repository Boundaries
 
@@ -25,8 +25,9 @@ The `apps/dashboard/` directory contains the read-only dashboard application.
 ### API
 
 The API is implemented with FastAPI and SQLAlchemy. It exposes health checks and
-basic CRUD modules for Projects, Tasks, and Memories. PostgreSQL is the primary
-database target, configured through environment variables.
+basic CRUD modules for Projects, Tasks, and Memories. Direct local development
+uses persistent SQLite storage in the repository `data/` workspace. Docker
+Compose runs use PostgreSQL through environment-based configuration.
 
 ### Dashboard
 
@@ -50,9 +51,9 @@ Server LTS migration.
 
 ### Data
 
-The `data/` directory is reserved for future seed data, fixtures, exports, and
-local runtime data workflows. It should not become a hidden dependency for the
-foundation repository.
+The `data/` directory is reserved for seed data, fixtures, exports, and local
+runtime data workflows. Direct local API runs store the SQLite database there by
+default. Runtime database files are local-only and ignored by Git.
 
 ### Scripts
 

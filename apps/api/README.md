@@ -6,8 +6,9 @@ Kairos Core API is a FastAPI service for the first Kairos domain modules:
 - Tasks
 - Memories
 
-The service uses SQLAlchemy with PostgreSQL and environment-based
-configuration.
+The service uses SQLAlchemy with environment-based configuration. Direct local
+runs use persistent SQLite storage by default. Docker Compose runs still use
+PostgreSQL inside the Compose network.
 
 ## Setup
 
@@ -63,6 +64,15 @@ Run the API directly from `apps/api/` when you do not want to use Docker:
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+The default local database file is:
+
+```text
+data/kairos-local.sqlite3
+```
+
+On startup, the API creates the database tables automatically and seeds the
+default Kairos project, task, and memory only when the database is empty.
+
 Run tests from `apps/api/`:
 
 ```sh
@@ -74,15 +84,18 @@ pytest
 - `APP_NAME`: service name.
 - `APP_VERSION`: service version.
 - `API_V1_PREFIX`: versioned API prefix, default `/api/v1`.
-- `DATABASE_URL`: SQLAlchemy PostgreSQL URL.
+- `DATABASE_URL`: SQLAlchemy database URL.
 - `CORS_ORIGINS`: comma-separated list of allowed browser origins.
-- `CREATE_TABLES_ON_STARTUP`: create tables automatically for v0.1.
+- `CREATE_TABLES_ON_STARTUP`: create tables automatically for local
+  development.
   Defaults to `true`.
+- `USE_MOCK_DATA`: serve in-memory local mock data instead of the configured
+  database. Defaults to `false`.
 
-Local host PostgreSQL default:
+Direct local SQLite default:
 
 ```text
-postgresql+psycopg://kairos:kairos_dev_password@localhost:5432/kairos
+sqlite:///.../data/kairos-local.sqlite3
 ```
 
 ## Endpoints

@@ -1,8 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, DateTime, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+from sqlalchemy import JSON, DateTime, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -11,7 +10,7 @@ from app.db.base import Base
 class Memory(Base):
     __tablename__ = "memories"
 
-    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     type: Mapped[str] = mapped_column(String(50), nullable=False, default="note", index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     source: Mapped[str | None] = mapped_column(String(255), nullable=True)

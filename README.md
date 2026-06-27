@@ -38,10 +38,11 @@ The dashboard application now provides a read-only view of the Kairos Core API.
 ## Current Status
 
 - Foundation repository initialized.
-- Kairos Core API v0.1 is implemented with FastAPI under `apps/api/`.
+- Kairos Core API is implemented with FastAPI under `apps/api/`.
+- Current milestone: Kairos Core API v0.3 uses persistent local SQLite storage
+  for direct local API development.
 - Kairos Core API is Dockerized for local development through
   `infra/docker-compose.dev.yml`.
-- Current milestone: Kairos Core API v0.2 adds the Docker Compose API service.
 - Kairos Dashboard v0.1 is implemented with Next.js under `apps/dashboard/`.
 - Data, scripts, and infrastructure configuration directories are reserved.
 - Local development services are described in `infra/docker-compose.dev.yml`.
@@ -83,6 +84,8 @@ The dashboard application now provides a read-only view of the Kairos Core API.
    python -m pip install -e .
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
+
+   Direct local runs store API data in `data/kairos-local.sqlite3` by default.
 
 6. Run the dashboard:
 

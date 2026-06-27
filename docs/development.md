@@ -77,7 +77,7 @@ curl http://localhost:8000/api/v1/projects
 Expected response:
 
 ```json
-{"status":"ok","service":"Kairos API","version":"0.2.0"}
+{"status":"ok","service":"Kairos API","version":"0.3.0"}
 ```
 
 Stop the API:
@@ -121,15 +121,33 @@ pytest
 ```
 
 The API reads configuration from environment variables and the repository root
-`.env` file. For direct local Python development, `DATABASE_URL` should point at
-PostgreSQL on `localhost`. Docker Compose overrides it to use
+`.env` file. For direct local Python development, the default `DATABASE_URL`
+points at a persistent SQLite file in `data/kairos-local.sqlite3`. Docker
+Compose overrides it to use
 `postgresql+psycopg://...@postgres:5432/...` inside the Compose network.
+The API creates tables automatically and seeds the default Kairos project, task,
+and memory only when the database is empty.
+
+To reset only the direct local SQLite API data, stop the API and remove:
+
+```text
+data/kairos-local.sqlite3
+```
 
 Verify the health endpoint:
 
 ```sh
 curl http://localhost:8000/health
 curl http://localhost:8000/api/v1/health
+```
+
+Verify local SQLite persistence:
+
+```sh
+curl -X POST http://localhost:8000/api/v1/projects \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Local SQLite Project"}'
+curl http://localhost:8000/api/v1/projects
 ```
 
 ## Dashboard Development

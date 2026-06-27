@@ -10,3 +10,12 @@ def create_db_and_tables() -> None:
     from app.models import Memory, Project, Task  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+
+def initialize_database() -> None:
+    from app.db.seed import seed_default_data_if_empty
+    from app.db.session import SessionLocal
+
+    create_db_and_tables()
+    with SessionLocal() as db:
+        seed_default_data_if_empty(db)

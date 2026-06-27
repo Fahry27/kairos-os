@@ -6,14 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
-from app.db.base import create_db_and_tables
+from app.db.base import initialize_database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     if settings.create_tables_on_startup and not settings.use_mock_data:
-        create_db_and_tables()
+        initialize_database()
     yield
 
 

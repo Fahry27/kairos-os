@@ -6,6 +6,8 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = API_ROOT.parents[1]
+LOCAL_SQLITE_PATH = REPO_ROOT / "data" / "kairos-local.sqlite3"
 
 
 def resolve_env_file() -> Path:
@@ -23,10 +25,10 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="0.1.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="0.3.0", validation_alias="APP_VERSION")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     database_url: str = Field(
-        default="postgresql+psycopg://kairos:kairos_dev_password@localhost:5432/kairos",
+        default=f"sqlite:///{LOCAL_SQLITE_PATH}",
         validation_alias="DATABASE_URL",
     )
     create_tables_on_startup: bool = Field(
@@ -34,7 +36,7 @@ class Settings(BaseSettings):
         validation_alias="CREATE_TABLES_ON_STARTUP",
     )
     use_mock_data: bool = Field(
-        default=True,
+        default=False,
         validation_alias="USE_MOCK_DATA",
     )
     cors_origins: str = Field(
