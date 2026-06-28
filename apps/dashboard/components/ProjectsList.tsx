@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   createProject,
@@ -17,9 +18,13 @@ function formatDate(value?: string | null) {
 function ProjectItem({
   project,
   onMutated,
+  isFocused,
+  onFocus,
 }: {
   project: Project;
   onMutated: () => void;
+  isFocused: boolean;
+  onFocus: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -132,6 +137,11 @@ function ProjectItem({
         <span>Updated: {formatDate(project.updated_at)}</span>
       </div>
       <div className="recordActions">
+        {!isFocused && (
+          <button className="btnSmall btnOutline" onClick={onFocus} type="button">
+            View
+          </button>
+        )}
         <button className="btnSmall btnOutline" onClick={startEditing} type="button">
           Edit
         </button>
@@ -145,6 +155,10 @@ function ProjectItem({
 }
 
 export function ProjectsList() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const focusedProjectId = searchParams.get("project_id");
+
   const [result, setResult] = useState<ApiResult<Project[]> | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -205,8 +219,21 @@ export function ProjectsList() {
     setIsSubmitting(false);
   }
 
+  function handleFocus(projectId: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("project_id", projectId);
+    router.push(`/?${params.toString()}`);
+  }
+
+  function handleClearFocus() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("project_id");
+    router.push(`/?${params.toString()}`);
+  }
+
   const filteredProjects = result?.ok
     ? result.data.filter((p) => {
+        if (focusedProjectId && p.id !== focusedProjectId) return false;
         const q = searchQuery.toLowerCase();
         return (
           p.name.toLowerCase().includes(q) ||
@@ -214,6 +241,10 @@ export function ProjectsList() {
         );
       })
     : [];
+
+  const focusedProject = result?.ok && focusedProjectId
+    ? result.data.find((p) => p.id === focusedProjectId)
+    : null;
 
   return (
     <section className="card">
@@ -223,46 +254,67 @@ export function ProjectsList() {
           <h2>Active Work</h2>
         </div>
       </div>
-      <form className="resourceForm" onSubmit={handleSubmit}>
-        <label>
-          <span>Name</span>
-          <input
-            maxLength={255}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="New project"
-            value={name}
-          />
-        </label>
-        <label>
-          <span>Description</span>
-          <textarea
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Optional context"
-            rows={2}
-            value={description}
-          />
-        </label>
-        <div className="formFooter">
-          <label>
-            <span>Priority</span>
-            <select onChange={(event) => setPriority(event.target.value)} value={priority}>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-          <button disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Creating..." : "Create Project"}
+
+      {focusedProjectId && (
+        <div style={{
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "var(--accent-soft)",
+          padding: "12px",
+          borderRadius: "6px"
+        }}>
+          <strong>Focused on: {focusedProject?.name ?? "Unknown Project"}</strong>
+          <button className="btnSmall btnOutline" onClick={handleClearFocus} type="button" style={{ background: "white" }}>
+            Clear focus
           </button>
         </div>
-        {submitError && <p className="errorText">{submitError}</p>}
-      </form>
+      )}
+
+      {!focusedProjectId && (
+        <form className="resourceForm" onSubmit={handleSubmit}>
+          <label>
+            <span>Name</span>
+            <input
+              maxLength={255}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="New project"
+              value={name}
+            />
+          </label>
+          <label>
+            <span>Description</span>
+            <textarea
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Optional context"
+              rows={2}
+              value={description}
+            />
+          </label>
+          <div className="formFooter">
+            <label>
+              <span>Priority</span>
+              <select onChange={(event) => setPriority(event.target.value)} value={priority}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <button disabled={isSubmitting} type="submit">
+              {isSubmitting ? "Creating..." : "Create Project"}
+            </button>
+          </div>
+          {submitError && <p className="errorText">{submitError}</p>}
+        </form>
+      )}
+
       {!result && <p className="stateText">Loading projects...</p>}
       {result && !result.ok && <p className="errorText">Unable to load projects: {result.error}</p>}
       {result?.ok && result.data.length === 0 && (
         <p className="stateText">No projects yet. When projects exist, they will appear here.</p>
       )}
-      {result?.ok && result.data.length > 0 && (
+      {result?.ok && result.data.length > 0 && !focusedProjectId && (
         <div className="filtersRow">
           <label>
             <span>Search Projects</span>
@@ -280,7 +332,13 @@ export function ProjectsList() {
       {result?.ok && filteredProjects.length > 0 && (
         <div className="stack">
           {filteredProjects.map((project) => (
-            <ProjectItem key={project.id} onMutated={refresh} project={project} />
+            <ProjectItem
+              key={project.id}
+              isFocused={project.id === focusedProjectId}
+              onFocus={() => handleFocus(project.id)}
+              onMutated={refresh}
+              project={project}
+            />
           ))}
         </div>
       )}

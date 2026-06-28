@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class MemoryBase(BaseModel):
+    project_id: UUID | None = None
     type: str = "note"
     content: str = Field(min_length=1)
     source: str | None = Field(default=None, max_length=255)
@@ -17,6 +18,7 @@ class MemoryCreate(MemoryBase):
 
 
 class MemoryUpdate(BaseModel):
+    project_id: UUID | None = None
     type: str | None = None
     content: str | None = Field(default=None, min_length=1)
     source: str | None = Field(default=None, max_length=255)

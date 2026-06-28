@@ -11,6 +11,7 @@ class Memory(Base):
     __tablename__ = "memories"
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    project_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     type: Mapped[str] = mapped_column(String(50), nullable=False, default="note", index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     source: Mapped[str | None] = mapped_column(String(255), nullable=True)

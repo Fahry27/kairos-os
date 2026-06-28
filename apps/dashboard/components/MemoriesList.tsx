@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   createMemory,
@@ -170,6 +171,9 @@ function MemoryItem({
 }
 
 export function MemoriesList() {
+  const searchParams = useSearchParams();
+  const focusedProjectId = searchParams.get("project_id");
+
   const [result, setResult] = useState<ApiResult<Memory[]> | null>(null);
   const [type, setType] = useState("note");
   const [content, setContent] = useState("");
@@ -227,6 +231,7 @@ export function MemoriesList() {
       source: source.trim() || undefined,
       tags: parsedTags.length ? parsedTags : undefined,
       importance,
+      project_id: focusedProjectId || undefined,
     });
 
     if (created.ok) {
@@ -245,6 +250,7 @@ export function MemoriesList() {
 
   const filteredMemories = result?.ok
     ? result.data.filter((m) => {
+        if (focusedProjectId && m.project_id !== focusedProjectId) return false;
         const q = searchQuery.toLowerCase();
         const matchesSearch =
           m.content.toLowerCase().includes(q) ||

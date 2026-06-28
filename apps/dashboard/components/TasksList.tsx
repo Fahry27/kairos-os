@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   createTask,
@@ -159,6 +160,9 @@ function TaskRow({
 }
 
 export function TasksList() {
+  const searchParams = useSearchParams();
+  const focusedProjectId = searchParams.get("project_id");
+
   const [result, setResult] = useState<ApiResult<Task[]> | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -207,6 +211,7 @@ export function TasksList() {
       title: trimmedTitle,
       description: description.trim() || undefined,
       priority,
+      project_id: focusedProjectId || undefined,
     });
 
     if (created.ok) {
@@ -223,6 +228,7 @@ export function TasksList() {
 
   const filteredTasks = result?.ok
     ? result.data.filter((t) => {
+        if (focusedProjectId && t.project_id !== focusedProjectId) return false;
         const q = searchQuery.toLowerCase();
         const matchesSearch =
           t.title.toLowerCase().includes(q) ||

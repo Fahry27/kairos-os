@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { HealthCard } from "../components/HealthCard";
 import { MemoriesList } from "../components/MemoriesList";
 import { ProjectsList } from "../components/ProjectsList";
@@ -18,9 +19,15 @@ export default function DashboardPage() {
 
       <div className="dashboardGrid">
         <HealthCard />
-        <ProjectsList />
-        <TasksList />
-        <MemoriesList />
+        <Suspense fallback={<p className="stateText">Loading projects...</p>}>
+          <ProjectsList />
+        </Suspense>
+        <Suspense fallback={<p className="stateText">Loading tasks...</p>}>
+          <TasksList />
+        </Suspense>
+        <Suspense fallback={<p className="stateText">Loading memories...</p>}>
+          <MemoriesList />
+        </Suspense>
       </div>
     </main>
   );

@@ -82,6 +82,7 @@ TASKS = [
 MEMORIES = [
     {
         "id": KAIROS_MEMORY_ID,
+        "project_id": KAIROS_PROJECT_ID,
         "type": "technical_context",
         "content": (
             "Kairos Dashboard v0.2 reads health, projects, tasks, and memories "

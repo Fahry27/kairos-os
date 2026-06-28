@@ -48,6 +48,7 @@ export type TaskCreate = {
 
 export type Memory = {
   id: string;
+  project_id?: string | null;
   type: string;
   content: string;
   source?: string | null;
@@ -58,6 +59,7 @@ export type Memory = {
 };
 
 export type MemoryCreate = {
+  project_id?: string;
   type?: string;
   content: string;
   source?: string;
@@ -162,6 +164,7 @@ export type TaskUpdate = {
 };
 
 export type MemoryUpdate = {
+  project_id?: string | null;
   type?: string;
   content?: string;
   source?: string | null;
