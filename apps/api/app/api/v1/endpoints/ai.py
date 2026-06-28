@@ -15,6 +15,7 @@ from app.core.ai_runtime import (
     AICapabilities,
     AIProviderManifest,
     AIProviderReadiness,
+    AIProviderModelsResponse,
     PlanResponse,
 )
 from app.core.plugins import plugin_registry
@@ -138,7 +139,51 @@ def check_active_provider_readiness(
     _=Depends(verify_api_key),
 ):
     """Check if the currently configured AI provider is reachable."""
-    return check_provider_readiness(settings.kairos_ai_provider, settings=settings)
+    provider_id = f"ai.{settings.kairos_ai_provider}" if not settings.kairos_ai_provider.startswith("ai.") else settings.kairos_ai_provider
+    return check_provider_readiness(provider_id, settings=settings)
+
+
+@router.get("/providers/{provider_id}/models", response_model=AIProviderModelsResponse)
+def get_provider_models(
+    provider_id: str,
+    settings=Depends(get_settings),
+    _=Depends(verify_api_key),
+):
+    """List available models from the given AI provider.
+    
+    Safe, prompt-free check for local engines like Ollama.
+    """
+    if not settings.kairos_ai_enabled:
+        return AIProviderModelsResponse(
+            provider_id=provider_id,
+            checked=False,
+            reachable=None,
+            message="AI runtime is disabled.",
+        )
+        
+    provider = ai_runtime.get_provider(provider_id)
+    if not provider:
+        raise HTTPException(status_code=404, detail=f"AI provider '{provider_id}' not found")
+        
+    if provider_id == "ai.ollama":
+        return ai_runtime.get_ollama_models(settings)
+        
+    return AIProviderModelsResponse(
+        provider_id=provider_id,
+        checked=False,
+        reachable=None,
+        message="Model discovery not available for this provider type.",
+    )
+
+
+@router.get("/models", response_model=AIProviderModelsResponse)
+def get_active_provider_models(
+    settings=Depends(get_settings),
+    _=Depends(verify_api_key),
+):
+    """List available models for the currently configured AI provider."""
+    provider_id = f"ai.{settings.kairos_ai_provider}" if not settings.kairos_ai_provider.startswith("ai.") else settings.kairos_ai_provider
+    return get_provider_models(provider_id, settings=settings)
 
 
 @router.get("/capabilities", response_model=AICapabilities)

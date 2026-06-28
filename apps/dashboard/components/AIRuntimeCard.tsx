@@ -68,31 +68,64 @@ export function AIRuntimeCard() {
         {/* Model row */}
         <div style={rowStyle}>
           <span style={labelStyle}>Model</span>
-          <span style={{ ...valueStyle, opacity: caps.model ? 1 : 0.45 }}>
-            {caps.model ?? "not configured"}
-          </span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <span style={{ ...valueStyle, opacity: caps.model ? 1 : 0.45 }}>
+              {caps.model ?? "not configured"}
+            </span>
+            {caps.model && caps.discovered_models_enabled && caps.provider === "ollama" && (
+              <span
+                className="pill"
+                style={{
+                  fontSize: "0.65rem",
+                  padding: "0.1rem 0.35rem",
+                  background: caps.configured_model_available
+                    ? "rgba(74, 222, 128, 0.1)"
+                    : "rgba(248, 113, 113, 0.1)",
+                  color: caps.configured_model_available ? "var(--accent)" : "#f87171",
+                }}
+              >
+                {caps.configured_model_available ? "Available" : "Missing"}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Readiness row */}
         {caps.ai_enabled && caps.provider === "ollama" && (
           <div style={rowStyle}>
             <span style={labelStyle}>Readiness</span>
-            <span 
-              style={{ 
-                ...valueStyle, 
-                opacity: caps.provider_checked ? 1 : 0.65,
-                color: caps.provider_checked 
-                  ? (caps.provider_reachable ? "var(--accent)" : "#f87171") 
-                  : "var(--text-secondary)"
-              }} 
-              title={caps.provider_readiness_message || ""}
-            >
-              {!caps.provider_checked
-                ? "Not checked"
-                : caps.provider_reachable
-                  ? "Reachable"
-                  : "Not reachable"}
-            </span>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <span 
+                style={{ 
+                  ...valueStyle, 
+                  opacity: caps.provider_checked ? 1 : 0.65,
+                  color: caps.provider_checked 
+                    ? (caps.provider_reachable ? "var(--accent)" : "#f87171") 
+                    : "var(--text-secondary)"
+                }} 
+                title={caps.provider_readiness_message || ""}
+              >
+                {!caps.provider_checked
+                  ? "Not checked"
+                  : caps.provider_reachable
+                    ? "Reachable"
+                    : "Not reachable"}
+              </span>
+              {caps.provider_reachable && caps.model_count !== null && (
+                <span
+                  className="pill"
+                  style={{
+                    fontSize: "0.65rem",
+                    padding: "0.1rem 0.35rem",
+                    background: "var(--bg-secondary)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  {caps.model_count} models
+                </span>
+              )}
+            </div>
           </div>
         )}
 

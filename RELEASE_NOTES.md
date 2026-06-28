@@ -1,3 +1,22 @@
+# Kairos v2.2.0 Release Notes
+
+Welcome to Kairos v2.2.0, introducing **Ollama Model Discovery**.
+
+## Kairos v2.2.0
+**Date:** June 2026
+
+This release adds a safe, prompt-free model discovery mechanism that exposes locally available Ollama models through the AI Runtime without generating text or executing commands.
+
+### Features
+- **Ollama Model Discovery**: Retrieves available models via the configured `/api/tags` endpoint and exposes them through Kairos API.
+- **Model Manifest**: Introduced `OllamaModelManifest` mapping model metadata (size, digest, families).
+- **Discovery Endpoints**: Added `/api/v1/ai/models` and `/api/v1/ai/providers/{provider_id}/models`.
+- **Capabilities Enrichment**: `/api/v1/ai/capabilities` now returns `model_count`, `discovered_models_enabled`, and `configured_model_available`.
+- **Dashboard UI Update**: The AI Runtime card displays the model count and whether the configured model is available locally.
+- **Strict Safety**: Uses the same non-generative `urllib` approach as readiness checks, returning structured metadata on timeouts or errors.
+
+---
+
 # Kairos v2.1.0 Release Notes
 
 Welcome to Kairos v2.1.0, introducing the safe **Ollama Provider Readiness Check**.

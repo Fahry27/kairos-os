@@ -56,12 +56,42 @@ class AIProviderReadiness(BaseModel):
     message: str | None = None
 
 
+class OllamaModelDetails(BaseModel):
+    parent_model: str | None = None
+    format: str | None = None
+    family: str | None = None
+    families: list[str] | None = None
+    parameter_size: str | None = None
+    quantization_level: str | None = None
+
+
+class OllamaModelManifest(BaseModel):
+    name: str
+    model: str
+    modified_at: str | None = None
+    size: int | None = None
+    digest: str | None = None
+    details: OllamaModelDetails | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class AIProviderModelsResponse(BaseModel):
+    provider_id: str
+    checked: bool = False
+    reachable: bool | None = None
+    models: list[OllamaModelManifest] = Field(default_factory=list)
+    model_count: int = 0
+    configured_model_available: bool | None = None
+    error_type: str | None = None
+    message: str | None = None
+
+
 class AICapabilities(BaseModel):
     ai_enabled: bool
     provider: str
     model: str | None
     planning_enabled: bool
-    # execution_enabled is always False in v2.0 — hard-gated at the planner level
+    # execution_enabled is always False in v2.0/v2.1/v2.2 — hard-gated at the planner level
     execution_enabled: bool = False
     available_plugins: int
     available_commands: int
@@ -72,6 +102,11 @@ class AICapabilities(BaseModel):
     provider_reachable: bool | None = None
     provider_checked: bool = False
     provider_readiness_message: str | None = None
+    
+    # Discovery fields (added in v2.2.0)
+    model_count: int | None = None
+    discovered_models_enabled: bool = False
+    configured_model_available: bool | None = None
 
 
 class PlannedCommand(BaseModel):
@@ -284,16 +319,22 @@ class AIRuntime:
         )
 
         if caps.ai_enabled and caps.provider == "ollama":
-            readiness = self.check_ollama_readiness(settings)
-            caps.provider_checked = readiness.checked
-            caps.provider_reachable = readiness.reachable
-            caps.provider_readiness_message = readiness.message
-            if readiness.model_count is not None and not caps.model:
-                caps.provider_readiness_message += f" ({readiness.model_count} models available)"
+            discovery = self.get_ollama_models(settings)
+            caps.provider_checked = discovery.checked
+            caps.provider_reachable = discovery.reachable
+            caps.provider_readiness_message = discovery.message
+            caps.model_count = discovery.model_count
+            caps.discovered_models_enabled = settings.kairos_ollama_readiness_enabled
+            caps.configured_model_available = discovery.configured_model_available
+            if discovery.model_count > 0 and not caps.model:
+                caps.provider_readiness_message += f" ({discovery.model_count} models available)"
         elif caps.ai_enabled and caps.provider != "ollama":
             caps.provider_checked = False
             caps.provider_reachable = None
             caps.provider_readiness_message = "Metadata only provider; no readiness check available"
+            caps.model_count = None
+            caps.discovered_models_enabled = False
+            caps.configured_model_available = None
 
         return caps
 
@@ -390,6 +431,103 @@ class AIRuntime:
                 latency_ms=int((time.time() - start_time) * 1000),
                 error_type="unknown_error",
                 message="An unexpected error occurred during readiness check.",
+            )
+
+    def get_ollama_models(self, settings) -> AIProviderModelsResponse:
+        """
+        Safe, prompt-free model discovery for Ollama.
+        Only calls GET KAIROS_OLLAMA_TAGS_PATH.
+        """
+        base_url = settings.kairos_ollama_base_url
+        tags_path = settings.kairos_ollama_tags_path
+        timeout = settings.kairos_ollama_timeout_seconds
+        
+        if not settings.kairos_ollama_readiness_enabled:
+            return AIProviderModelsResponse(
+                provider_id="ai.ollama",
+                checked=False,
+                reachable=None,
+                message="Model discovery is disabled because readiness check is disabled.",
+            )
+            
+        url = urljoin(base_url, tags_path)
+        
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                if response.status != 200:
+                    return AIProviderModelsResponse(
+                        provider_id="ai.ollama",
+                        checked=True,
+                        reachable=False,
+                        error_type="http_error",
+                        message=f"HTTP {response.status}",
+                    )
+                
+                try:
+                    data = json.loads(response.read().decode("utf-8"))
+                    models_data = data.get("models", [])
+                    models = []
+                    configured_model = settings.kairos_ai_model
+                    configured_available = False if configured_model else None
+                    
+                    for m_data in models_data:
+                        details_data = m_data.get("details")
+                        details = OllamaModelDetails(**details_data) if isinstance(details_data, dict) else None
+                        
+                        model = OllamaModelManifest(
+                            name=m_data.get("name", ""),
+                            model=m_data.get("model", ""),
+                            modified_at=m_data.get("modified_at"),
+                            size=m_data.get("size"),
+                            digest=m_data.get("digest"),
+                            details=details,
+                        )
+                        models.append(model)
+                        if configured_model and configured_model in (model.name, model.model):
+                            configured_available = True
+                            
+                    return AIProviderModelsResponse(
+                        provider_id="ai.ollama",
+                        checked=True,
+                        reachable=True,
+                        models=models,
+                        model_count=len(models),
+                        configured_model_available=configured_available,
+                        message="Ollama models discovered successfully.",
+                    )
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    return AIProviderModelsResponse(
+                        provider_id="ai.ollama",
+                        checked=True,
+                        reachable=False,
+                        error_type="parse_error",
+                        message="Invalid response format from Ollama.",
+                    )
+        except urllib.error.URLError as e:
+            reason = str(e.reason) if hasattr(e, "reason") else str(e)
+            return AIProviderModelsResponse(
+                provider_id="ai.ollama",
+                checked=True,
+                reachable=False,
+                error_type="connection_error",
+                message=f"Failed to connect: {reason}",
+            )
+        except TimeoutError:
+            return AIProviderModelsResponse(
+                provider_id="ai.ollama",
+                checked=True,
+                reachable=False,
+                error_type="timeout",
+                message=f"Connection timed out after {timeout}s.",
+            )
+        except Exception:
+            return AIProviderModelsResponse(
+                provider_id="ai.ollama",
+                checked=True,
+                reachable=False,
+                error_type="unknown_error",
+                message="An unexpected error occurred during model discovery.",
             )
 
     def generate_plan(

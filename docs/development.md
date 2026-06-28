@@ -223,7 +223,7 @@ the contents.
 
 ## Production Operations Support
 
-Kairos v2.1.0 includes enhanced operations and monitoring support:
+Kairos v2.2.0 includes enhanced operations and monitoring support:
 
 ### Structured Logging
 API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE`. Time is always formatted in UTC ISO. This is stdout/stderr friendly and automatically handled by Docker's logging driver (e.g., `json-file` limited to `max-size: 10m` in `docker-compose.yml`).

@@ -30,10 +30,10 @@ This document details all configuration parameters, environment settings, secret
 | :--- | :--- | :--- | :--- |
 | `KAIROS_AI_ENABLED` | API | `true` | Master toggle for the AI Runtime capabilities. |
 | `KAIROS_AI_PROVIDER` | API | `ollama` | The active AI provider to use. |
-| `KAIROS_OLLAMA_READINESS_ENABLED` | API | `true` | Enables the safe Ollama readiness check. |
-| `KAIROS_OLLAMA_BASE_URL` | API | `http://localhost:11434` | Base URL used for the Ollama readiness check. |
-| `KAIROS_OLLAMA_TAGS_PATH` | API | `/api/tags` | Path to use when verifying Ollama reachability. |
-| `KAIROS_OLLAMA_TIMEOUT_SECONDS` | API | `2` | Timeout in seconds for the readiness check. |
+| `KAIROS_OLLAMA_READINESS_ENABLED` | API | `true` | Enables the safe Ollama readiness and model discovery checks. |
+| `KAIROS_OLLAMA_BASE_URL` | API | `http://localhost:11434` | Base URL used specifically for the Ollama readiness check. |
+| `KAIROS_OLLAMA_TAGS_PATH` | API | `/api/tags` | Path used to check Ollama model availability safely. |
+| `KAIROS_OLLAMA_TIMEOUT_SECONDS` | API | `2` | Short timeout for the readiness check. |
 
 ---
 

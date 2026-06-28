@@ -195,6 +195,9 @@ export type AICapabilities = {
   provider_reachable: boolean | null;
   provider_checked: boolean;
   provider_readiness_message: string | null;
+  model_count: number | null;
+  discovered_models_enabled: boolean;
+  configured_model_available: boolean | null;
 };
 
 export function getAICapabilities() {
