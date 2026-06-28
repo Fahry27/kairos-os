@@ -13,9 +13,11 @@ def create_db_and_tables() -> None:
 
 
 def initialize_database() -> None:
+    from app.db.migrations import run_migrations
     from app.db.seed import seed_default_data_if_empty
-    from app.db.session import SessionLocal
+    from app.db.session import SessionLocal, engine
 
     create_db_and_tables()
+    run_migrations(engine)
     with SessionLocal() as db:
         seed_default_data_if_empty(db)

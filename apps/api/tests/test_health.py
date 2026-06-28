@@ -213,3 +213,65 @@ def test_sqlite_memory_crud_is_consistent():
 
     missing = client.get(f"/api/v1/memories/{memory_id}")
     assert missing.status_code == 404
+
+
+def test_startup_migration_adds_memories_project_id():
+    """Simulate a pre-v0.7 DB lacking memories.project_id and ensure the
+    migration adds it safely and is idempotent."""
+    import sqlite3
+
+    from app.db.migrations import run_migrations
+
+    legacy_db = Path(tempfile.gettempdir()) / "kairos-migration-test.sqlite3"
+    if legacy_db.exists():
+        legacy_db.unlink()
+
+    # Create a legacy memories table WITHOUT project_id
+    conn = sqlite3.connect(str(legacy_db))
+    conn.execute(
+        """
+        CREATE TABLE memories (
+            id TEXT PRIMARY KEY,
+            type TEXT NOT NULL DEFAULT 'note',
+            content TEXT NOT NULL,
+            source TEXT,
+            tags TEXT,
+            importance TEXT NOT NULL DEFAULT 'normal',
+            created_at TEXT,
+            updated_at TEXT
+        )
+        """
+    )
+    conn.execute(
+        "INSERT INTO memories (id, type, content, importance, created_at, updated_at) "
+        "VALUES ('aaa', 'note', 'old memory', 'normal', '2026-01-01', '2026-01-01')"
+    )
+    conn.commit()
+    conn.close()
+
+    # Run the migration via SQLAlchemy engine
+    from sqlalchemy import create_engine, text
+
+    legacy_engine = create_engine(f"sqlite:///{legacy_db}")
+    run_migrations(legacy_engine)
+
+    # Column should now exist
+    with legacy_engine.connect() as c:
+        cols = {row[1] for row in c.execute(text("PRAGMA table_info(memories)"))}
+        assert "project_id" in cols
+
+        # Existing data should be intact
+        row = c.execute(text("SELECT content FROM memories WHERE id = 'aaa'")).fetchone()
+        assert row is not None
+        assert row[0] == "old memory"
+
+    # Running again should be a no-op (idempotent)
+    run_migrations(legacy_engine)
+
+    with legacy_engine.connect() as c:
+        cols = {row[1] for row in c.execute(text("PRAGMA table_info(memories)"))}
+        assert "project_id" in cols
+
+    legacy_engine.dispose()
+    legacy_db.unlink()
+
