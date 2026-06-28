@@ -138,14 +138,14 @@ function ProjectItem({
       </div>
       <div className="recordActions">
         {!isFocused && (
-          <button className="btnSmall btnOutline" onClick={onFocus} type="button">
+          <button className="btnSmall btnOutline" onClick={onFocus} type="button" aria-label={`View project ${project.name}`}>
             View
           </button>
         )}
-        <button className="btnSmall btnOutline" onClick={startEditing} type="button">
+        <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit project ${project.name}`}>
           Edit
         </button>
-        <button className="btnSmall btnDanger" onClick={handleDelete} type="button">
+        <button className="btnSmall btnDanger" onClick={handleDelete} type="button" aria-label={`Delete project ${project.name}`}>
           Delete
         </button>
       </div>

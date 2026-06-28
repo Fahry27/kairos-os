@@ -146,10 +146,10 @@ function TaskRow({
       <td>{formatDate(task.due_date)}</td>
       <td>
         <div className="recordActions" style={{ marginTop: 0 }}>
-          <button className="btnSmall btnOutline" onClick={startEditing} type="button">
+          <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit task ${task.title}`}>
             Edit
           </button>
-          <button className="btnSmall btnDanger" onClick={handleDelete} type="button">
+          <button className="btnSmall btnDanger" onClick={handleDelete} type="button" aria-label={`Delete task ${task.title}`}>
             Delete
           </button>
         </div>

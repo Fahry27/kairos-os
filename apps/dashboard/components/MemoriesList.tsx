@@ -158,10 +158,10 @@ function MemoryItem({
         <span>Tags: {memory.tags?.length ? memory.tags.join(", ") : "-"}</span>
       </div>
       <div className="recordActions">
-        <button className="btnSmall btnOutline" onClick={startEditing} type="button">
+        <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit memory ${memory.type}`}>
           Edit
         </button>
-        <button className="btnSmall btnDanger" onClick={handleDelete} type="button">
+        <button className="btnSmall btnDanger" onClick={handleDelete} type="button" aria-label={`Delete memory ${memory.type}`}>
           Delete
         </button>
       </div>
