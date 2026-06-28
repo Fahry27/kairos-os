@@ -6,8 +6,12 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_ROOT = Path(__file__).resolve().parents[2]
-REPO_ROOT = API_ROOT.parents[1]
-LOCAL_SQLITE_PATH = REPO_ROOT / "data" / "kairos-local.sqlite3"
+
+if len(API_ROOT.parents) >= 2 and API_ROOT.name == "api" and API_ROOT.parent.name == "apps":
+    REPO_ROOT = API_ROOT.parents[1]
+    LOCAL_SQLITE_PATH = REPO_ROOT / "data" / "kairos-local.sqlite3"
+else:
+    LOCAL_SQLITE_PATH = API_ROOT / "data" / "kairos-local.sqlite3"
 
 
 def resolve_env_file() -> Path:
