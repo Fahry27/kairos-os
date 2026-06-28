@@ -1,0 +1,46 @@
+{
+  "id": "custom.notes",
+  "name": "Custom Notes Extension",
+  "version": "1.0.0",
+  "description": "Allows taking and syncing custom quick notes with external storage endpoints.",
+  "category": "utility",
+  "enabled": true,
+  "capabilities": ["note_taking"],
+  "entry_type": "external",
+  "entry_ref": "data/plugins/custom-notes",
+  "permissions": ["read:notes", "write:notes"],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "sync_endpoint": {
+        "type": "string"
+      }
+    }
+  },
+  "metadata": {
+    "author": "Homelab Enthusiast",
+    "tier": "user"
+  },
+  "commands": [
+    {
+      "id": "custom.notes.append_note",
+      "plugin_id": "custom.notes",
+      "name": "Append Note",
+      "description": "Appends a quick text note to the local storage log.",
+      "category": "write",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["text"]
+      },
+      "output_schema": {
+        "type": "object"
+      },
+      "permissions": ["write:notes"]
+    }
+  ]
+}

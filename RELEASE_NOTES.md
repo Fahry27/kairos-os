@@ -1,3 +1,22 @@
+# Kairos v1.8.0 Release Notes
+
+Welcome to Kairos v1.8.0, introducing the external plugin JSON loading folder scanner and metadata-only Command Registry.
+
+## Kairos v1.8.0
+**Date:** June 2026
+
+This release implements dynamic external manifest folder scanning, command capability models, metadata-only command registries, API query endpoints, and extensions dashboard updates.
+
+### Features
+- **External Plugin Scanner**: Automatically scans the path defined by `KAIROS_PLUGINS_DIR` (defaults to `data/plugins/`) for custom `.json` extension manifests.
+- **Command Registry Manifest**: Introduced `CommandManifest` model containing IDs, input/output schemas, permission tags, categories, and danger warning toggles.
+- **Safe Scanning Safeguards**: Skips invalid structures or duplicate external IDs with warning logs, preventing crashes. Built-in system IDs always take precedence.
+- **Command REST Routers**: Added GET `/api/v1/commands` and GET `/api/v1/commands/{command_id}` routes matching auth key protections.
+- **Visual Dashboard Updates**: Extended the `ExtensionsCard` component to show the sum total of registered commands from active extensions.
+- **Sample Local Manifests**: Added `sample-note-plugin.json` and `sample-calendar-plugin.json` under `docs/examples/plugins/` as safe configuration guidelines.
+
+---
+
 # Kairos v1.7.0 Release Notes
 
 Welcome to Kairos v1.7.0, introducing the initial Plugin and Extension Framework Foundation.

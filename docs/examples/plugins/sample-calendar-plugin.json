@@ -1,0 +1,39 @@
+{
+  "id": "custom.calendar",
+  "name": "Custom Calendar Extension",
+  "version": "1.0.0",
+  "description": "Exposes read-only local calendar schedules and events lists.",
+  "category": "utility",
+  "enabled": true,
+  "capabilities": ["scheduling"],
+  "entry_type": "external",
+  "entry_ref": "data/plugins/custom-calendar",
+  "permissions": ["read:calendar"],
+  "config_schema": {},
+  "metadata": {
+    "author": "Homelab Enthusiast",
+    "tier": "user"
+  },
+  "commands": [
+    {
+      "id": "custom.calendar.list_events",
+      "plugin_id": "custom.calendar",
+      "name": "List Calendar Events",
+      "description": "Lists upcoming local calendar events within a given date range.",
+      "category": "read",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "days_ahead": {
+            "type": "integer",
+            "default": 7
+          }
+        }
+      },
+      "output_schema": {
+        "type": "array"
+      },
+      "permissions": ["read:calendar"]
+    }
+  ]
+}

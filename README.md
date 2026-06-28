@@ -38,7 +38,7 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- **Version**: Kairos v1.7.0 (Plugin Framework Foundation)
+- **Version**: Kairos v1.8.0 (External Plugins & Commands Registry)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.

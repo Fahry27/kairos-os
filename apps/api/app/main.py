@@ -15,6 +15,7 @@ from app.core.monitoring import (
     metrics_tracker,
     run_startup_selfchecks,
 )
+from app.core.plugins import plugin_registry
 from app.db.base import initialize_database
 
 # Initialize logging at import time to capture all early startup logs
@@ -52,6 +53,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.warning(
                 "[SECURITY] CORS wildcard '*' is active when running in production (APP_ENV=production). This exposes your API to all origins!"
             )
+
+    # Load external plugins if enabled
+    if settings.kairos_plugins_enabled:
+        plugin_registry.load_external_plugins(settings.resolved_plugins_dir)
 
     if settings.create_tables_on_startup and not settings.use_mock_data:
         initialize_database()

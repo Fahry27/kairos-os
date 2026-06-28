@@ -157,6 +157,7 @@ export type PluginManifest = {
   description: string;
   category: string;
   enabled: boolean;
+  commands?: any[];
 };
 
 export function getPlugins() {

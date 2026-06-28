@@ -1,21 +1,23 @@
 # Plugin & Extension Framework Foundation
 
-Welcome to the Kairos Plugin Framework Foundation (v1.7.0). This document describes the modular extension schema designed to support local-first AI operating system modules.
+Welcome to the Kairos Plugin Framework Foundation (v1.8.0). This document describes the modular extension and command registry schemas designed to support local-first AI operating system operations.
 
 ---
 
 ## Architecture Design
 
-### 1. Metadata-Only Phase (Current State)
-To preserve security and sandbox stability in homelabs, **this release does not execute third-party code dynamically**. Instead, it introduces a standardized manifest definition mapping existing Kairos capabilities as structured, queryable extensions:
-- `core.projects`
-- `core.tasks`
-- `core.memories`
-- `core.operations`
+### 1. Metadata-Only Command Registry
+To preserve security and sandbox stability in homelabs, **this release does not execute third-party code dynamically**. Instead, it introduces:
+- A standardized **Plugin manifest** loading schema.
+- A standardized **Command manifest** registry detailing operational system interfaces.
 
-These represent built-in capabilities, mapping permission sets, config schemas, categories, and entry points into queryable metadata resources.
+These represent built-in capabilities and custom modular manifests, mapping permission sets, input/output schemas, categories, and safety indicators into queryable metadata resources.
 
-### 2. Manifest Schema (`PluginManifest`)
+---
+
+## Manifest Schemas
+
+### 1. Plugin Manifest Schema (`PluginManifest`)
 Each extension registers using a JSON manifest matching the following Pydantic-validated fields:
 
 | Field | Type | Default | Description |
@@ -27,27 +29,46 @@ Each extension registers using a JSON manifest matching the following Pydantic-v
 | `category` | `str` | *Required* | Classification category (e.g. `core`, `utility`, `ai`). |
 | `enabled` | `bool` | `true` | Active status in the registry. |
 | `capabilities`| `list[str]`| `[]` | Supported core capabilities (e.g. `task_management`). |
-| `entry_type` | `str` | `"builtin"` | Extension load strategy (currently `"builtin"`). |
-| `entry_ref` | `str` | *Required* | Python package path or route handler reference. |
+| `entry_type` | `str` | `"builtin"` | Extension load strategy (`"builtin"` or `"external"`). |
+| `entry_ref` | `str` | *Required* | Python package path or local directory path reference. |
 | `permissions`| `list[str]`| `[]` | Access scopes required by the plugin. |
 | `config_schema`| `dict` | `{}` | JSON schema describing configuration params. |
 | `metadata` | `dict` | `{}` | Extra metadata (authors, links, tier levels). |
+| `commands` | `list` | `[]` | Commands exposed by the plugin (`CommandManifest`). |
+
+### 2. Command Manifest Schema (`CommandManifest`)
+Commands represent specific actions exposed by extensions. They are declared under the `commands` list field in the plugin manifest:
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `str` | *Required* | Unique command identifier (e.g. `core.projects.create_project`). |
+| `plugin_id` | `str` | *Required* | Owner plugin ID (e.g. `core.projects`). |
+| `name` | `str` | *Required* | User-friendly command name. |
+| `description`| `str` | *Required* | Functional explanation of the command. |
+| `category` | `str` | *Required* | Operation category (`read`, `write`, `admin`). |
+| `input_schema`| `dict` | `{}` | JSON schema validating command argument payloads. |
+| `output_schema`| `dict` | `{}` | JSON schema representing return values. |
+| `permissions`| `list[str]`| `[]` | Security permissions needed to execute the command. |
+| `enabled` | `bool` | `true` | Command state toggle. |
+| `dangerous` | `bool` | `false` | Marks if the command triggers critical actions (e.g., delete, backup). |
+| `metadata` | `dict` | `{}` | Telemetry or UI indicators. |
 
 ---
 
-## Security Model
+## Directory Scanner Loading Behavior
 
-1. **Authentication Gate**: All plugin routes under `/api/v1/plugins` require active LAN API key headers (`X-Kairos-API-Key`) when authentication is configured.
-2. **Deactivation**: If `KAIROS_PLUGINS_ENABLED=false` is configured in the environment:
-   - GET `/api/v1/plugins` returns a clean, empty list (`[]`).
-   - GET `/api/v1/plugins/{plugin_id}` raises `404 Not Found`.
+1. **Scan Path**: Parses `.json` files in the directory path defined by `KAIROS_PLUGINS_DIR` (defaults to `data/plugins/` inside Docker volume bounds).
+2. **Conflict Resolution**:
+   - Built-in IDs (`core.projects`, `core.tasks`, `core.memories`, `core.operations`) always take precedence. If an external plugin declares a duplicate built-in ID, it is skipped with a `WARNING` log.
+   - If an external plugin declares a duplicate ID of an already registered external plugin, it is skipped with a `WARNING` log.
+3. **Robust Safety**: Invalid JSON structures or missing required properties trigger `WARNING` logs and are skipped without crashing the system startup process.
 
 ---
 
 ## API Usage Examples
 
-### 1. Retrieve all active extensions
-- **Endpoint**: GET `/api/v1/plugins`
+### 1. Retrieve all commands
+- **Endpoint**: GET `/api/v1/commands`
 - **Optional parameter**: `include_disabled=true` (defaults to `false`)
 - **Headers**:
   ```text
@@ -57,53 +78,71 @@ Each extension registers using a JSON manifest matching the following Pydantic-v
   ```json
   [
     {
-      "id": "core.projects",
-      "name": "Core Projects Extension",
-      "version": "1.7.0",
-      "description": "Core project management capabilities including project tracking and progress analysis.",
-      "category": "core",
+      "id": "core.operations.run_backup",
+      "plugin_id": "core.operations",
+      "name": "Run Database Backup",
+      "description": "Manually trigger an automated timestamped backup copy of the SQLite database. [RESTRICTED]",
+      "category": "admin",
+      "input_schema": {},
+      "output_schema": { "type": "object" },
+      "permissions": ["admin:backup"],
       "enabled": true,
-      "capabilities": ["project_management", "analytics"],
-      "entry_type": "builtin",
-      "entry_ref": "app.api.v1.endpoints.projects",
-      "permissions": ["read:projects", "write:projects"],
-      "config_schema": {},
-      "metadata": {
-        "author": "Kairos Core Team",
-        "tier": "system"
-      }
+      "dangerous": true,
+      "metadata": {}
     }
   ]
   ```
 
-### 2. Fetch a specific plugin
-- **Endpoint**: GET `/api/v1/plugins/core.tasks`
+### 2. Fetch a specific command
+- **Endpoint**: GET `/api/v1/commands/core.operations.run_backup`
 - **Response**:
   ```json
   {
-    "id": "core.tasks",
-    "name": "Core Tasks Extension",
-    "version": "1.7.0",
-    "description": "Core task management capabilities supporting subtasks, priorities, and status transitions.",
-    "category": "core",
+    "id": "core.operations.run_backup",
+    "plugin_id": "core.operations",
+    "name": "Run Database Backup",
+    "description": "Manually trigger an automated timestamped backup copy of the SQLite database. [RESTRICTED]",
+    "category": "admin",
+    "input_schema": {},
+    "output_schema": { "type": "object" },
+    "permissions": ["admin:backup"],
     "enabled": true,
-    "capabilities": ["task_management"],
-    "entry_type": "builtin",
-    "entry_ref": "app.api.v1.endpoints.tasks",
-    "permissions": ["read:tasks", "write:tasks"],
-    "config_schema": {},
-    "metadata": {
-      "author": "Kairos Core Team",
-      "tier": "system"
-    }
+    "dangerous": true,
+    "metadata": {}
   }
   ```
 
 ---
 
-## Future Extensions Direction
+## How to Add a Local Metadata Plugin
 
-In future milestones, the framework will scale to support user-defined custom plugins loaded dynamically from `data/plugins/`:
-- **Python-based runtime plugins** using standard entry-point hooks.
-- **Client-side UI dashboard extensions** loaded dynamically via iframe widgets.
-- **Access control sandboxing** to limit file system/database actions using declared permissions list configurations.
+1. Create a JSON manifest file (e.g. `my-plugin.json`) in your `data/plugins/` directory:
+   ```json
+   {
+     "id": "custom.weather",
+     "name": "Custom Weather extension",
+     "version": "1.0.0",
+     "description": "Fetches local weather reports using coordinates.",
+     "category": "utility",
+     "enabled": true,
+     "entry_type": "external",
+     "entry_ref": "data/plugins/weather",
+     "commands": [
+       {
+         "id": "custom.weather.get_report",
+         "plugin_id": "custom.weather",
+         "name": "Get Weather Report",
+         "description": "Exposes temperature readings.",
+         "category": "read",
+         "input_schema": {
+           "type": "object",
+           "properties": {
+             "zipcode": { "type": "string" }
+           },
+           "required": ["zipcode"]
+         }
+       }
+     ]
+   }
+   ```
+2. Restart the containers. The scanner will parse the metadata and register the endpoints automatically.

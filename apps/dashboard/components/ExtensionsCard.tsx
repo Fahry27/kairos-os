@@ -38,6 +38,7 @@ export function ExtensionsCard() {
   }
 
   const activePlugins = result.data.filter((p) => p.enabled);
+  const totalCommands = activePlugins.reduce((sum, p) => sum + (p.commands?.length || 0), 0);
 
   return (
     <section className="card">
@@ -46,7 +47,9 @@ export function ExtensionsCard() {
           <p className="eyebrow">Extensions</p>
           <h2>OS Registry</h2>
         </div>
-        <span className="pill">{activePlugins.length} active</span>
+        <span className="pill" title={`${totalCommands} commands available`}>
+          {activePlugins.length} active ({totalCommands} commands)
+        </span>
       </div>
       <div style={{ marginTop: "1rem" }}>
         <ul

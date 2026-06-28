@@ -29,12 +29,13 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="1.7.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="1.8.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
     kairos_api_key: str | None = Field(default=None, validation_alias="KAIROS_API_KEY")
     kairos_plugins_enabled: bool = Field(default=True, validation_alias="KAIROS_PLUGINS_ENABLED")
+    kairos_plugins_dir: str = Field(default="", validation_alias="KAIROS_PLUGINS_DIR")
     database_url: str = Field(
         default=f"sqlite:///{LOCAL_SQLITE_PATH}",
         validation_alias="DATABASE_URL",
@@ -58,6 +59,14 @@ class Settings(BaseSettings):
             parsed = json.loads(self.cors_origins)
             return [str(origin).strip() for origin in parsed if str(origin).strip()]
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def resolved_plugins_dir(self) -> Path:
+        if self.kairos_plugins_dir:
+            return Path(self.kairos_plugins_dir)
+        if len(API_ROOT.parents) >= 2 and API_ROOT.name == "api" and API_ROOT.parent.name == "apps":
+            return API_ROOT.parents[1] / "data" / "plugins"
+        return API_ROOT / "data" / "plugins"
 
     @model_validator(mode="after")
     def validate_environment(self) -> "Settings":
