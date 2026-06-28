@@ -179,6 +179,10 @@ export function MemoriesList() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterImportance, setFilterImportance] = useState("all");
+
   useEffect(() => {
     let mounted = true;
 
@@ -238,6 +242,20 @@ export function MemoriesList() {
 
     setIsSubmitting(false);
   }
+
+  const filteredMemories = result?.ok
+    ? result.data.filter((m) => {
+        const q = searchQuery.toLowerCase();
+        const matchesSearch =
+          m.content.toLowerCase().includes(q) ||
+          (m.source?.toLowerCase() || "").includes(q) ||
+          (m.tags?.join(" ").toLowerCase() || "").includes(q) ||
+          m.type.toLowerCase().includes(q);
+        const matchesType = filterType === "all" || m.type === filterType;
+        const matchesImportance = filterImportance === "all" || m.importance === filterImportance;
+        return matchesSearch && matchesType && matchesImportance;
+      })
+    : [];
 
   return (
     <section className="card">
@@ -305,8 +323,41 @@ export function MemoriesList() {
         <p className="stateText">No memories yet. Captured context will appear here.</p>
       )}
       {result?.ok && result.data.length > 0 && (
+        <div className="filtersRow">
+          <label>
+            <span>Search Memories</span>
+            <input
+              placeholder="Search content, source, tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </label>
+          <label>
+            <span>Type</span>
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <option value="all">All Types</option>
+              <option value="note">Note</option>
+              <option value="technical_context">Technical Context</option>
+              <option value="decision">Decision</option>
+            </select>
+          </label>
+          <label>
+            <span>Importance</span>
+            <select value={filterImportance} onChange={(e) => setFilterImportance(e.target.value)}>
+              <option value="all">All Importances</option>
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="low">Low</option>
+            </select>
+          </label>
+        </div>
+      )}
+      {result?.ok && result.data.length > 0 && filteredMemories.length === 0 && (
+        <p className="stateText">No memories found matching your criteria.</p>
+      )}
+      {result?.ok && filteredMemories.length > 0 && (
         <div className="stack">
-          {result.data.map((memory) => (
+          {filteredMemories.map((memory) => (
             <MemoryItem key={memory.id} memory={memory} onMutated={refresh} />
           ))}
         </div>

@@ -166,6 +166,10 @@ export function TasksList() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
+
   useEffect(() => {
     let mounted = true;
 
@@ -217,6 +221,18 @@ export function TasksList() {
     setIsSubmitting(false);
   }
 
+  const filteredTasks = result?.ok
+    ? result.data.filter((t) => {
+        const q = searchQuery.toLowerCase();
+        const matchesSearch =
+          t.title.toLowerCase().includes(q) ||
+          (t.description?.toLowerCase() || "").includes(q);
+        const matchesStatus = filterStatus === "all" || t.status === filterStatus;
+        const matchesPriority = filterPriority === "all" || t.priority === filterPriority;
+        return matchesSearch && matchesStatus && matchesPriority;
+      })
+    : [];
+
   return (
     <section className="card">
       <div className="sectionHeader">
@@ -265,6 +281,40 @@ export function TasksList() {
         <p className="stateText">No tasks yet. Open work will appear here.</p>
       )}
       {result?.ok && result.data.length > 0 && (
+        <div className="filtersRow">
+          <label>
+            <span>Search Tasks</span>
+            <input
+              placeholder="Search by title or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </label>
+          <label>
+            <span>Status</span>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <option value="all">All Statuses</option>
+              <option value="todo">Todo</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </label>
+          <label>
+            <span>Priority</span>
+            <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+              <option value="all">All Priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+        </div>
+      )}
+      {result?.ok && result.data.length > 0 && filteredTasks.length === 0 && (
+        <p className="stateText">No tasks found matching your criteria.</p>
+      )}
+      {result?.ok && filteredTasks.length > 0 && (
         <div className="tableWrap">
           <table>
             <thead>
@@ -278,7 +328,7 @@ export function TasksList() {
               </tr>
             </thead>
             <tbody>
-              {result.data.map((task) => (
+              {filteredTasks.map((task) => (
                 <TaskRow key={task.id} onMutated={refresh} task={task} />
               ))}
             </tbody>

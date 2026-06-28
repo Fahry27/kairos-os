@@ -1,6 +1,6 @@
 # Kairos Dashboard
 
-Kairos Dashboard v0.4 is a lightweight Next.js App Router app for viewing API
+Kairos Dashboard v0.6 is a lightweight Next.js App Router app for viewing API
 health and managing local projects, tasks, and memories.
 
 ## Setup
@@ -54,10 +54,12 @@ cp .env.example .env.local
 - Tasks from `GET /api/v1/tasks`
 - Memories from `GET /api/v1/memories`
 
-## Write Actions
+## Features
 
-- Create projects with `POST /api/v1/projects`
-- Create tasks with `POST /api/v1/tasks`
-- Create memories with `POST /api/v1/memories`
+- **Create**: Add new projects, tasks, and memories via the UI.
+- **Edit**: Inline editing for all resources (toggles on click).
+- **Delete**: Remove resources with a confirmation prompt.
+- **Search & Filter**: Client-side filtering to quickly find and sort local data.
 
 The API must be running before the dashboard can load live data.
+

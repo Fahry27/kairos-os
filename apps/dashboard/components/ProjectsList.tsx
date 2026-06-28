@@ -152,6 +152,8 @@ export function ProjectsList() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   useEffect(() => {
     let mounted = true;
 
@@ -203,6 +205,16 @@ export function ProjectsList() {
     setIsSubmitting(false);
   }
 
+  const filteredProjects = result?.ok
+    ? result.data.filter((p) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(q) ||
+          (p.description?.toLowerCase() || "").includes(q)
+        );
+      })
+    : [];
+
   return (
     <section className="card">
       <div className="sectionHeader">
@@ -251,8 +263,23 @@ export function ProjectsList() {
         <p className="stateText">No projects yet. When projects exist, they will appear here.</p>
       )}
       {result?.ok && result.data.length > 0 && (
+        <div className="filtersRow">
+          <label>
+            <span>Search Projects</span>
+            <input
+              placeholder="Search by name or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
+      {result?.ok && result.data.length > 0 && filteredProjects.length === 0 && (
+        <p className="stateText">No projects found matching your criteria.</p>
+      )}
+      {result?.ok && filteredProjects.length > 0 && (
         <div className="stack">
-          {result.data.map((project) => (
+          {filteredProjects.map((project) => (
             <ProjectItem key={project.id} onMutated={refresh} project={project} />
           ))}
         </div>
