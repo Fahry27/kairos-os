@@ -53,3 +53,35 @@ def test_metrics_endpoint():
         # Check api v1 endpoint
         response = client.get("/api/v1/metrics")
         assert response.status_code == 200
+
+
+def test_settings_validation_invalid_env():
+    import pytest
+    from pydantic import ValidationError
+    from app.core.config import Settings
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(APP_ENV="invalid-env")
+    assert "Invalid APP_ENV" in str(exc_info.value)
+
+
+def test_settings_validation_invalid_db_scheme():
+    import pytest
+    from pydantic import ValidationError
+    from app.core.config import Settings
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(DATABASE_URL="mysql://localhost/db")
+    assert "Invalid DATABASE_URL scheme" in str(exc_info.value)
+
+
+def test_settings_validation_invalid_root_path():
+    import pytest
+    from pydantic import ValidationError
+    from app.core.config import Settings
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(ROOT_PATH="no-leading-slash")
+    assert "ROOT_PATH must start with" in str(exc_info.value)
+
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(ROOT_PATH="/trailing-slash/")
+    assert "ROOT_PATH must not have a trailing slash" in str(exc_info.value)
+

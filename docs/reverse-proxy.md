@@ -1,6 +1,6 @@
 # Reverse Proxy & HTTPS Deployment Guide
 
-This guide explains how to secure and expose your Kairos v1.5.0 instance on your Local Area Network (LAN) behind a reverse proxy (e.g., Caddy or Traefik).
+This guide explains how to secure and expose your Kairos v1.6.0 instance on your Local Area Network (LAN) behind a reverse proxy (e.g., Caddy or Traefik).
 
 ## Security Warning
 
@@ -78,6 +78,8 @@ To ensure the backend understands request parameters and origins coming from a r
    To trust the `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Forwarded-Host` headers passed by Caddy/Traefik, ensure the following are configured on the `kairos-api` service (active by default in `docker-compose.yml`):
    - `UVICORN_PROXY_HEADERS=true`
    - `UVICORN_FORWARDED_ALLOW_IPS=*`
+
+For details on configuration validation, warnings, and setting CORS whitelist variables, refer to the [Configuration & Secrets Guide](configuration.md).
 
 2. **CORS Origins**:
    You must update the `CORS_ORIGINS` environment variable on `kairos-api` to accept requests originating from the dashboard's reverse proxy domains.

@@ -2,7 +2,7 @@ from functools import lru_cache
 import json
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API_ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="1.5.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="1.6.0", validation_alias="APP_VERSION")
+    app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
     kairos_api_key: str | None = Field(default=None, validation_alias="KAIROS_API_KEY")
@@ -57,7 +58,31 @@ class Settings(BaseSettings):
             return [str(origin).strip() for origin in parsed if str(origin).strip()]
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    @model_validator(mode="after")
+    def validate_environment(self) -> "Settings":
+        # 1. Validate APP_ENV
+        if self.app_env not in ("development", "production", "test"):
+            raise ValueError(
+                f"Invalid APP_ENV: {self.app_env}. Must be one of: development, production, test."
+            )
+
+        # 2. Validate DATABASE_URL scheme
+        if not (self.database_url.startswith("sqlite://") or self.database_url.startswith("postgresql")):
+            raise ValueError(
+                f"Invalid DATABASE_URL scheme: {self.database_url}. Must be SQLite or PostgreSQL."
+            )
+
+        # 3. Validate ROOT_PATH
+        if self.root_path:
+            if not self.root_path.startswith("/"):
+                raise ValueError("ROOT_PATH must start with '/'")
+            if self.root_path.endswith("/") and self.root_path != "/":
+                raise ValueError("ROOT_PATH must not have a trailing slash except '/'")
+
+        return self
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+

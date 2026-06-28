@@ -1,3 +1,20 @@
+# Kairos v1.6.0 Release Notes
+
+Welcome to Kairos v1.6.0, introducing configuration validation audits, environment templates, and secrets handling guidelines.
+
+## Kairos v1.6.0
+**Date:** June 2026
+
+This release integrates active configuration audits on application startup, full environment templates across services, and dedicated guides for secure secrets configuration.
+
+### Features
+- **Startup Configuration Validation**: Added Pydantic and runtime validation checks that assert correct environment settings (`APP_ENV`, `DATABASE_URL`, `ROOT_PATH`), automatically creating SQLite parent directories and running write permission checks.
+- **Fail-Fast Security Audits**: Logs critical errors and halts application startup in production (`APP_ENV=production`) if `KAIROS_API_KEY` is missing or empty. Logs warnings for open CORS wildcard configurations.
+- **Environment Templates**: Created root-level `.env.example`, `apps/api/.env.example`, and updated `apps/dashboard/.env.example` with safe local development defaults.
+- **Secrets Management Documentation**: Created `docs/configuration.md` with guidelines on shared LAN secrets, Portainer variable injections, Zima OS environment placements, and safe key rotation protocols.
+
+---
+
 # Kairos v1.5.0 Release Notes
 
 Welcome to Kairos v1.5.0, enabling reverse proxy readiness, HTTPS/LAN domain support, and Portainer stack deployment compatibility.

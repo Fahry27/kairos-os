@@ -1,6 +1,6 @@
 # Portainer Stack Deployment Guide
 
-This guide explains how to deploy Kairos v1.5.0 as a Docker Stack inside Portainer.
+This guide explains how to deploy Kairos v1.6.0 as a Docker Stack inside Portainer.
 
 ## Prerequisites
 - Portainer instance running and managed.
@@ -38,8 +38,10 @@ In the Portainer Web editor, you can add Environment Variables below the compose
 | `NEXT_PUBLIC_KAIROS_API_KEY` | `your-secure-key` | Must match `KAIROS_API_KEY` above |
 | `NEXT_PUBLIC_KAIROS_API_URL` | `http://<API_CONTAINER_IP>:8000` | Replace with the actual LAN IP or stack container name |
 
+For a complete reference of all required and optional environment variables (including CORS settings, root path prefixes, and startup validation audits), please refer to the [Configuration & Secrets Guide](configuration.md).
+
 > [!NOTE]
-> Within the same Portainer stack, services share a default network. You can set `NEXT_PUBLIC_KAIROS_API_URL` to `http://kairos-api:8000` for container-to-container communication. However, since the dashboard client runs in the user's browser, **you must use the external LAN IP/hostname of the host machine** (e.g. `http://192.168.1.100:8000` or `http://kairos-api.local:8000`) so the client browser can resolve it.
+> Within the same Portainer stack, services share a default network. You can set `NEXT_PUBLIC_KAIROS_API_URL` to `http://kairos-api:8000` for container-to-container communication. However, since the dashboard client runs in the user's browser, **you must use the external LAN IP/hostname of the host machine** (e.g., `http://192.168.1.100:8000` or `http://kairos-api.local:8000`) so the client browser can resolve it.
 
 ### 3. Deploy the Stack
 Click **Deploy the stack**. Portainer will pull the images, construct the network, create the named volume, and run the containers.

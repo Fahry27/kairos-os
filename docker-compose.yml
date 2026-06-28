@@ -7,9 +7,13 @@ services:
       dockerfile: Dockerfile
     container_name: kairos-api
     restart: unless-stopped
+    # Uncomment to load configurations from a local .env file:
+    # env_file:
+    #   - .env
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 1.5.0
+      APP_VERSION: 1.6.0
+      APP_ENV: development
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
@@ -44,6 +48,9 @@ services:
       dockerfile: Dockerfile
     container_name: kairos-dashboard
     restart: unless-stopped
+    # Uncomment to load configurations from a local .env file:
+    # env_file:
+    #   - .env
     ports:
       - "3000:3000"
     environment:

@@ -1,6 +1,6 @@
 # Zima OS (CasaOS) Deployment Guide
 
-Kairos v1.5.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
+Kairos v1.6.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
 
 ## Prerequisites
 - Zima OS / CasaOS installed and running on your local network.
@@ -47,7 +47,7 @@ Kairos v1.5.0 includes a production-leaning `docker-compose.yml` file located at
 
 5. **Verify the Deployment**
     - **Check Containers**: `docker compose ps`
-    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `1.5.0` in the returned JSON.
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `1.6.0` in the returned JSON.
     - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
 
 ## Stopping and Restarting
@@ -126,6 +126,7 @@ For a production Zima OS deployment, verify:
 ## Advanced Deployment Options
 
 For advanced homelab setups, you can deploy Kairos behind a reverse proxy or within Portainer:
+- Refer to the [Configuration & Secrets Guide](configuration.md) to manage environment variables, validate settings, and perform secret rotation.
 - Refer to the [Reverse Proxy & HTTPS Setup Guide](reverse-proxy.md) to set up local DNS routing (e.g., `kairos.local`) with TLS certificates.
 - Refer to the [Portainer Stack Deployment Guide](portainer.md) to deploy Kairos via a Portainer stack configuration with named volume persistence.
 

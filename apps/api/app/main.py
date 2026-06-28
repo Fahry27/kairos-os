@@ -38,6 +38,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         else:
             logger.error(f"Startup self-check failed: {check_name}")
 
+    # Configuration and Security Audits
+    if settings.app_env == "production":
+        if not settings.kairos_api_key:
+            logger.critical(
+                "[SECURITY] Production Mode active (APP_ENV=production), but KAIROS_API_KEY is missing or empty! Startup halted for security."
+            )
+            raise ValueError(
+                "Production Mode active (APP_ENV=production), but KAIROS_API_KEY is missing or empty!"
+            )
+        
+        if "*" in settings.cors_origin_list:
+            logger.warning(
+                "[SECURITY] CORS wildcard '*' is active when running in production (APP_ENV=production). This exposes your API to all origins!"
+            )
+
     if settings.create_tables_on_startup and not settings.use_mock_data:
         initialize_database()
 
