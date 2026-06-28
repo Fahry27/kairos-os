@@ -1,10 +1,161 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { createTask, getTasks, type ApiResult, type Task } from "../lib/api";
+import {
+  createTask,
+  deleteTask,
+  getTasks,
+  updateTask,
+  type ApiResult,
+  type Task,
+} from "../lib/api";
 
 function formatDate(value?: string | null) {
   return value ? new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value)) : "-";
+}
+
+function TaskRow({
+  task,
+  onMutated,
+}: {
+  task: Task;
+  onMutated: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editDescription, setEditDescription] = useState(task.description ?? "");
+  const [editPriority, setEditPriority] = useState(task.priority);
+  const [editStatus, setEditStatus] = useState(task.status);
+
+  function startEditing() {
+    setEditTitle(task.title);
+    setEditDescription(task.description ?? "");
+    setEditPriority(task.priority);
+    setEditStatus(task.status);
+    setActionError(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setActionError(null);
+  }
+
+  async function handleSave() {
+    const trimmed = editTitle.trim();
+    if (!trimmed) {
+      setActionError("Title is required.");
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await updateTask(task.id, {
+      title: trimmed,
+      description: editDescription.trim() || null,
+      priority: editPriority,
+      status: editStatus,
+    });
+
+    if (result.ok) {
+      setEditing(false);
+      onMutated();
+    } else {
+      setActionError(`Save failed: ${result.error}`);
+    }
+    setIsSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Delete task "${task.title}"? This cannot be undone.`)) {
+      return;
+    }
+
+    const result = await deleteTask(task.id);
+    if (result.ok) {
+      onMutated();
+    } else {
+      setActionError(`Delete failed: ${result.error}`);
+    }
+  }
+
+  if (editing) {
+    return (
+      <tr>
+        <td colSpan={6}>
+          <div className="editForm">
+            <label>
+              <span>Title</span>
+              <input
+                maxLength={255}
+                onChange={(e) => setEditTitle(e.target.value)}
+                value={editTitle}
+              />
+            </label>
+            <label>
+              <span>Description</span>
+              <textarea
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={2}
+                value={editDescription}
+              />
+            </label>
+            <div className="editFormFooter">
+              <label>
+                <span>Status</span>
+                <select onChange={(e) => setEditStatus(e.target.value)} value={editStatus}>
+                  <option value="todo">Todo</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="done">Done</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </label>
+              <label>
+                <span>Priority</span>
+                <select onChange={(e) => setEditPriority(e.target.value)} value={editPriority}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <button className="btnSmall btnSave" disabled={isSaving} onClick={handleSave} type="button">
+                {isSaving ? "Saving..." : "Save"}
+              </button>
+              <button className="btnSmall btnOutline" disabled={isSaving} onClick={cancelEditing} type="button">
+                Cancel
+              </button>
+            </div>
+            {actionError && <p className="errorText">{actionError}</p>}
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr>
+      <td>
+        <strong>{task.title}</strong>
+      </td>
+      <td>{task.status}</td>
+      <td>{task.priority}</td>
+      <td>{task.project_id ?? "-"}</td>
+      <td>{formatDate(task.due_date)}</td>
+      <td>
+        <div className="recordActions" style={{ marginTop: 0 }}>
+          <button className="btnSmall btnOutline" onClick={startEditing} type="button">
+            Edit
+          </button>
+          <button className="btnSmall btnDanger" onClick={handleDelete} type="button">
+            Delete
+          </button>
+        </div>
+        {actionError && <p className="errorText">{actionError}</p>}
+      </td>
+    </tr>
+  );
 }
 
 export function TasksList() {
@@ -33,6 +184,10 @@ export function TasksList() {
     return getTasks();
   }
 
+  async function refresh() {
+    setResult(await loadTasks());
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
@@ -54,7 +209,7 @@ export function TasksList() {
       setTitle("");
       setDescription("");
       setPriority("medium");
-      setResult(await loadTasks());
+      await refresh();
     } else {
       setSubmitError(`Unable to create task: ${created.error}`);
     }
@@ -119,19 +274,12 @@ export function TasksList() {
                 <th>Priority</th>
                 <th>Project</th>
                 <th>Due</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {result.data.map((task) => (
-                <tr key={task.id}>
-                  <td>
-                    <strong>{task.title}</strong>
-                  </td>
-                  <td>{task.status}</td>
-                  <td>{task.priority}</td>
-                  <td>{task.project_id ?? "-"}</td>
-                  <td>{formatDate(task.due_date)}</td>
-                </tr>
+                <TaskRow key={task.id} onMutated={refresh} task={task} />
               ))}
             </tbody>
           </table>

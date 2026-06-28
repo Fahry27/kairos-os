@@ -140,3 +140,110 @@ export function getMemories() {
 export function createMemory(payload: MemoryCreate) {
   return postToApi<Memory, MemoryCreate>("/api/v1/memories", payload);
 }
+
+// ---------------------------------------------------------------------------
+// Update types
+// ---------------------------------------------------------------------------
+
+export type ProjectUpdate = {
+  name?: string;
+  description?: string | null;
+  priority?: string;
+  status?: string;
+};
+
+export type TaskUpdate = {
+  title?: string;
+  description?: string | null;
+  priority?: string;
+  status?: string;
+  project_id?: string | null;
+  due_date?: string | null;
+};
+
+export type MemoryUpdate = {
+  type?: string;
+  content?: string;
+  source?: string | null;
+  tags?: string[] | null;
+  importance?: string;
+};
+
+// ---------------------------------------------------------------------------
+// Generic PATCH / DELETE helpers
+// ---------------------------------------------------------------------------
+
+export async function patchToApi<T, TPayload extends object>(
+  path: string,
+  payload: TPayload,
+): Promise<ApiResult<T>> {
+  try {
+    const response = await fetch(`${KAIROS_API_URL}${path}`, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: `${response.status} ${response.statusText}` };
+    }
+
+    return { ok: true, data: (await response.json()) as T };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown request error",
+    };
+  }
+}
+
+export async function deleteFromApi(path: string): Promise<ApiResult<null>> {
+  try {
+    const response = await fetch(`${KAIROS_API_URL}${path}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: `${response.status} ${response.statusText}` };
+    }
+
+    return { ok: true, data: null };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown request error",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Update / Delete operations
+// ---------------------------------------------------------------------------
+
+export function updateProject(id: string, payload: ProjectUpdate) {
+  return patchToApi<Project, ProjectUpdate>(`/api/v1/projects/${id}`, payload);
+}
+
+export function deleteProject(id: string) {
+  return deleteFromApi(`/api/v1/projects/${id}`);
+}
+
+export function updateTask(id: string, payload: TaskUpdate) {
+  return patchToApi<Task, TaskUpdate>(`/api/v1/tasks/${id}`, payload);
+}
+
+export function deleteTask(id: string) {
+  return deleteFromApi(`/api/v1/tasks/${id}`);
+}
+
+export function updateMemory(id: string, payload: MemoryUpdate) {
+  return patchToApi<Memory, MemoryUpdate>(`/api/v1/memories/${id}`, payload);
+}
+
+export function deleteMemory(id: string) {
+  return deleteFromApi(`/api/v1/memories/${id}`);
+}

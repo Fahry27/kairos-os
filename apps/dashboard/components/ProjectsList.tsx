@@ -1,10 +1,147 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { createProject, getProjects, type ApiResult, type Project } from "../lib/api";
+import {
+  createProject,
+  deleteProject,
+  getProjects,
+  updateProject,
+  type ApiResult,
+  type Project,
+} from "../lib/api";
 
 function formatDate(value?: string | null) {
   return value ? new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value)) : "-";
+}
+
+function ProjectItem({
+  project,
+  onMutated,
+}: {
+  project: Project;
+  onMutated: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const [editName, setEditName] = useState(project.name);
+  const [editDescription, setEditDescription] = useState(project.description ?? "");
+  const [editPriority, setEditPriority] = useState(project.priority);
+
+  function startEditing() {
+    setEditName(project.name);
+    setEditDescription(project.description ?? "");
+    setEditPriority(project.priority);
+    setEditError(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setEditError(null);
+  }
+
+  async function handleSave() {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      setEditError("Name is required.");
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await updateProject(project.id, {
+      name: trimmed,
+      description: editDescription.trim() || null,
+      priority: editPriority,
+    });
+
+    if (result.ok) {
+      setEditing(false);
+      onMutated();
+    } else {
+      setEditError(`Save failed: ${result.error}`);
+    }
+    setIsSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    const result = await deleteProject(project.id);
+    if (result.ok) {
+      onMutated();
+    } else {
+      setEditError(`Delete failed: ${result.error}`);
+    }
+  }
+
+  if (editing) {
+    return (
+      <article className="record" key={project.id}>
+        <div className="editForm">
+          <label>
+            <span>Name</span>
+            <input
+              maxLength={255}
+              onChange={(e) => setEditName(e.target.value)}
+              value={editName}
+            />
+          </label>
+          <label>
+            <span>Description</span>
+            <textarea
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={2}
+              value={editDescription}
+            />
+          </label>
+          <div className="editFormFooter">
+            <label>
+              <span>Priority</span>
+              <select onChange={(e) => setEditPriority(e.target.value)} value={editPriority}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <button className="btnSmall btnSave" disabled={isSaving} onClick={handleSave} type="button">
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+            <button className="btnSmall btnOutline" disabled={isSaving} onClick={cancelEditing} type="button">
+              Cancel
+            </button>
+          </div>
+          {editError && <p className="errorText">{editError}</p>}
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="record" key={project.id}>
+      <div className="recordHeader">
+        <h3>{project.name}</h3>
+        <span className="pill">{project.status}</span>
+      </div>
+      <p>{project.description ?? "No description"}</p>
+      <div className="metaRow">
+        <span>Priority: {project.priority}</span>
+        <span>Updated: {formatDate(project.updated_at)}</span>
+      </div>
+      <div className="recordActions">
+        <button className="btnSmall btnOutline" onClick={startEditing} type="button">
+          Edit
+        </button>
+        <button className="btnSmall btnDanger" onClick={handleDelete} type="button">
+          Delete
+        </button>
+      </div>
+      {editError && <p className="errorText">{editError}</p>}
+    </article>
+  );
 }
 
 export function ProjectsList() {
@@ -33,6 +170,10 @@ export function ProjectsList() {
     return getProjects();
   }
 
+  async function refresh() {
+    setResult(await loadProjects());
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
@@ -54,7 +195,7 @@ export function ProjectsList() {
       setName("");
       setDescription("");
       setPriority("medium");
-      setResult(await loadProjects());
+      await refresh();
     } else {
       setSubmitError(`Unable to create project: ${created.error}`);
     }
@@ -112,17 +253,7 @@ export function ProjectsList() {
       {result?.ok && result.data.length > 0 && (
         <div className="stack">
           {result.data.map((project) => (
-            <article className="record" key={project.id}>
-              <div className="recordHeader">
-                <h3>{project.name}</h3>
-                <span className="pill">{project.status}</span>
-              </div>
-              <p>{project.description ?? "No description"}</p>
-              <div className="metaRow">
-                <span>Priority: {project.priority}</span>
-                <span>Updated: {formatDate(project.updated_at)}</span>
-              </div>
-            </article>
+            <ProjectItem key={project.id} onMutated={refresh} project={project} />
           ))}
         </div>
       )}

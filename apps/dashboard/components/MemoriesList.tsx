@@ -1,7 +1,173 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { createMemory, getMemories, type ApiResult, type Memory } from "../lib/api";
+import {
+  createMemory,
+  deleteMemory,
+  getMemories,
+  updateMemory,
+  type ApiResult,
+  type Memory,
+} from "../lib/api";
+
+function MemoryItem({
+  memory,
+  onMutated,
+}: {
+  memory: Memory;
+  onMutated: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const [editType, setEditType] = useState(memory.type);
+  const [editContent, setEditContent] = useState(memory.content);
+  const [editSource, setEditSource] = useState(memory.source ?? "");
+  const [editTags, setEditTags] = useState(memory.tags?.join(", ") ?? "");
+  const [editImportance, setEditImportance] = useState(memory.importance);
+
+  function startEditing() {
+    setEditType(memory.type);
+    setEditContent(memory.content);
+    setEditSource(memory.source ?? "");
+    setEditTags(memory.tags?.join(", ") ?? "");
+    setEditImportance(memory.importance);
+    setActionError(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setActionError(null);
+  }
+
+  async function handleSave() {
+    const trimmed = editContent.trim();
+    if (!trimmed) {
+      setActionError("Content is required.");
+      return;
+    }
+
+    const parsedTags = editTags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    setIsSaving(true);
+    const result = await updateMemory(memory.id, {
+      type: editType,
+      content: trimmed,
+      source: editSource.trim() || null,
+      tags: parsedTags.length ? parsedTags : null,
+      importance: editImportance,
+    });
+
+    if (result.ok) {
+      setEditing(false);
+      onMutated();
+    } else {
+      setActionError(`Save failed: ${result.error}`);
+    }
+    setIsSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this memory? This cannot be undone.")) {
+      return;
+    }
+
+    const result = await deleteMemory(memory.id);
+    if (result.ok) {
+      onMutated();
+    } else {
+      setActionError(`Delete failed: ${result.error}`);
+    }
+  }
+
+  if (editing) {
+    return (
+      <article className="record" key={memory.id}>
+        <div className="editForm">
+          <div className="editFormFooter">
+            <label>
+              <span>Type</span>
+              <select onChange={(e) => setEditType(e.target.value)} value={editType}>
+                <option value="note">Note</option>
+                <option value="technical_context">Technical Context</option>
+                <option value="decision">Decision</option>
+              </select>
+            </label>
+            <label>
+              <span>Importance</span>
+              <select onChange={(e) => setEditImportance(e.target.value)} value={editImportance}>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>Content</span>
+            <textarea
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={3}
+              value={editContent}
+            />
+          </label>
+          <div className="editFormFooter">
+            <label>
+              <span>Source</span>
+              <input
+                maxLength={255}
+                onChange={(e) => setEditSource(e.target.value)}
+                value={editSource}
+              />
+            </label>
+            <label>
+              <span>Tags</span>
+              <input
+                onChange={(e) => setEditTags(e.target.value)}
+                placeholder="comma, separated"
+                value={editTags}
+              />
+            </label>
+            <button className="btnSmall btnSave" disabled={isSaving} onClick={handleSave} type="button">
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+            <button className="btnSmall btnOutline" disabled={isSaving} onClick={cancelEditing} type="button">
+              Cancel
+            </button>
+          </div>
+          {actionError && <p className="errorText">{actionError}</p>}
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="record" key={memory.id}>
+      <div className="recordHeader">
+        <h3>{memory.type}</h3>
+        <span className="pill">{memory.importance}</span>
+      </div>
+      <p>{memory.content}</p>
+      <div className="metaRow">
+        <span>Source: {memory.source ?? "-"}</span>
+        <span>Tags: {memory.tags?.length ? memory.tags.join(", ") : "-"}</span>
+      </div>
+      <div className="recordActions">
+        <button className="btnSmall btnOutline" onClick={startEditing} type="button">
+          Edit
+        </button>
+        <button className="btnSmall btnDanger" onClick={handleDelete} type="button">
+          Delete
+        </button>
+      </div>
+      {actionError && <p className="errorText">{actionError}</p>}
+    </article>
+  );
+}
 
 export function MemoriesList() {
   const [result, setResult] = useState<ApiResult<Memory[]> | null>(null);
@@ -29,6 +195,10 @@ export function MemoriesList() {
 
   async function loadMemories() {
     return getMemories();
+  }
+
+  async function refresh() {
+    setResult(await loadMemories());
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -61,7 +231,7 @@ export function MemoriesList() {
       setSource("");
       setTags("");
       setImportance("normal");
-      setResult(await loadMemories());
+      await refresh();
     } else {
       setSubmitError(`Unable to create memory: ${created.error}`);
     }
@@ -137,17 +307,7 @@ export function MemoriesList() {
       {result?.ok && result.data.length > 0 && (
         <div className="stack">
           {result.data.map((memory) => (
-            <article className="record" key={memory.id}>
-              <div className="recordHeader">
-                <h3>{memory.type}</h3>
-                <span className="pill">{memory.importance}</span>
-              </div>
-              <p>{memory.content}</p>
-              <div className="metaRow">
-                <span>Source: {memory.source ?? "-"}</span>
-                <span>Tags: {memory.tags?.length ? memory.tags.join(", ") : "-"}</span>
-              </div>
-            </article>
+            <MemoryItem key={memory.id} memory={memory} onMutated={refresh} />
           ))}
         </div>
       )}

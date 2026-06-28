@@ -306,4 +306,75 @@ td span {
   .pill {
     width: fit-content;
   }
+
+  .recordActions {
+    flex-wrap: wrap;
+  }
 }
+
+/* ------------------------------------------------------------------ */
+/* Inline edit / delete action buttons                                 */
+/* ------------------------------------------------------------------ */
+
+.recordActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.btnSmall {
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 30px;
+  padding: 4px 10px;
+}
+
+.btnOutline {
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+}
+
+.btnOutline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btnDanger {
+  background: transparent;
+  border: 1px solid #e8c1c1;
+  color: #a33131;
+}
+
+.btnDanger:hover {
+  background: #fdf2f2;
+  border-color: #a33131;
+}
+
+.btnSave {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #ffffff;
+}
+
+.editForm {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.editForm label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 4px;
+}
+
+.editFormFooter {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
