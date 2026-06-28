@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="1.0.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="1.1.0", validation_alias="APP_VERSION")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     database_url: str = Field(
         default=f"sqlite:///{LOCAL_SQLITE_PATH}",

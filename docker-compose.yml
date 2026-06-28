@@ -1,0 +1,32 @@
+name: kairos-local
+
+services:
+  kairos-api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: kairos-api
+    restart: unless-stopped
+    environment:
+      APP_NAME: Kairos API
+      APP_VERSION: 1.1.0
+      API_V1_PREFIX: /api/v1
+      DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      CREATE_TABLES_ON_STARTUP: "true"
+      USE_MOCK_DATA: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+
+  kairos-dashboard:
+    build:
+      context: ./apps/dashboard
+      dockerfile: Dockerfile
+    container_name: kairos-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_KAIROS_API_URL: http://localhost:8000

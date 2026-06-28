@@ -27,7 +27,7 @@ def test_root_health():
     assert response.json() == {
         "status": "ok",
         "service": "kairos-api",
-        "version": "1.0.0",
+        "version": "1.1.0",
     }
 
 
@@ -38,7 +38,7 @@ def test_api_v1_health():
     assert response.json() == {
         "status": "ok",
         "service": "kairos-api",
-        "version": "1.0.0",
+        "version": "1.1.0",
     }
 
 

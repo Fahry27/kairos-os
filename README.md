@@ -38,10 +38,10 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- **Version**: Kairos v1.0.0 (First Stable Local Release)
+- **Version**: Kairos v1.1.0 (Dockerized Local Release)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
-- **Infrastructure**: Core API can also run via Docker Compose with PostgreSQL (`infra/docker-compose.dev.yml`).
+- **Infrastructure**: Core API and Dashboard can run via root `docker-compose.yml`.
 - **Development**: See `docs/development.md` for full setup instructions, test commands, and architectural notes.
 
 ## Getting Started
@@ -52,19 +52,15 @@ creating records through the Kairos Core API.
    cp .env.example .env
    ```
 
-2. Review the development guide:
+2. Start via Docker (Recommended):
 
    ```sh
-   open docs/development.md
+   docker compose up -d --build
    ```
+   - Dashboard: http://localhost:3000
+   - API: http://localhost:8000
 
-3. Start local infrastructure when needed:
-
-   ```sh
-   docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
-   ```
-
-4. Verify the API:
+3. Verify the API:
 
    ```sh
    curl http://localhost:8000/health

@@ -26,13 +26,7 @@ development.
 Start all local services:
 
 ```sh
-docker compose -f infra/docker-compose.dev.yml up -d
-```
-
-Start the API and PostgreSQL only:
-
-```sh
-docker compose -f infra/docker-compose.dev.yml up -d --build kairos-api
+docker compose up -d --build
 ```
 
 Stop local services:
@@ -77,7 +71,7 @@ curl http://localhost:8000/api/v1/projects
 Expected response:
 
 ```json
-{"status":"ok","service":"kairos-api","version":"1.0.0"}
+{"status":"ok","service":"kairos-api","version":"1.1.0"}
 ```
 
 Stop the API:
