@@ -1,6 +1,6 @@
 # Kairos Core API
 
-Kairos Core API is a FastAPI service for the first Kairos domain modules:
+Kairos Core API (v1.0.0) is a FastAPI service for the first Kairos domain modules:
 
 - Projects
 - Tasks

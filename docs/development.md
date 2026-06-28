@@ -77,7 +77,7 @@ curl http://localhost:8000/api/v1/projects
 Expected response:
 
 ```json
-{"status":"ok","service":"Kairos API","version":"0.3.0"}
+{"status":"ok","service":"kairos-api","version":"1.0.0"}
 ```
 
 Stop the API:

@@ -38,17 +38,11 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- Foundation repository initialized.
-- Kairos Core API is implemented with FastAPI under `apps/api/`.
-- Current milestone: Kairos Core API v0.3 uses persistent local SQLite storage
-  for direct local API development.
-- Kairos Core API is Dockerized for local development through
-  `infra/docker-compose.dev.yml`.
-- Kairos Dashboard v0.4 is implemented with lightweight create actions for
-  projects, tasks, and memories under `apps/dashboard/`.
-- Data, scripts, and infrastructure configuration directories are reserved.
-- Local development services are described in `infra/docker-compose.dev.yml`.
-- Architecture and development notes live in `docs/`.
+- **Version**: Kairos v1.0.0 (First Stable Local Release)
+- **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
+- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
+- **Infrastructure**: Core API can also run via Docker Compose with PostgreSQL (`infra/docker-compose.dev.yml`).
+- **Development**: See `docs/development.md` for full setup instructions, test commands, and architectural notes.
 
 ## Getting Started
 
