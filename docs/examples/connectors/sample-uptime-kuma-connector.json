@@ -1,0 +1,19 @@
+{
+  "id": "custom.uptime-kuma-remote",
+  "name": "Remote Uptime Kuma Instance",
+  "version": "1.0.0",
+  "description": "Connects to a status checker server.",
+  "category": "monitoring",
+  "enabled": true,
+  "service_type": "status_page",
+  "base_url": "http://192.168.1.150:3001",
+  "auth_type": "none",
+  "capabilities": ["pings", "incident_notifications"],
+  "health_endpoint": "/status",
+  "docs_url": "https://github.com/louislam/uptime-kuma",
+  "tags": ["remote", "monitoring"],
+  "metadata": {
+    "author": "Homelab Admin",
+    "tier": "user"
+  }
+}

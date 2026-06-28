@@ -164,6 +164,24 @@ export function getPlugins() {
   return fetchFromApi<PluginManifest[]>("/api/v1/plugins");
 }
 
+export type ConnectorManifest = {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  category: string;
+  enabled: boolean;
+  service_type: string;
+  base_url?: string | null;
+  auth_type: string;
+  capabilities?: string[];
+  tags?: string[];
+};
+
+export function getConnectors() {
+  return fetchFromApi<ConnectorManifest[]>("/api/v1/connectors");
+}
+
 // ---------------------------------------------------------------------------
 // Update types
 // ---------------------------------------------------------------------------

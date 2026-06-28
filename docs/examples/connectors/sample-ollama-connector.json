@@ -1,0 +1,19 @@
+{
+  "id": "custom.ollama-remote",
+  "name": "Remote Ollama Instance",
+  "version": "1.0.0",
+  "description": "Connects to a remote high-performance GPU server running Ollama.",
+  "category": "ai",
+  "enabled": true,
+  "service_type": "ai_inference",
+  "base_url": "http://192.168.1.100:11434",
+  "auth_type": "none",
+  "capabilities": ["text_generation", "embeddings"],
+  "health_endpoint": "/api/tags",
+  "docs_url": "https://github.com/ollama/ollama",
+  "tags": ["remote", "gpu", "ollama"],
+  "metadata": {
+    "author": "Homelab Admin",
+    "tier": "user"
+  }
+}

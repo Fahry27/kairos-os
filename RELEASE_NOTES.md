@@ -1,3 +1,23 @@
+# Kairos v1.9.0 Release Notes
+
+Welcome to Kairos v1.9.0, introducing the metadata-only External Service Connector Registry Foundation.
+
+## Kairos v1.9.0
+**Date:** June 2026
+
+This release integrates a safe metadata-only connector registry, mapping external services as discoverable homelab components without initiating direct outbound API networking or credential caching.
+
+### Features
+- **Pydantic Connector Registry**: Created `ConnectorManifest` representing coordinates, types, scopes, and pings for local network nodes.
+- **Pre-configured Homelab Services**: Added built-in connectors mapping Ollama, Open WebUI, n8n, Tailscale, Uptime Kuma, Portainer, DeepSeek OCR, OpenClaw, and Plex server configurations.
+- **Dynamic External Scanning**: Scans `.json` manifests inside `KAIROS_CONNECTORS_DIR` (defaults to `data/connectors/`), initializing the path automatically.
+- **Connector API Routers**: Added GET `/api/v1/connectors` and GET `/api/v1/connectors/{connector_id}` query endpoints.
+- **Connectors Dashboard Widget**: Added a dedicated scrollable `ConnectorsCard` in the main layout grid showcasing active integrations and categories.
+- **Safe Example Profiles**: Created n8n, Ollama, and Uptime Kuma connection reference files under `docs/examples/connectors/`.
+- **Registry Documentation**: Authored `docs/connectors.md` to detail separation from plugins, local files configuration, and Zima OS mappings.
+
+---
+
 # Kairos v1.8.0 Release Notes
 
 Welcome to Kairos v1.8.0, introducing the external plugin JSON loading folder scanner and metadata-only Command Registry.

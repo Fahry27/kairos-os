@@ -1,6 +1,6 @@
 # Portainer Stack Deployment Guide
 
-This guide explains how to deploy Kairos v1.8.0 as a Docker Stack inside Portainer.
+This guide explains how to deploy Kairos v1.9.0 as a Docker Stack inside Portainer.
 
 ## Prerequisites
 - Portainer instance running and managed.

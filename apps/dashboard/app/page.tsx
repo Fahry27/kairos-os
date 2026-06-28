@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { HealthCard } from "../components/HealthCard";
 import { ExtensionsCard } from "../components/ExtensionsCard";
+import { ConnectorsCard } from "../components/ConnectorsCard";
 import { MemoriesList } from "../components/MemoriesList";
 import { ProjectsList } from "../components/ProjectsList";
 import { StatsOverview } from "../components/StatsOverview";
@@ -23,6 +24,9 @@ export default function DashboardPage() {
         <HealthCard />
         <Suspense fallback={<p className="stateText">Loading extensions...</p>}>
           <ExtensionsCard />
+        </Suspense>
+        <Suspense fallback={<p className="stateText">Loading connectors...</p>}>
+          <ConnectorsCard />
         </Suspense>
         <Suspense fallback={<p className="stateText">Loading stats...</p>}>
           <StatsOverview />

@@ -1,0 +1,19 @@
+{
+  "id": "custom.n8n-remote",
+  "name": "Remote n8n Instance",
+  "version": "1.0.0",
+  "description": "Connects to a workflow instance inside another cluster node.",
+  "category": "automation",
+  "enabled": true,
+  "service_type": "workflow_engine",
+  "base_url": "http://192.168.1.120:5678",
+  "auth_type": "basic_auth",
+  "capabilities": ["trigger_webhooks", "data_mapping"],
+  "health_endpoint": "/healthz",
+  "docs_url": "https://docs.n8n.io",
+  "tags": ["remote", "automation"],
+  "metadata": {
+    "author": "Homelab Admin",
+    "tier": "user"
+  }
+}

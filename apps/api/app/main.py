@@ -16,6 +16,7 @@ from app.core.monitoring import (
     run_startup_selfchecks,
 )
 from app.core.plugins import plugin_registry
+from app.core.connectors import connector_registry
 from app.db.base import initialize_database
 
 # Initialize logging at import time to capture all early startup logs
@@ -57,6 +58,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Load external plugins if enabled
     if settings.kairos_plugins_enabled:
         plugin_registry.load_external_plugins(settings.resolved_plugins_dir)
+
+    # Load external connectors if enabled
+    if settings.kairos_connectors_enabled:
+        connector_registry.load_external_connectors(settings.resolved_connectors_dir)
 
     if settings.create_tables_on_startup and not settings.use_mock_data:
         initialize_database()
