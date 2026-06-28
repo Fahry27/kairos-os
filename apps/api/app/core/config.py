@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="1.9.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="2.0.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     kairos_plugins_dir: str = Field(default="", validation_alias="KAIROS_PLUGINS_DIR")
     kairos_connectors_enabled: bool = Field(default=True, validation_alias="KAIROS_CONNECTORS_ENABLED")
     kairos_connectors_dir: str = Field(default="", validation_alias="KAIROS_CONNECTORS_DIR")
+    # AI Runtime settings (v2.0.0)
+    kairos_ai_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_ENABLED")
+    kairos_ai_provider: str = Field(default="ollama", validation_alias="KAIROS_AI_PROVIDER")
+    kairos_ai_model: str = Field(default="", validation_alias="KAIROS_AI_MODEL")
+    kairos_ai_base_url: str = Field(default="", validation_alias="KAIROS_AI_BASE_URL")
+    kairos_ai_planning_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_PLANNING_ENABLED")
+    # execution_enabled defaults False; the planner hard-gates this regardless of config
+    kairos_ai_execution_enabled: bool = Field(default=False, validation_alias="KAIROS_AI_EXECUTION_ENABLED")
     database_url: str = Field(
         default=f"sqlite:///{LOCAL_SQLITE_PATH}",
         validation_alias="DATABASE_URL",

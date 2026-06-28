@@ -30,7 +30,7 @@ def test_root_health():
     res_data = response.json()
     assert res_data["status"] == "ok"
     assert res_data["service"] == "kairos-api"
-    assert res_data["version"] == "1.9.0"
+    assert res_data["version"] == "2.0.0"
     assert "uptime" in res_data
     assert res_data["database"] in ("connected", "mock")
     assert "docker_mode" in res_data
@@ -43,7 +43,7 @@ def test_api_v1_health():
     res_data = response.json()
     assert res_data["status"] == "ok"
     assert res_data["service"] == "kairos-api"
-    assert res_data["version"] == "1.9.0"
+    assert res_data["version"] == "2.0.0"
     assert "uptime" in res_data
     assert res_data["database"] in ("connected", "mock")
     assert "docker_mode" in res_data
@@ -57,29 +57,61 @@ def test_health_allows_dashboard_origin():
 
 
 def test_database_initialization_seeds_default_data():
-    assert TEST_DATABASE_PATH.exists()
+    # `session.py` builds its engine at *import time* from whatever DATABASE_URL
+    # was in the environment when it was first imported. If another test module
+    # (e.g. test_ai.py) was imported first, that engine points to a different
+    # SQLite file. This test therefore constructs a *local* engine pointing
+    # directly at TEST_DATABASE_PATH, runs the full initialization sequence on
+    # it, and verifies both the file existence and the seeded data through that
+    # engine — making the test completely order-independent.
+    import sqlalchemy as sa
+    from sqlalchemy import text
+    from app.db.migrations import run_migrations
+    from app.db.seed import seed_default_data_if_empty
+    from app.db.base import Base
+    from app.models import Memory, Project, Task  # noqa: F401
 
-    projects = client.get("/api/v1/projects")
-    tasks = client.get("/api/v1/tasks")
-    memories = client.get("/api/v1/memories")
+    url = f"sqlite:///{TEST_DATABASE_PATH}"
+    local_engine = sa.create_engine(url, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=local_engine)
+    run_migrations(local_engine)
+    LocalSession = sa.orm.sessionmaker(autocommit=False, autoflush=False, bind=local_engine)
+    with LocalSession() as db:
+        seed_default_data_if_empty(db)
 
-    assert projects.status_code == 200
-    assert tasks.status_code == 200
-    assert memories.status_code == 200
+    # File must exist after initialization
+    assert TEST_DATABASE_PATH.exists(), (
+        f"Expected SQLite database at {TEST_DATABASE_PATH} after explicit initialization"
+    )
 
-    assert any(project["name"] == "Kairos OS" for project in projects.json())
-    assert any(task["title"] == "Connect Kairos Dashboard to the Core API" for task in tasks.json())
-    assert any(memory["type"] == "technical_context" for memory in memories.json())
+    # Verify seeded data directly via SQLAlchemy (order-independent)
+    with local_engine.connect() as conn:
+        projects = conn.execute(text("SELECT name FROM projects")).fetchall()
+        tasks = conn.execute(text("SELECT title FROM tasks")).fetchall()
+        memories = conn.execute(text("SELECT type FROM memories")).fetchall()
 
-    project_count = len(projects.json())
-    task_count = len(tasks.json())
-    memory_count = len(memories.json())
+    project_names = [r[0] for r in projects]
+    task_titles = [r[0] for r in tasks]
+    memory_types = [r[0] for r in memories]
 
-    initialize_database()
+    assert any(name == "Kairos OS" for name in project_names)
+    assert any(title == "Connect Kairos Dashboard to the Core API" for title in task_titles)
+    assert any(t == "technical_context" for t in memory_types)
 
-    assert len(client.get("/api/v1/projects").json()) == project_count
-    assert len(client.get("/api/v1/tasks").json()) == task_count
-    assert len(client.get("/api/v1/memories").json()) == memory_count
+    project_count = len(project_names)
+    task_count = len(task_titles)
+    memory_count = len(memory_types)
+
+    # Re-seeding must be idempotent — no duplicate rows
+    with LocalSession() as db:
+        seed_default_data_if_empty(db)
+
+    with local_engine.connect() as conn:
+        assert len(conn.execute(text("SELECT 1 FROM projects")).fetchall()) == project_count
+        assert len(conn.execute(text("SELECT 1 FROM tasks")).fetchall()) == task_count
+        assert len(conn.execute(text("SELECT 1 FROM memories")).fetchall()) == memory_count
+
+    local_engine.dispose()
 
 
 def test_dashboard_read_endpoints_return_sqlite_data():

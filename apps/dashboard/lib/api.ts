@@ -182,6 +182,22 @@ export function getConnectors() {
   return fetchFromApi<ConnectorManifest[]>("/api/v1/connectors");
 }
 
+export type AICapabilities = {
+  ai_enabled: boolean;
+  provider: string;
+  model: string | null;
+  planning_enabled: boolean;
+  execution_enabled: boolean;
+  available_plugins: number;
+  available_commands: number;
+  available_connectors: number;
+  dangerous_commands: number;
+};
+
+export function getAICapabilities() {
+  return fetchFromApi<AICapabilities>("/api/v1/ai/capabilities");
+}
+
 // ---------------------------------------------------------------------------
 // Update types
 // ---------------------------------------------------------------------------

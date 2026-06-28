@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { HealthCard } from "../components/HealthCard";
+import { AIRuntimeCard } from "../components/AIRuntimeCard";
 import { ExtensionsCard } from "../components/ExtensionsCard";
 import { ConnectorsCard } from "../components/ConnectorsCard";
 import { MemoriesList } from "../components/MemoriesList";
@@ -22,6 +23,9 @@ export default function DashboardPage() {
 
       <div className="dashboardGrid">
         <HealthCard />
+        <Suspense fallback={<p className="stateText">Loading AI runtime...</p>}>
+          <AIRuntimeCard />
+        </Suspense>
         <Suspense fallback={<p className="stateText">Loading extensions...</p>}>
           <ExtensionsCard />
         </Suspense>

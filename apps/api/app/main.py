@@ -17,6 +17,7 @@ from app.core.monitoring import (
 )
 from app.core.plugins import plugin_registry
 from app.core.connectors import connector_registry
+from app.core.ai_runtime import ai_runtime
 from app.db.base import initialize_database
 
 # Initialize logging at import time to capture all early startup logs
@@ -62,6 +63,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Load external connectors if enabled
     if settings.kairos_connectors_enabled:
         connector_registry.load_external_connectors(settings.resolved_connectors_dir)
+
+    # Initialize AI runtime (metadata-only — no network calls)
+    ai_runtime.initialize(settings)
 
     if settings.create_tables_on_startup and not settings.use_mock_data:
         initialize_database()

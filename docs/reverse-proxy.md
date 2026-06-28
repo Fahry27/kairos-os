@@ -1,6 +1,6 @@
 # Reverse Proxy & HTTPS Deployment Guide
 
-This guide explains how to secure and expose your Kairos v1.9.0 instance on your Local Area Network (LAN) behind a reverse proxy (e.g., Caddy or Traefik).
+This guide explains how to secure and expose your Kairos v2.0.0 instance on your Local Area Network (LAN) behind a reverse proxy (e.g., Caddy or Traefik).
 
 ## Security Warning
 

@@ -1,3 +1,30 @@
+# Kairos v2.0.0 Release Notes
+
+Welcome to Kairos v2.0.0, introducing the **AI Runtime Interface** — a safe, metadata-only AI layer with provider registry, capability summaries, and a deterministic planning endpoint.
+
+## Kairos v2.0.0
+**Date:** June 2026
+
+This release establishes the full AI runtime API contract and safety model before actual LLM integration begins in a future milestone.
+
+### Features
+- **AI Provider Registry**: Built-in `AIProviderManifest` models for `ai.ollama` (enabled, local-first), `ai.openai_codex` (disabled — user has access, no calls implemented), `ai.openai` (disabled), and `ai.openrouter` (disabled). Anthropic is excluded by design.
+- **AI Capability Summary**: `GET /api/v1/ai/capabilities` returns live registry counts (plugins, commands, connectors, dangerous commands) alongside AI runtime state.
+- **Deterministic Planner**: `POST /api/v1/ai/plan` accepts a `user_goal` and returns a rule-based advisory plan using keyword matching against the live command registry. No LLM is called.
+- **Hard-Gated Execution**: The planner always returns `execution_enabled=false` regardless of `KAIROS_AI_EXECUTION_ENABLED`. The config flag is reserved for future milestones.
+- **Dangerous Command Surfacing**: Commands marked `dangerous=true` are flagged in planning responses with explicit safety notes.
+- **AI Runtime Dashboard Card**: New `AIRuntimeCard` showing enabled status, provider, model, planning state, execution lock, and registry counts.
+- **Six New Config Variables**: `KAIROS_AI_ENABLED`, `KAIROS_AI_PROVIDER`, `KAIROS_AI_MODEL`, `KAIROS_AI_BASE_URL`, `KAIROS_AI_PLANNING_ENABLED`, `KAIROS_AI_EXECUTION_ENABLED`.
+- **AI Runtime Documentation**: Full architecture, security model, provider table, endpoint reference, and roadmap in `docs/ai-runtime.md`.
+
+### Safety Guarantees
+- Zero outbound network calls in `ai_runtime.py`.
+- No API keys, tokens, or secrets stored or returned.
+- OpenClaw remains a `ConnectorManifest` — not an OAuth bridge.
+- All planning responses carry `execution_enabled=false` and `requires_approval=true`.
+
+---
+
 # Kairos v1.9.0 Release Notes
 
 Welcome to Kairos v1.9.0, introducing the metadata-only External Service Connector Registry Foundation.
