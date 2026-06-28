@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 1.1.0
+      APP_VERSION: 1.2.0
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
