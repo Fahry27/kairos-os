@@ -9,13 +9,16 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 1.4.0
+      APP_VERSION: 1.5.0
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
       CREATE_TABLES_ON_STARTUP: "true"
       USE_MOCK_DATA: "false"
       # KAIROS_API_KEY: "your-secure-api-key-here" # Enable local API key auth (unset/empty for local dev)
+      UVICORN_PROXY_HEADERS: "true"
+      UVICORN_FORWARDED_ALLOW_IPS: "*"
+      # ROOT_PATH: "/api-subpath" # Mount API on a subpath if using reverse proxy routing
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
@@ -25,7 +28,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # Standard volume mapping for Zima OS / Direct Docker Compose
       - ./data:/app/data
+      # Portainer Stack mapping (if using Portainer stack deploy, uncomment below and Named Volumes block at bottom)
+      # - kairos_data:/app/data
     logging:
       driver: "json-file"
       options:
@@ -48,3 +54,10 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+# Portainer named volume configuration block:
+# To use named volumes in Portainer, uncomment the block below:
+# volumes:
+#   kairos_data:
+#     name: kairos_data
+

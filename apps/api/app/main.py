@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         lifespan=lifespan,
+        root_path=settings.root_path,
     )
 
     @app.middleware("http")

@@ -1,3 +1,37 @@
+# Kairos v1.5.0 Release Notes
+
+Welcome to Kairos v1.5.0, enabling reverse proxy readiness, HTTPS/LAN domain support, and Portainer stack deployment compatibility.
+
+## Kairos v1.5.0
+**Date:** June 2026
+
+This release brings proxy headers trust, root path routing config, Portainer stack compatibility, and dynamic LAN reverse proxy examples.
+
+### Features
+- **Reverse Proxy Readiness**: Added `ROOT_PATH` environment variable support to mount the API on subpaths, and configured Uvicorn to trust proxy headers (`UVICORN_PROXY_HEADERS=true` and `UVICORN_FORWARDED_ALLOW_IPS=*`).
+- **Portainer Stack Compatibility**: Documented how to deploy Kairos as a stack inside Portainer, including environment variables setup and named volume persistency configurations.
+- **LAN Domain & HTTPS Setup**: Added dynamic documentation for Caddy and Traefik reverse proxies to secure LAN access (e.g., `kairos.local` and `kairos-api.local`).
+
+---
+
+# Kairos v1.4.0 Release Notes
+
+Welcome to Kairos v1.4.0, introducing production-ready operations and system monitoring support.
+
+## Kairos v1.4.0
+**Date:** June 2026
+
+This release integrates structured logging, readiness/metrics monitoring endpoints, automated backups with retention, and Docker logging constraints.
+
+### Features
+- **Unified Structured Logging**: Unified Python root and Uvicorn loggers to format stdout logs as `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE` in UTC.
+- **Self-Checks & Readiness Endpoints**: Added startup validations check (checking SQLite write, data dir, and backup path permissions) accessible via `/ready` (returning 503 if unready).
+- **System Metrics**: Added root-level `/metrics` returning uptime, database connection status, and HTTP requests status code distributions (JSON format).
+- **Backup Script Retention**: Refactored `backup-sqlite.sh` to output structured logs and enforce a strict 14-backup chronological retention policy.
+- **Docker Log Rotation**: Restricted container logs in `docker-compose.yml` to `10m` size limits to protect host storage space.
+
+---
+
 # Kairos v1.3.0 Release Notes
 
 Welcome to Kairos v1.3.0, introducing local API key authentication and LAN security hardening.
