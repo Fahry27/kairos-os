@@ -404,3 +404,43 @@ td span {
   min-width: 150px;
 }
 
+/* ------------------------------------------------------------------ */
+/* Stats Overview & Progress                                           */
+/* ------------------------------------------------------------------ */
+
+.focusedOverview {
+  border-top: 1px solid #e5eaf1;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.focusedOverview h3 {
+  align-items: center;
+  display: flex;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.progressBar {
+  background: #e5eaf1;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progressFill {
+  background: var(--accent);
+  border-radius: 999px;
+  height: 100%;
+  min-width: 0;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+

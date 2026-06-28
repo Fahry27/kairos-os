@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { HealthCard } from "../components/HealthCard";
 import { MemoriesList } from "../components/MemoriesList";
 import { ProjectsList } from "../components/ProjectsList";
+import { StatsOverview } from "../components/StatsOverview";
 import { TasksList } from "../components/TasksList";
 import { KAIROS_API_URL } from "../lib/api";
 
@@ -19,6 +20,9 @@ export default function DashboardPage() {
 
       <div className="dashboardGrid">
         <HealthCard />
+        <Suspense fallback={<p className="stateText">Loading stats...</p>}>
+          <StatsOverview />
+        </Suspense>
         <Suspense fallback={<p className="stateText">Loading projects...</p>}>
           <ProjectsList />
         </Suspense>
@@ -32,3 +36,4 @@ export default function DashboardPage() {
     </main>
   );
 }
+
