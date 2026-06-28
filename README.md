@@ -38,12 +38,13 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- **Version**: Kairos v1.3.0 (Zima OS Deployment Ready with Local Auth)
+- **Version**: Kairos v1.4.0 (Production Operations Ready)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
-- **Infrastructure**: Core API and Dashboard can run via root `docker-compose.yml`.
+- **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.
+- **Infrastructure**: Core API and Dashboard run via Docker Compose with customized log rotation policies.
 - **Development**: See `docs/development.md` for full setup instructions, test commands, and architectural notes.
-- **Zima OS / Homelab**: See `docs/zima-os.md` for LAN deployment instructions and SQLite backup tools (`scripts/backup-sqlite.sh`).
+- **Zima OS / Homelab**: See `docs/zima-os.md` for LAN deployment instructions, cron backup automation (`scripts/backup-sqlite.sh` with 14-backup retention), and operational checklists.
 
 ## Getting Started
 

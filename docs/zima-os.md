@@ -1,6 +1,6 @@
 # Zima OS (CasaOS) Deployment Guide
 
-Kairos v1.3.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
+Kairos v1.4.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
 
 ## Prerequisites
 - Zima OS / CasaOS installed and running on your local network.
@@ -47,8 +47,8 @@ Kairos v1.3.0 includes a production-leaning `docker-compose.yml` file located at
 
 5. **Verify the Deployment**
     - **Check Containers**: `docker compose ps`
-    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see `{"status":"ok","service":"kairos-api","version":"1.3.0"}`.
-   - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `1.4.0` in the returned JSON.
+    - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
 
 ## Stopping and Restarting
 
@@ -74,18 +74,54 @@ Your projects, tasks, and memories will persist across updates because they are 
 
 ## Backing Up and Restoring
 
-### Backup
-Kairos stores all your data in a local SQLite file. You can back it up easily using the provided script:
+### Backup Automation via Cron
+Kairos stores all your data in a local SQLite file. You can run manual backups:
 ```sh
 ./scripts/backup-sqlite.sh
 ```
-This will copy `data/kairos-local.sqlite3` into the `backups/` directory with a timestamp.
+This script saves database backups in `backups/` using UTC timestamps, and enforces a retention policy keeping exactly the latest 14 backups.
+
+To automate database backups on your Zima OS host, you can set up a system cron job:
+1. Open the cron editor on the Zima OS host via SSH:
+   ```sh
+   crontab -e
+   ```
+2. Add a cron job to run the backup script daily (e.g., at 2:00 AM):
+   ```text
+   0 2 * * * /DATA/AppData/kairos/scripts/backup-sqlite.sh >> /DATA/AppData/kairos/backups/backup.log 2>&1
+   ```
+3. Save and close the editor. The script logs backup execution success, failures, and retention cleanup directly to stdout (redirected to `backup.log` in this example).
 
 ### Restore
 To restore from a backup:
 1. Stop the containers: `docker compose down`
 2. Replace the active database file: `cp backups/kairos-local_TIMESTAMP.sqlite3 data/kairos-local.sqlite3`
 3. Restart the containers: `docker compose up -d`
+
+## Operations Monitoring & Logs
+
+### Docker Log Locations
+By default, Docker container logs are outputted directly to standard output/error and captured by the `json-file` driver. To view logs:
+- **API logs**: `docker compose logs -f kairos-api` (or `docker logs -f kairos-api`)
+- **Dashboard logs**: `docker compose logs -f kairos-dashboard` (or `docker logs -f kairos-dashboard`)
+
+These logs follow a structured, unified formatting: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE` to make parsing straightforward.
+
+### Operational Endpoints
+- **Health check (`/health` / `/api/v1/health`)**: Public endpoints confirming service version, uptime, database connectivity, and docker environment.
+- **Readiness check (`/ready` / `/api/v1/ready`)**: Verifies filesystem write accessibility (e.g., database path, backups directory, data directory) and database responsiveness.
+- **Metrics check (`/metrics` / `/api/v1/metrics`)**: Exposes JSON stats covering uptime, request counts, and HTTP status code distribution (2xx, 3xx, 4xx, 5xx).
+
+---
+
+## Operational Checklist
+
+For a production Zima OS deployment, verify:
+- [ ] **Docker Log Rotation**: Logging drivers limits (`max-size: 10m`, `max-file: 3`) are active in `docker-compose.yml` to prevent filling Zima OS system disk.
+- [ ] **Backups Cron Job**: The backup cron job is registered, active, and permissions on `scripts/backup-sqlite.sh` are set to executable.
+- [ ] **LAN Access API Keys**: `KAIROS_API_KEY` (in API service environment) and `NEXT_PUBLIC_KAIROS_API_KEY` (in dashboard environment) are configured and matching.
+- [ ] **Readiness status**: Accessing `http://<ZIMA_IP>:8000/ready` returns `"status": "ready"`.
+- [ ] **Restart Policy**: Restart policies (`unless-stopped`) are defined for all containers in the compose file.
 
 ## Known Limitations
 

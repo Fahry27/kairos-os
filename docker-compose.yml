@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 1.3.0
+      APP_VERSION: 1.4.0
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
@@ -26,6 +26,11 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   kairos-dashboard:
     build:
@@ -38,3 +43,8 @@ services:
     environment:
       NEXT_PUBLIC_KAIROS_API_URL: http://localhost:8000
       # NEXT_PUBLIC_KAIROS_API_KEY: "your-secure-api-key-here" # Must match KAIROS_API_KEY if enabled
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

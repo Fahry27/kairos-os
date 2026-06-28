@@ -71,7 +71,14 @@ curl http://localhost:8000/api/v1/projects
 Expected response:
 
 ```json
-{"status":"ok","service":"kairos-api","version":"1.1.0"}
+{
+  "status": "ok",
+  "service": "kairos-api",
+  "version": "1.4.0",
+  "uptime": 12,
+  "database": "connected",
+  "docker_mode": true
+}
 ```
 
 Stop the API:
@@ -128,11 +135,12 @@ To reset only the direct local SQLite API data, stop the API and remove:
 data/kairos-local.sqlite3
 ```
 
-Verify the health endpoint:
+Verify health, readiness, and metrics:
 
 ```sh
 curl http://localhost:8000/health
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/ready
+curl http://localhost:8000/metrics
 ```
 
 Verify local SQLite persistence:
@@ -212,6 +220,18 @@ The following directories are reserved for future non-application support work:
 Keep these directories free of committed secrets and host-specific assumptions.
 Use them for reviewed, portable project assets only when a later task defines
 the contents.
+
+## Production Operations Support
+
+Kairos v1.4.0 includes enhanced operations and monitoring support:
+
+### Structured Logging
+API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE`. Time is always formatted in UTC ISO. This is stdout/stderr friendly and automatically handled by Docker's logging driver (e.g., `json-file` limited to `max-size: 10m` in `docker-compose.yml`).
+
+### Monitoring & Readiness Checks
+- **Health check (`/health` / `/api/v1/health`)**: Exposes basic health metrics (uptime, database status, docker environment detection).
+- **Readiness check (`/ready` / `/api/v1/ready`)**: Performs startup validation checks (SQLite database file availability, backup directory writability, data path writability) and database query responsiveness. Returns `503 Service Unavailable` if unready.
+- **Metrics check (`/metrics` / `/api/v1/metrics`)**: Exposes JSON stats including uptime, database status, container mode, and processed HTTP request statistics (by HTTP status class). It does not query database record counts on every request to ensure high responsiveness.
 
 ## Documentation Workflow
 

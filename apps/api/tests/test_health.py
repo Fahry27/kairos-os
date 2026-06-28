@@ -27,22 +27,26 @@ def test_root_health():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "service": "kairos-api",
-        "version": "1.3.0",
-    }
+    res_data = response.json()
+    assert res_data["status"] == "ok"
+    assert res_data["service"] == "kairos-api"
+    assert res_data["version"] == "1.4.0"
+    assert "uptime" in res_data
+    assert res_data["database"] in ("connected", "mock")
+    assert "docker_mode" in res_data
 
 
 def test_api_v1_health():
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "service": "kairos-api",
-        "version": "1.3.0",
-    }
+    res_data = response.json()
+    assert res_data["status"] == "ok"
+    assert res_data["service"] == "kairos-api"
+    assert res_data["version"] == "1.4.0"
+    assert "uptime" in res_data
+    assert res_data["database"] in ("connected", "mock")
+    assert "docker_mode" in res_data
 
 
 def test_health_allows_dashboard_origin():
