@@ -1,3 +1,22 @@
+# Kairos v1.7.0 Release Notes
+
+Welcome to Kairos v1.7.0, introducing the initial Plugin and Extension Framework Foundation.
+
+## Kairos v1.7.0
+**Date:** June 2026
+
+This release integrates a lightweight built-in extension registry, manifest schemas, configuration switches, dynamic endpoints, and visual extensions summary card inside the dashboard.
+
+### Features
+- **Plugin Manifest Model**: Defined a lightweight, Pydantic-based plugin manifest schema containing IDs, capabilities, categories, entry points, configuration schemas, permissions, and metadata.
+- **Built-in Registry Loader**: Pre-registered existing core capabilities (`core.projects`, `core.tasks`, `core.memories`, `core.operations`) as structured system extensions.
+- **Dynamic Registry Endpoints**: Added read-only endpoints GET `/api/v1/plugins` and GET `/api/v1/plugins/{plugin_id}` requiring active API keys when authentication is enabled.
+- **Plugins Enable Toggle**: Added the `KAIROS_PLUGINS_ENABLED` environment toggle (defaulting to `true`). If disabled, all plugin endpoints respond with empty listings or clean errors.
+- **Dashboard Summary Integration**: Added an OS Registry Extensions count and details card directly in the main layout grid.
+- **Plugin Framework Documentation**: Added a dedicated `docs/plugins.md` guide explaining the manifest layout, API usages, and extension roadmap.
+
+---
+
 # Kairos v1.6.0 Release Notes
 
 Welcome to Kairos v1.6.0, introducing configuration validation audits, environment templates, and secrets handling guidelines.

@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v1.6.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v1.7.0.
 
 ---
 
@@ -17,6 +17,7 @@ This document details all configuration parameters, environment settings, secret
 | `APP_ENV` | API | `development` | The environment mode: `development`, `production`, or `test`. |
 | `KAIROS_API_KEY` | API | *None* | Shared API key to authenticate requests. Required if `APP_ENV=production`. |
 | `NEXT_PUBLIC_KAIROS_API_KEY`| Dashboard | *None* | Shared API key sent by the dashboard. Must match `KAIROS_API_KEY`. |
+| `KAIROS_PLUGINS_ENABLED` | API | `true` | Enables the lightweight plugin/extensions registry (`true`/`false`). |
 | `CORS_ORIGINS` | API | `http://localhost:3000,http://127.0.0.1:3000` | Allowed origins for cross-origin requests. Commas or JSON arrays allowed. |
 | `ROOT_PATH` | API | *None* | Subpath prefix (e.g. `/api`) if mounting the backend behind folder-based proxies. |
 | `DATABASE_URL` | API | SQLite default | Database connection string. Must start with `sqlite://` or `postgresql`. |

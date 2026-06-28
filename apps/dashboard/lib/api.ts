@@ -150,6 +150,19 @@ export function createMemory(payload: MemoryCreate) {
   return postToApi<Memory, MemoryCreate>("/api/v1/memories", payload);
 }
 
+export type PluginManifest = {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  category: string;
+  enabled: boolean;
+};
+
+export function getPlugins() {
+  return fetchFromApi<PluginManifest[]>("/api/v1/plugins");
+}
+
 // ---------------------------------------------------------------------------
 // Update types
 // ---------------------------------------------------------------------------
