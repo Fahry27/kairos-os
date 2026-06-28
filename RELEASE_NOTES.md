@@ -1,3 +1,22 @@
+# Kairos v2.1.0 Release Notes
+
+Welcome to Kairos v2.1.0, introducing the safe **Ollama Provider Readiness Check**.
+
+## Kairos v2.1.0
+**Date:** June 2026
+
+This release adds a safe, prompt-free readiness check to verify if the configured local Ollama service is reachable.
+
+### Features
+- **Ollama Readiness Check**: Verifies Ollama availability without generating text or executing commands.
+- **Configurable Settings**: `KAIROS_OLLAMA_READINESS_ENABLED`, `KAIROS_OLLAMA_BASE_URL`, `KAIROS_OLLAMA_TAGS_PATH`, and `KAIROS_OLLAMA_TIMEOUT_SECONDS` provide full control over the check.
+- **Readiness Endpoints**: `/api/v1/ai/providers/{provider_id}/readiness` and `/api/v1/ai/readiness`.
+- **Capability Integration**: `GET /api/v1/ai/capabilities` now returns `provider_reachable`, `provider_checked`, and `provider_readiness_message` fields.
+- **Dashboard UI Update**: The AI Runtime card displays the Ollama readiness status and model count when reachable.
+- **Strict Safety**: Safe timeout handling, no raw exceptions exposed, and no LLM generation executed.
+
+---
+
 # Kairos v2.0.0 Release Notes
 
 Welcome to Kairos v2.0.0, introducing the **AI Runtime Interface** — a safe, metadata-only AI layer with provider registry, capability summaries, and a deterministic planning endpoint.

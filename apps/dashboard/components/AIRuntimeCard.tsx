@@ -73,6 +73,29 @@ export function AIRuntimeCard() {
           </span>
         </div>
 
+        {/* Readiness row */}
+        {caps.ai_enabled && caps.provider === "ollama" && (
+          <div style={rowStyle}>
+            <span style={labelStyle}>Readiness</span>
+            <span 
+              style={{ 
+                ...valueStyle, 
+                opacity: caps.provider_checked ? 1 : 0.65,
+                color: caps.provider_checked 
+                  ? (caps.provider_reachable ? "var(--accent)" : "#f87171") 
+                  : "var(--text-secondary)"
+              }} 
+              title={caps.provider_readiness_message || ""}
+            >
+              {!caps.provider_checked
+                ? "Not checked"
+                : caps.provider_reachable
+                  ? "Reachable"
+                  : "Not reachable"}
+            </span>
+          </div>
+        )}
+
         {/* Planning */}
         <div style={rowStyle}>
           <span style={labelStyle}>Planning</span>

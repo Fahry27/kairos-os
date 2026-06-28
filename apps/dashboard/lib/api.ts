@@ -192,6 +192,9 @@ export type AICapabilities = {
   available_commands: number;
   available_connectors: number;
   dangerous_commands: number;
+  provider_reachable: boolean | null;
+  provider_checked: boolean;
+  provider_readiness_message: string | null;
 };
 
 export function getAICapabilities() {

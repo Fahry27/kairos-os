@@ -47,7 +47,7 @@ Kairos v2.0.0 includes a production-leaning `docker-compose.yml` file located at
 
 5. **Verify the Deployment**
     - **Check Containers**: `docker compose ps`
-    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `2.0.0` in the returned JSON.
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `2.1.0` in the returned JSON.
     - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
 
 ## Stopping and Restarting

@@ -14,6 +14,7 @@ from app.core.ai_runtime import (
     ai_runtime,
     AICapabilities,
     AIProviderManifest,
+    AIProviderReadiness,
     PlanResponse,
 )
 from app.core.plugins import plugin_registry
@@ -96,6 +97,48 @@ def get_ai_provider(
             detail=f"AI provider '{provider_id}' not found",
         )
     return provider
+
+
+@router.get("/providers/{provider_id}/readiness", response_model=AIProviderReadiness)
+def check_provider_readiness(
+    provider_id: str,
+    settings=Depends(get_settings),
+    _=Depends(verify_api_key),
+):
+    """Check if the given AI provider is reachable.
+    
+    Safe, prompt-free check for local engines like Ollama.
+    """
+    if not settings.kairos_ai_enabled:
+        return AIProviderReadiness(
+            provider_id=provider_id,
+            checked=False,
+            reachable=None,
+            message="AI runtime is disabled.",
+        )
+        
+    provider = ai_runtime.get_provider(provider_id)
+    if not provider:
+        raise HTTPException(status_code=404, detail=f"AI provider '{provider_id}' not found")
+        
+    if provider_id == "ai.ollama":
+        return ai_runtime.check_ollama_readiness(settings)
+        
+    return AIProviderReadiness(
+        provider_id=provider_id,
+        checked=False,
+        reachable=None,
+        message="Readiness check not available for this provider type.",
+    )
+
+
+@router.get("/readiness", response_model=AIProviderReadiness)
+def check_active_provider_readiness(
+    settings=Depends(get_settings),
+    _=Depends(verify_api_key),
+):
+    """Check if the currently configured AI provider is reachable."""
+    return check_provider_readiness(settings.kairos_ai_provider, settings=settings)
 
 
 @router.get("/capabilities", response_model=AICapabilities)

@@ -27,9 +27,9 @@ def test_ai_info_endpoint():
     assert "ai_enabled" in data
     assert "provider" in data
     assert "planning_enabled" in data
-    # Hard gate — must always be False in v2.0
+    # Hard gate — must always be False in v2.0/2.1
     assert data["execution_enabled"] is False
-    assert data["version"] == "2.0.0"
+    assert data["version"] == "2.1.0"
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +129,9 @@ def test_ai_capabilities_fields():
     assert "available_commands" in data
     assert "available_connectors" in data
     assert "dangerous_commands" in data
+    assert "provider_reachable" in data
+    assert "provider_checked" in data
+    assert "provider_readiness_message" in data
 
 
 def test_ai_capabilities_execution_always_false():

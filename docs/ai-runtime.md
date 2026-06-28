@@ -1,8 +1,8 @@
 # AI Runtime Interface
 
-Kairos v2.0.0 introduces the **AI Runtime Interface** — a safe, metadata-only layer that exposes AI provider configurations, capability summaries, and deterministic planning responses.
+Kairos v2.1.0 introduces the **Ollama Provider Readiness Check** alongside the existing metadata-only layer that exposes AI provider configurations, capability summaries, and deterministic planning responses.
 
-> **v2.0 is interface-only.** No LLM calls are made. No commands are executed. No external services are contacted. This is a foundation milestone that defines the safety model and API contract before actual AI integration begins.
+> **v2.1 is still interface-only for LLMs.** No LLM generate/chat calls are made. No commands are executed. A safe readiness check is implemented to verify if the configured local Ollama service is reachable.
 
 ---
 
@@ -55,7 +55,7 @@ Kairos v2.0.0 introduces the **AI Runtime Interface** — a safe, metadata-only 
 
 ## Security Model
 
-1. **No outbound network calls** — `ai_runtime.py` contains zero `httpx`, `requests`, `urllib`, `socket`, or `aiohttp` usage.
+1. **Safe Readiness Checks** — The only outbound network call in `ai_runtime.py` is a short-timeout `GET` to the Ollama tags endpoint. No prompts or generate requests are sent.
 2. **No secrets stored or returned** — Provider manifests carry `auth_type` metadata only. No API keys, tokens, or passwords are ever stored or returned.
 3. **Hard-gated execution** — The planner response always contains `execution_enabled=false` regardless of the `KAIROS_AI_EXECUTION_ENABLED` environment setting. This flag is a forward-looking placeholder only.
 4. **API key authentication** — All `/api/v1/ai/*` endpoints require `X-Kairos-API-Key` when `KAIROS_API_KEY` is configured.
@@ -70,9 +70,13 @@ Kairos v2.0.0 introduces the **AI Runtime Interface** — a safe, metadata-only 
 | `KAIROS_AI_ENABLED` | `true` | Master switch. Set `false` to disable all AI endpoints. |
 | `KAIROS_AI_PROVIDER` | `ollama` | Active provider identifier. Used in capability summary. |
 | `KAIROS_AI_MODEL` | *(empty)* | Model name to display (e.g. `llama3.2`). Not used to call any API. |
-| `KAIROS_AI_BASE_URL` | *(empty)* | Provider base URL override. Not used to make calls in v2.0. |
+| `KAIROS_AI_BASE_URL` | *(empty)* | Provider base URL override. Not used to make calls in v2.1. |
 | `KAIROS_AI_PLANNING_ENABLED` | `true` | Enables the `POST /api/v1/ai/plan` endpoint. |
 | `KAIROS_AI_EXECUTION_ENABLED` | `false` | Reserved for future milestone. **Planner ignores this and always returns `false`**. |
+| `KAIROS_OLLAMA_READINESS_ENABLED` | `true` | Enables the safe Ollama readiness health check. |
+| `KAIROS_OLLAMA_BASE_URL` | `http://localhost:11434` | Base URL used specifically for the Ollama readiness check. |
+| `KAIROS_OLLAMA_TAGS_PATH` | `/api/tags` | Path used to check Ollama model availability safely. |
+| `KAIROS_OLLAMA_TIMEOUT_SECONDS` | `2` | Short timeout for the readiness check. |
 
 ---
 
@@ -83,7 +87,9 @@ Kairos v2.0.0 introduces the **AI Runtime Interface** — a safe, metadata-only 
 | `GET` | `/api/v1/ai` | High-level AI runtime status |
 | `GET` | `/api/v1/ai/providers` | List enabled AI provider manifests |
 | `GET` | `/api/v1/ai/providers/{provider_id}` | Single provider detail |
-| `GET` | `/api/v1/ai/capabilities` | Full runtime capability summary |
+| `GET` | `/api/v1/ai/providers/{provider_id}/readiness` | Single provider readiness check |
+| `GET` | `/api/v1/ai/readiness` | Current provider readiness check |
+| `GET` | `/api/v1/ai/capabilities` | Full runtime capability summary including readiness |
 | `POST` | `/api/v1/ai/plan` | Generate a deterministic advisory plan |
 
 ### Planning Request
@@ -138,8 +144,8 @@ POST /api/v1/ai/plan
 
 | Milestone | Description |
 |-----------|-------------|
-| **v2.0** *(current)* | Metadata-only AI Runtime Interface. Deterministic planner. No LLM calls. |
-| **v2.1** | Ollama connectivity self-check (health probe only, no inference). |
+| **v2.0** | Metadata-only AI Runtime Interface. Deterministic planner. No LLM calls. |
+| **v2.1** *(current)* | Ollama connectivity self-check (health probe only, no inference). |
 | **v2.2** | Local LLM planning — route `POST /ai/plan` through Ollama for natural language goal understanding. |
 | **v2.3** | Controlled command execution — Ollama-approved steps executed with human confirmation gate. |
 | **v3.0** | Agent loop — Kairos autonomously plans, executes, and observes via plugin + connector pipelines. |

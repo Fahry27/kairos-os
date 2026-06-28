@@ -25,6 +25,16 @@ This document details all configuration parameters, environment settings, secret
 | `CREATE_TABLES_ON_STARTUP` | API | `true` | Runs database migrations automatically on startup. |
 | `USE_MOCK_DATA` | API | `false` | Seeds the database with mock tasks and projects on startup (development only). |
 
+### AI Runtime & Ollama Readiness Variables
+| Variable | Scope | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `KAIROS_AI_ENABLED` | API | `true` | Master toggle for the AI Runtime capabilities. |
+| `KAIROS_AI_PROVIDER` | API | `ollama` | The active AI provider to use. |
+| `KAIROS_OLLAMA_READINESS_ENABLED` | API | `true` | Enables the safe Ollama readiness check. |
+| `KAIROS_OLLAMA_BASE_URL` | API | `http://localhost:11434` | Base URL used for the Ollama readiness check. |
+| `KAIROS_OLLAMA_TAGS_PATH` | API | `/api/tags` | Path to use when verifying Ollama reachability. |
+| `KAIROS_OLLAMA_TIMEOUT_SECONDS` | API | `2` | Timeout in seconds for the readiness check. |
+
 ---
 
 ## API Key Authentication & Secrets Warning

@@ -14,6 +14,11 @@ SAFETY CONTRACT (v2.0.0):
 """
 
 import logging
+import json
+import time
+import urllib.request
+import urllib.error
+from urllib.parse import urljoin
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -40,6 +45,17 @@ class AIProviderManifest(BaseModel):
     metadata: dict = Field(default_factory=dict)
 
 
+class AIProviderReadiness(BaseModel):
+    provider_id: str
+    reachable: bool | None = None
+    checked: bool = False
+    base_url_configured: str | None = None
+    latency_ms: int | None = None
+    model_count: int | None = None
+    error_type: str | None = None
+    message: str | None = None
+
+
 class AICapabilities(BaseModel):
     ai_enabled: bool
     provider: str
@@ -51,6 +67,11 @@ class AICapabilities(BaseModel):
     available_commands: int
     available_connectors: int
     dangerous_commands: int
+    
+    # Readiness fields (added in v2.1.0)
+    provider_reachable: bool | None = None
+    provider_checked: bool = False
+    provider_readiness_message: str | None = None
 
 
 class PlannedCommand(BaseModel):
@@ -238,24 +259,138 @@ class AIRuntime:
         return [p for p in self._providers.values() if p.enabled]
 
     def get_capabilities(self, settings, plugin_registry, connector_registry) -> AICapabilities:
-        """Produces a runtime capability summary from live registry state."""
+        """Produces a runtime capability summary from live registry state.
+        In v2.1.0, includes a safe, prompt-free readiness check if enabled and provider is local.
+        """
         all_commands = []
         for plugin in plugin_registry.get_all_plugins(include_disabled=False):
             all_commands.extend(plugin.commands)
 
         dangerous_count = sum(1 for cmd in all_commands if getattr(cmd, "dangerous", False))
 
-        return AICapabilities(
+        caps = AICapabilities(
             ai_enabled=settings.kairos_ai_enabled,
             provider=settings.kairos_ai_provider,
             model=settings.kairos_ai_model or None,
             planning_enabled=settings.kairos_ai_planning_enabled,
-            execution_enabled=False,  # always False in v2.0
+            execution_enabled=False,  # always False in v2.0/v2.1
             available_plugins=len(plugin_registry.get_all_plugins(include_disabled=False)),
             available_commands=len(all_commands),
             available_connectors=len(connector_registry.get_all_connectors(include_disabled=False)),
             dangerous_commands=dangerous_count,
+            provider_reachable=None,
+            provider_checked=False,
+            provider_readiness_message=None,
         )
+
+        if caps.ai_enabled and caps.provider == "ollama":
+            readiness = self.check_ollama_readiness(settings)
+            caps.provider_checked = readiness.checked
+            caps.provider_reachable = readiness.reachable
+            caps.provider_readiness_message = readiness.message
+            if readiness.model_count is not None and not caps.model:
+                caps.provider_readiness_message += f" ({readiness.model_count} models available)"
+        elif caps.ai_enabled and caps.provider != "ollama":
+            caps.provider_checked = False
+            caps.provider_reachable = None
+            caps.provider_readiness_message = "Metadata only provider; no readiness check available"
+
+        return caps
+
+    def check_ollama_readiness(self, settings) -> AIProviderReadiness:
+        """
+        Safe, prompt-free readiness check for Ollama.
+        Only calls GET KAIROS_OLLAMA_TAGS_PATH to check if service is up.
+        Never sends generate/chat requests. Never executes commands.
+        """
+        base_url = settings.kairos_ollama_base_url
+        tags_path = settings.kairos_ollama_tags_path
+        timeout = settings.kairos_ollama_timeout_seconds
+        
+        if not settings.kairos_ollama_readiness_enabled:
+            return AIProviderReadiness(
+                provider_id="ai.ollama",
+                checked=False,
+                reachable=None,
+                base_url_configured=base_url,
+                message="Readiness check is disabled in configuration.",
+            )
+            
+        url = urljoin(base_url, tags_path)
+        
+        start_time = time.time()
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                if response.status != 200:
+                    return AIProviderReadiness(
+                        provider_id="ai.ollama",
+                        checked=True,
+                        reachable=False,
+                        base_url_configured=base_url,
+                        latency_ms=latency_ms,
+                        error_type="http_error",
+                        message=f"HTTP {response.status}",
+                    )
+                
+                try:
+                    data = json.loads(response.read().decode("utf-8"))
+                    model_count = len(data.get("models", []))
+                    return AIProviderReadiness(
+                        provider_id="ai.ollama",
+                        checked=True,
+                        reachable=True,
+                        base_url_configured=base_url,
+                        latency_ms=latency_ms,
+                        model_count=model_count,
+                        message="Ollama is reachable.",
+                    )
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    return AIProviderReadiness(
+                        provider_id="ai.ollama",
+                        checked=True,
+                        reachable=False,
+                        base_url_configured=base_url,
+                        latency_ms=latency_ms,
+                        error_type="parse_error",
+                        message="Invalid response format from Ollama.",
+                    )
+                    
+        except urllib.error.URLError as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            reason = str(e.reason) if hasattr(e, "reason") else str(e)
+            return AIProviderReadiness(
+                provider_id="ai.ollama",
+                checked=True,
+                reachable=False,
+                base_url_configured=base_url,
+                latency_ms=latency_ms,
+                error_type="connection_error",
+                message=f"Failed to connect: {reason}",
+            )
+        except TimeoutError:
+            return AIProviderReadiness(
+                provider_id="ai.ollama",
+                checked=True,
+                reachable=False,
+                base_url_configured=base_url,
+                latency_ms=int((time.time() - start_time) * 1000),
+                error_type="timeout",
+                message=f"Connection timed out after {timeout}s.",
+            )
+        except Exception:
+            # Catch-all for safety, avoiding exposing raw exceptions
+            return AIProviderReadiness(
+                provider_id="ai.ollama",
+                checked=True,
+                reachable=False,
+                base_url_configured=base_url,
+                latency_ms=int((time.time() - start_time) * 1000),
+                error_type="unknown_error",
+                message="An unexpected error occurred during readiness check.",
+            )
 
     def generate_plan(
         self,
