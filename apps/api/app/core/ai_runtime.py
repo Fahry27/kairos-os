@@ -107,6 +107,38 @@ class AICapabilities(BaseModel):
     model_count: int | None = None
     discovered_models_enabled: bool = False
     configured_model_available: bool | None = None
+    
+    # Dry-run fields (added in v2.3.0)
+    dry_run_enabled: bool = False
+    max_context_commands: int = 20
+    max_context_connectors: int = 20
+    max_context_plugins: int = 20
+
+
+class AIPromptDryRunRequest(BaseModel):
+    user_goal: str
+    context: dict | None = Field(default_factory=dict)
+    preferred_model: str | None = None
+    include_commands: bool = True
+    include_plugins: bool = True
+    include_connectors: bool = True
+
+
+class AIPromptDryRunResponse(BaseModel):
+    dry_run: bool = True
+    provider_id: str
+    model: str | None
+    user_goal: str
+    system_instructions: list[str]
+    context_summary: str
+    included_commands: list[dict]
+    included_plugins: list[dict]
+    included_connectors: list[dict]
+    safety_policy: list[str]
+    estimated_context_items: int
+    warnings: list[str]
+    execution_enabled: bool = False
+    network_call_performed: bool = False
 
 
 class PlannedCommand(BaseModel):
@@ -316,6 +348,10 @@ class AIRuntime:
             provider_reachable=None,
             provider_checked=False,
             provider_readiness_message=None,
+            dry_run_enabled=settings.kairos_ai_dry_run_enabled,
+            max_context_commands=settings.kairos_ai_max_context_commands,
+            max_context_connectors=settings.kairos_ai_max_context_connectors,
+            max_context_plugins=settings.kairos_ai_max_context_plugins,
         )
 
         if caps.ai_enabled and caps.provider == "ollama":
@@ -521,14 +557,113 @@ class AIRuntime:
                 error_type="timeout",
                 message=f"Connection timed out after {timeout}s.",
             )
-        except Exception:
+        except Exception as e:
             return AIProviderModelsResponse(
                 provider_id="ai.ollama",
                 checked=True,
                 reachable=False,
                 error_type="unknown_error",
-                message="An unexpected error occurred during model discovery.",
+                message=f"An unexpected error occurred: {str(e)}",
             )
+
+    def generate_prompt_dry_run(
+        self,
+        request: AIPromptDryRunRequest,
+        settings,
+        plugin_registry,
+        connector_registry,
+    ) -> AIPromptDryRunResponse:
+        """
+        Creates a deterministic prompt package for local AI without making any network calls.
+        Returns a dry-run contract specifying what would be sent to the LLM.
+        """
+        provider_id = f"ai.{settings.kairos_ai_provider}" if not settings.kairos_ai_provider.startswith("ai.") else settings.kairos_ai_provider
+        
+        system_instructions = [
+            "You are Kairos OS, a local-first AI personal operating system.",
+            "You are operating in DRY-RUN mode.",
+            "No commands may be executed.",
+            "No connectors may be called.",
+            "No data mutation may happen.",
+            "Dangerous commands require explicit approval.",
+            "Secrets, env values, tokens, and credentials must never be included."
+        ]
+
+        safety_policy = [
+            "No command execution permitted.",
+            "No connector network calls permitted.",
+            "No data mutation permitted.",
+            "Future execution will require explicit human approval.",
+            "Secrets, tokens, credentials, and env values are fully excluded."
+        ]
+        
+        included_commands = []
+        included_plugins = []
+        included_connectors = []
+        warnings = []
+        
+        if request.include_plugins:
+            plugins = plugin_registry.get_all_plugins(include_disabled=False)
+            for p in plugins[:settings.kairos_ai_max_context_plugins]:
+                included_plugins.append({
+                    "id": p.id,
+                    "name": p.name,
+                    "description": p.description,
+                    "version": p.version
+                })
+
+        if request.include_commands:
+            commands = []
+            for p in plugin_registry.get_all_plugins(include_disabled=False):
+                commands.extend(p.commands)
+            
+            for cmd in commands[:settings.kairos_ai_max_context_commands]:
+                included_commands.append({
+                    "id": cmd.id,
+                    "name": cmd.name,
+                    "description": cmd.description,
+                    "category": cmd.category,
+                    "dangerous": getattr(cmd, "dangerous", False)
+                })
+                if getattr(cmd, "dangerous", False):
+                    warnings.append(f"Dangerous command included in context: {cmd.id}")
+                    
+        if request.include_connectors:
+            connectors = connector_registry.get_all_connectors(include_disabled=False)
+            for c in connectors[:settings.kairos_ai_max_context_connectors]:
+                included_connectors.append({
+                    "id": c.id,
+                    "name": c.name,
+                    "description": c.description,
+                    "service_type": getattr(c, "service_type", "unknown"),
+                    # Ensure no credentials included!
+                    "auth_type": c.auth_type
+                })
+                
+        estimated_items = len(included_plugins) + len(included_commands) + len(included_connectors)
+        
+        context_summary = (
+            f"Context limits: Plugins ({len(included_plugins)}/{settings.kairos_ai_max_context_plugins}), "
+            f"Commands ({len(included_commands)}/{settings.kairos_ai_max_context_commands}), "
+            f"Connectors ({len(included_connectors)}/{settings.kairos_ai_max_context_connectors})."
+        )
+        
+        return AIPromptDryRunResponse(
+            dry_run=True,
+            provider_id=provider_id,
+            model=request.preferred_model or settings.kairos_ai_model,
+            user_goal=request.user_goal,
+            system_instructions=system_instructions,
+            context_summary=context_summary,
+            included_commands=included_commands,
+            included_plugins=included_plugins,
+            included_connectors=included_connectors,
+            safety_policy=safety_policy,
+            estimated_context_items=estimated_items,
+            warnings=warnings,
+            execution_enabled=False,
+            network_call_performed=False
+        )
 
     def generate_plan(
         self,

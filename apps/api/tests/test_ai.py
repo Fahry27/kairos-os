@@ -29,7 +29,7 @@ def test_ai_info_endpoint():
     assert "planning_enabled" in data
     # Hard gate — must always be False in v2.0/2.1
     assert data["execution_enabled"] is False
-    assert data["version"] == "2.2.0"
+    assert data["version"] == "2.3.0"
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +135,12 @@ def test_ai_capabilities_fields():
     assert "model_count" in data
     assert "discovered_models_enabled" in data
     assert "configured_model_available" in data
+    
+    # Dry run defaults
+    assert data["dry_run_enabled"] is True
+    assert data["max_context_commands"] == 20
+    assert data["max_context_connectors"] == 20
+    assert data["max_context_plugins"] == 20
 
 
 def test_ai_capabilities_execution_always_false():

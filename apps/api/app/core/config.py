@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="2.2.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="2.3.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     kairos_ai_planning_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_PLANNING_ENABLED")
     # execution_enabled defaults False; the planner hard-gates this regardless of config
     kairos_ai_execution_enabled: bool = Field(default=False, validation_alias="KAIROS_AI_EXECUTION_ENABLED")
+    
+    # Prompt Dry-Run (v2.3.0)
+    kairos_ai_dry_run_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_DRY_RUN_ENABLED")
+    kairos_ai_max_context_commands: int = Field(default=20, validation_alias="KAIROS_AI_MAX_CONTEXT_COMMANDS")
+    kairos_ai_max_context_connectors: int = Field(default=20, validation_alias="KAIROS_AI_MAX_CONTEXT_CONNECTORS")
+    kairos_ai_max_context_plugins: int = Field(default=20, validation_alias="KAIROS_AI_MAX_CONTEXT_PLUGINS")
     
     # Ollama Readiness
     kairos_ollama_readiness_enabled: bool = Field(default=True, validation_alias="KAIROS_OLLAMA_READINESS_ENABLED")

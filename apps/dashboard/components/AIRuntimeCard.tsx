@@ -164,6 +164,27 @@ export function AIRuntimeCard() {
           </span>
         </div>
 
+        {/* Dry-Run */}
+        <div style={rowStyle}>
+          <span style={labelStyle}>Dry-Run Contract</span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <span
+              className="pill"
+              style={{
+                fontSize: "0.7rem",
+                padding: "0.1rem 0.45rem",
+                background: caps.dry_run_enabled
+                  ? "rgba(74, 222, 128, 0.1)"
+                  : "rgba(156,163,175,0.1)",
+                color: caps.dry_run_enabled ? "var(--accent)" : "var(--text-secondary)",
+              }}
+              title={`Max Context: ${caps.max_context_commands} commands, ${caps.max_context_plugins} plugins, ${caps.max_context_connectors} connectors`}
+            >
+              {caps.dry_run_enabled ? "enabled" : "disabled"}
+            </span>
+          </div>
+        </div>
+
         {/* Divider */}
         <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.25rem 0" }} />
 

@@ -30,6 +30,10 @@ This document details all configuration parameters, environment settings, secret
 | :--- | :--- | :--- | :--- |
 | `KAIROS_AI_ENABLED` | API | `true` | Master toggle for the AI Runtime capabilities. |
 | `KAIROS_AI_PROVIDER` | API | `ollama` | The active AI provider to use. |
+| `KAIROS_AI_DRY_RUN_ENABLED` | API | `true` | Enables safe prompt package assembly without outbound LLM calls. |
+| `KAIROS_AI_MAX_CONTEXT_COMMANDS` | API | `20` | Max commands to include in dry-run context. |
+| `KAIROS_AI_MAX_CONTEXT_CONNECTORS` | API | `20` | Max connectors to include in dry-run context. |
+| `KAIROS_AI_MAX_CONTEXT_PLUGINS` | API | `20` | Max plugins to include in dry-run context. |
 | `KAIROS_OLLAMA_READINESS_ENABLED` | API | `true` | Enables the safe Ollama readiness and model discovery checks. |
 | `KAIROS_OLLAMA_BASE_URL` | API | `http://localhost:11434` | Base URL used specifically for the Ollama readiness check. |
 | `KAIROS_OLLAMA_TAGS_PATH` | API | `/api/tags` | Path used to check Ollama model availability safely. |

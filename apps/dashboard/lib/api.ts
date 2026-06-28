@@ -198,6 +198,10 @@ export type AICapabilities = {
   model_count: number | null;
   discovered_models_enabled: boolean;
   configured_model_available: boolean | null;
+  dry_run_enabled: boolean;
+  max_context_commands: number;
+  max_context_connectors: number;
+  max_context_plugins: number;
 };
 
 export function getAICapabilities() {

@@ -16,6 +16,8 @@ from app.core.ai_runtime import (
     AIProviderManifest,
     AIProviderReadiness,
     AIProviderModelsResponse,
+    AIPromptDryRunRequest,
+    AIPromptDryRunResponse,
     PlanResponse,
 )
 from app.core.plugins import plugin_registry
@@ -223,6 +225,41 @@ def create_plan(
     return ai_runtime.generate_plan(
         user_goal=body.user_goal,
         context=body.context,
+        settings=settings,
+        plugin_registry=plugin_registry,
+        connector_registry=connector_registry,
+    )
+
+
+@router.post("/prompt/dry-run", response_model=AIPromptDryRunResponse)
+def prompt_dry_run(
+    body: AIPromptDryRunRequest,
+    settings=Depends(get_settings),
+    _=Depends(verify_api_key),
+):
+    """
+    Builds a prompt payload for future LLM execution without sending it anywhere.
+    """
+    if not body.user_goal.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="user_goal cannot be empty.",
+        )
+        
+    if not settings.kairos_ai_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="AI runtime is disabled. Enable KAIROS_AI_ENABLED.",
+        )
+        
+    if not settings.kairos_ai_dry_run_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="AI dry-run mode is disabled. Enable KAIROS_AI_DRY_RUN_ENABLED.",
+        )
+        
+    return ai_runtime.generate_prompt_dry_run(
+        request=body,
         settings=settings,
         plugin_registry=plugin_registry,
         connector_registry=connector_registry,

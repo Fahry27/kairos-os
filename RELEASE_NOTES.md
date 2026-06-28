@@ -1,3 +1,22 @@
+# Kairos v2.3.0 Release Notes
+
+Welcome to Kairos v2.3.0, introducing the **Ollama Prompt Dry-Run Contract**.
+
+## Kairos v2.3.0
+**Date:** June 2026
+
+This release adds a safe prompt dry-run endpoint, allowing Kairos to prepare future local LLM requests without executing any LLM generation, command, or network actions.
+
+### Features
+- **Prompt Dry-Run**: Builds a deterministic prompt payload for future LLM execution without sending it.
+- **Strict Safety Policy**: Dry-run explicitly states no command execution, no data mutation, and no connector network calls. Secrets and env values are omitted.
+- **Context Limits**: Limits plugins, commands, and connectors included in the prompt context to prevent context bloat.
+- **API Endpoints**: Added `POST /api/v1/ai/prompt/dry-run`.
+- **Capabilities Enrichment**: `/api/v1/ai/capabilities` now returns dry-run limits and enabled status.
+- **Dashboard UI Update**: The AI Runtime card displays dry-run status and context limits.
+
+---
+
 # Kairos v2.2.0 Release Notes
 
 Welcome to Kairos v2.2.0, introducing **Ollama Model Discovery**.

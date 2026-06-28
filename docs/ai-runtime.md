@@ -1,8 +1,24 @@
 # AI Runtime Interface
 
-Kairos v2.2.0 introduces **Ollama Model Discovery** alongside the existing metadata-only layer that exposes AI provider configurations, capability summaries, and deterministic planning responses.
+Kairos OS v2.3.0
+================
 
-> **v2.2 is still interface-only for LLMs.** No LLM generate/chat calls are made. No commands are executed. A safe discovery check is implemented to verify if the configured local Ollama service is reachable and to enumerate local models without generating text.
+Kairos OS currently ships with a **metadata-only AI Runtime**. 
+
+> **Important**: In version 2.3.0, the AI Runtime is configured exclusively for **Prompt Dry-Run** mode. 
+> - **No LLM network calls are made.**
+> - **No commands are executed.**
+> - **No connectors are called.**
+> - The prompt package is built deterministically based on registry metadata and context limits.
+
+## Prompt Dry-Run Contract
+
+The `POST /api/v1/ai/prompt/dry-run` endpoint allows Kairos to deterministically assemble a prompt package showing exactly what context (commands, plugins, connectors) would be sent to the local LLM in future versions. 
+
+This contract enforces:
+1. Max context limits for commands, plugins, and connectors.
+2. Complete omission of secrets, credentials, tokens, and raw environment values.
+3. System instructions emphasizing read-only operation and explicit human approval for execution.
 
 ---
 
