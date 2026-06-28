@@ -1,6 +1,6 @@
 # Zima OS (CasaOS) Deployment Guide
 
-Kairos v1.2.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
+Kairos v1.3.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
 
 ## Prerequisites
 - Zima OS / CasaOS installed and running on your local network.
@@ -22,7 +22,7 @@ Kairos v1.2.0 includes a production-leaning `docker-compose.yml` file located at
    mkdir -p data
    ```
 
-3. **Configure Environment Variables (Optional but Recommended)**
+3. **Configure Environment Variables & Security Hardening (Optional but Recommended)**
    Copy the provided Zima OS environment example:
    ```sh
    cp .env.zima.example .env
@@ -32,6 +32,13 @@ Kairos v1.2.0 includes a production-leaning `docker-compose.yml` file located at
    NEXT_PUBLIC_KAIROS_API_URL=http://192.168.1.100:8000
    ```
 
+   To secure your Kairos instance from unauthorized access on your local area network (LAN), you can configure a local API key:
+   - Edit `.env` and set `KAIROS_API_KEY` to a strong secret key (e.g., `KAIROS_API_KEY=your_secure_key`).
+   - Set `NEXT_PUBLIC_KAIROS_API_KEY` to the exact same value (e.g., `NEXT_PUBLIC_KAIROS_API_KEY=your_secure_key`) so the dashboard can authenticate.
+
+   > [!IMPORTANT]
+   > **LAN Security Warning**: This local API key authentication is designed for private local network (LAN) security. The key is transmitted from the browser to the API. It is **not** designed for exposure over the public internet, which would require HTTPS and reverse proxies. Never expose the dashboard or API ports directly to the internet without proper TLS encryption and standard edge routing.
+
 4. **Deploy with Docker Compose**
    Start the services in detached mode:
    ```sh
@@ -39,8 +46,8 @@ Kairos v1.2.0 includes a production-leaning `docker-compose.yml` file located at
    ```
 
 5. **Verify the Deployment**
-   - **Check Containers**: `docker compose ps`
-   - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see `{"status":"ok","service":"kairos-api","version":"1.2.0"}`.
+    - **Check Containers**: `docker compose ps`
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see `{"status":"ok","service":"kairos-api","version":"1.3.0"}`.
    - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
 
 ## Stopping and Restarting
@@ -82,5 +89,5 @@ To restore from a backup:
 
 ## Known Limitations
 
-- **No Authentication**: The current version of Kairos does not have built-in user authentication.
-- **LAN-Only Recommended**: Because there is no authentication, **do not** expose Kairos publicly to the internet via port forwarding or a reverse proxy. It is designed for private local network (LAN) access only. Future updates will introduce authentication for secure remote access.
+- **Local API Key Security**: While Kairos now supports local API key authentication, it does not include full user accounts or fine-grained role-based permissions.
+- **LAN-Only Recommended**: Even with API key authentication enabled, **do not** expose Kairos ports directly to the public internet. It is designed for private local network (LAN) access. Any remote access should be managed via a secure VPN (like Tailscale) or behind a hardened reverse proxy with HTTPS.

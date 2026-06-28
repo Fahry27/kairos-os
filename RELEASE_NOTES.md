@@ -1,3 +1,21 @@
+# Kairos v1.3.0 Release Notes
+
+Welcome to Kairos v1.3.0, introducing local API key authentication and LAN security hardening.
+
+## Kairos v1.3.0
+**Date:** June 2026
+
+This release brings local-first optional API key authentication to secure LAN deployments (e.g., on Zima OS / CasaOS).
+
+### Features
+- **Local API Key Authentication**: Protects project, task, and memory endpoints when `KAIROS_API_KEY` is configured.
+- **Opt-in Compatibility**: Authentication is disabled by default if `KAIROS_API_KEY` is unset or empty, ensuring smooth local development.
+- **Docker Healthcheck**: Added container healthchecks for the API service.
+- **Dashboard Forwarding**: The Next.js dashboard automatically authenticates requests using the `NEXT_PUBLIC_KAIROS_API_KEY` environment variable.
+- **Public Health Endpoints**: `/health` and `/api/v1/health` remain fully public for container orchestration and status verification.
+
+---
+
 # Kairos v1.0 Release Notes
 
 Welcome to Kairos v1.0.0, the first stable local-first MVP release.

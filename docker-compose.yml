@@ -9,12 +9,19 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 1.2.0
+      APP_VERSION: 1.3.0
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
       CREATE_TABLES_ON_STARTUP: "true"
       USE_MOCK_DATA: "false"
+      # KAIROS_API_KEY: "your-secure-api-key-here" # Enable local API key auth (unset/empty for local dev)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     ports:
       - "8000:8000"
     volumes:
@@ -30,3 +37,4 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_KAIROS_API_URL: http://localhost:8000
+      # NEXT_PUBLIC_KAIROS_API_KEY: "your-secure-api-key-here" # Must match KAIROS_API_KEY if enabled

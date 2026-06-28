@@ -10,6 +10,9 @@ os.environ["CREATE_TABLES_ON_STARTUP"] = "true"
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DATABASE_PATH}"
 os.environ["USE_MOCK_DATA"] = "false"
 
+from app.core.config import get_settings  # noqa: E402
+get_settings.cache_clear()
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db.base import initialize_database  # noqa: E402
@@ -27,7 +30,7 @@ def test_root_health():
     assert response.json() == {
         "status": "ok",
         "service": "kairos-api",
-        "version": "1.2.0",
+        "version": "1.3.0",
     }
 
 
@@ -38,7 +41,7 @@ def test_api_v1_health():
     assert response.json() == {
         "status": "ok",
         "service": "kairos-api",
-        "version": "1.2.0",
+        "version": "1.3.0",
     }
 
 

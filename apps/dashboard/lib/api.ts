@@ -67,12 +67,22 @@ export type MemoryCreate = {
   importance?: string;
 };
 
+function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...extraHeaders,
+  };
+  const apiKey = process.env.NEXT_PUBLIC_KAIROS_API_KEY;
+  if (apiKey) {
+    headers["X-Kairos-API-Key"] = apiKey;
+  }
+  return headers;
+}
+
 export async function fetchFromApi<T>(path: string): Promise<ApiResult<T>> {
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers: getHeaders(),
     });
 
     if (!response.ok) {
@@ -95,10 +105,7 @@ export async function postToApi<T, TPayload extends object>(
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: getHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     });
 
@@ -183,10 +190,7 @@ export async function patchToApi<T, TPayload extends object>(
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
       method: "PATCH",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: getHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     });
 
@@ -207,7 +211,7 @@ export async function deleteFromApi(path: string): Promise<ApiResult<null>> {
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
       method: "DELETE",
-      headers: { Accept: "application/json" },
+      headers: getHeaders(),
     });
 
     if (!response.ok) {

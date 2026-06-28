@@ -38,7 +38,7 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- **Version**: Kairos v1.2.0 (Zima OS Deployment Ready)
+- **Version**: Kairos v1.3.0 (Zima OS Deployment Ready with Local Auth)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
 - **Infrastructure**: Core API and Dashboard can run via root `docker-compose.yml`.
