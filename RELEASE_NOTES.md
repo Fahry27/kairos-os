@@ -1,3 +1,53 @@
+# Kairos v2.7.0 Release Notes
+
+Welcome to Kairos v2.7.0, introducing the **Approval Management Dashboard**.
+
+## Kairos v2.7.0
+**Date:** June 2026
+
+This release adds a dashboard control-plane workflow for approval requests
+created by the v2.6 Approval Gate Foundation.
+
+### Features
+- **Approval Management Card**: View pending, approved, rejected, expired, or all approval requests from the existing dashboard.
+- **Inspection Workflow**: Inspect title, status, risk level, action type, proposed action ID, source, timestamps, payload summary, safety notes, decision reason, and non-execution flags.
+- **Dashboard Decisions**: Approve or reject pending requests through the existing approval API. Rejection requires a reason in the UI.
+- **Safety-Gated State**: If Approval Gate is disabled, the dashboard shows a clear unavailable state instead of crashing.
+- **AI Runtime Hint**: The AI Runtime card points users to the Approval Management card.
+
+### Safety Guarantees
+- Approval remains metadata-only.
+- Approving a request only changes approval status to `approved`.
+- No commands executed. No connectors called. No n8n, Hermes, or OpenClaw triggers.
+- No cloud providers called. No domain data mutated. No autonomous agents added.
+- No raw LLM responses, secrets, credentials, tokens, or environment values stored.
+- No new approval API endpoints or execution layer were introduced.
+
+---
+
+# Kairos v2.6.0 Release Notes
+
+Welcome to Kairos v2.6.0, introducing the **Approval Gate Foundation**.
+
+## Kairos v2.6.0
+**Date:** June 2026
+
+This release adds metadata-only approval request storage and review APIs for
+future human approval workflows.
+
+### Features
+- **Approval Request Model**: Stores title, description, action type, proposed action ID, source, risk level, payload summary, safety notes, status, and decision metadata.
+- **Approval API**: Adds create, list, get, approve, and reject endpoints under `/api/v1/approvals`.
+- **Approval Gate Configuration**: Adds enablement, default TTL, and max pending request settings.
+- **AI Parser Integration**: `parse-plan` and optional Ollama dispatch parsing can create approval requests when explicitly requested.
+
+### Safety Guarantees
+- Approval is metadata-only.
+- Approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain data, or introduce agent behavior.
+- Execution flags remain hard-gated off.
+
+---
+
 # Kairos v2.5.0 Release Notes
 
 Welcome to Kairos v2.5.0, introducing the **Local LLM Response Parser & Safe Planning Output**.

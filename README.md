@@ -5,7 +5,7 @@ This repository contains the project foundation and the first Kairos Core API
 implementation.
 
 The dashboard application provides a simple local interface for reading from and
-creating records through the Kairos Core API.
+creating records through the Kairos Core API, plus control-plane approval review.
 
 ## Repository Structure
 
@@ -38,9 +38,9 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- **Version**: Kairos v2.5.0 (Ollama Readiness Check)
+- **Version**: Kairos v2.7.0 (Approval Management Dashboard)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
-- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
+- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, approval management, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.
 - **Infrastructure**: Core API and Dashboard run via Docker Compose with customized log rotation policies, Portainer Stack support, and trusted reverse proxy configurations.
 - **Development**: See `docs/development.md` for full setup instructions, test commands, and architectural notes.
@@ -49,6 +49,7 @@ creating records through the Kairos Core API.
 - **Plugins & Extensions**: See [Plugin Framework](docs/plugins.md) for extension manifests layout and registry routes.
 - **Service Connectors**: See [Connector Registry](docs/connectors.md) for external homelab integrations metadata templates.
 - **AI Runtime**: See [AI Runtime Interface](docs/ai-runtime.md) for AI provider registry, capability summary, planning endpoint, and safety model.
+- **Approval Management**: View, inspect, approve, and reject approval requests from the dashboard. Approval remains metadata-only; approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
 - **Reverse Proxy**: See [Reverse Proxy Setup](docs/reverse-proxy.md) for securing Kairos with domains (like Caddy/Traefik).
 - **Portainer**: See [Portainer Deployment](docs/portainer.md) for deploying Kairos via Portainer stacks.
 

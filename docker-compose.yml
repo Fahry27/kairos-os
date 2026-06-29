@@ -12,7 +12,7 @@ services:
     #   - .env
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 2.6.0
+      APP_VERSION: 2.7.0
       APP_ENV: development
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
@@ -67,4 +67,3 @@ services:
 # volumes:
 #   kairos_data:
 #     name: kairos_data
-

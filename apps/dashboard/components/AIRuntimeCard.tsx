@@ -250,6 +250,9 @@ export function AIRuntimeCard() {
             </span>
           </div>
         </div>
+        <p style={{ color: "var(--muted)", fontSize: "0.75rem", lineHeight: 1.45, margin: 0 }}>
+          Manage approval requests in the Approval Management card. Approval remains metadata-only.
+        </p>
         <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.25rem 0" }} />
 
         {/* Registry counts */}

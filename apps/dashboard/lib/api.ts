@@ -79,6 +79,26 @@ function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, s
   return headers;
 }
 
+async function formatApiError(response: Response): Promise<string> {
+  let detail = "";
+  try {
+    const payload = (await response.clone().json()) as { detail?: unknown };
+    if (typeof payload.detail === "string") {
+      detail = payload.detail;
+    }
+  } catch {
+    try {
+      detail = await response.clone().text();
+    } catch {
+      detail = "";
+    }
+  }
+
+  return detail
+    ? `${response.status} ${response.statusText}: ${detail}`
+    : `${response.status} ${response.statusText}`;
+}
+
 export async function fetchFromApi<T>(path: string): Promise<ApiResult<T>> {
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
@@ -86,7 +106,7 @@ export async function fetchFromApi<T>(path: string): Promise<ApiResult<T>> {
     });
 
     if (!response.ok) {
-      return { ok: false, error: `${response.status} ${response.statusText}` };
+      return { ok: false, error: await formatApiError(response) };
     }
 
     return { ok: true, data: (await response.json()) as T };
@@ -110,7 +130,27 @@ export async function postToApi<T, TPayload extends object>(
     });
 
     if (!response.ok) {
-      return { ok: false, error: `${response.status} ${response.statusText}` };
+      return { ok: false, error: await formatApiError(response) };
+    }
+
+    return { ok: true, data: (await response.json()) as T };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Unknown request error",
+    };
+  }
+}
+
+export async function postEmptyToApi<T>(path: string): Promise<ApiResult<T>> {
+  try {
+    const response = await fetch(`${KAIROS_API_URL}${path}`, {
+      method: "POST",
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: await formatApiError(response) };
     }
 
     return { ok: true, data: (await response.json()) as T };
@@ -219,6 +259,70 @@ export function getAICapabilities() {
   return fetchFromApi<AICapabilities>("/api/v1/ai/capabilities");
 }
 
+export type ApprovalActionType =
+  | "command"
+  | "connector"
+  | "workflow"
+  | "memory"
+  | "project"
+  | "task"
+  | "generic";
+
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";
+
+export type ApprovalRiskLevel = "low" | "medium" | "high" | "critical";
+
+export type ApprovalRequest = {
+  id: string;
+  title: string;
+  description?: string | null;
+  action_type: ApprovalActionType;
+  proposed_action_id?: string | null;
+  source: string;
+  risk_level: ApprovalRiskLevel;
+  requires_manual_review: boolean;
+  payload_summary?: Record<string, unknown> | null;
+  safety_notes: string[];
+  status: ApprovalStatus;
+  created_at: string;
+  expires_at: string;
+  decided_at?: string | null;
+  decision_reason?: string | null;
+  execution_enabled: boolean;
+  execution_performed: boolean;
+  connector_calls_performed: boolean;
+  data_mutation_performed: boolean;
+};
+
+export type ApprovalDecisionRequest = {
+  reason?: string | null;
+};
+
+export type ApprovalListStatus = ApprovalStatus | "all";
+
+export function listApprovals(status: ApprovalListStatus = "pending") {
+  const params = new URLSearchParams({ offset: "0", limit: "100" });
+  if (status !== "all") {
+    params.set("status", status);
+  }
+  return fetchFromApi<ApprovalRequest[]>(`/api/v1/approvals?${params.toString()}`);
+}
+
+export function getApproval(approvalId: string) {
+  return fetchFromApi<ApprovalRequest>(`/api/v1/approvals/${approvalId}`);
+}
+
+export function approveApproval(approvalId: string) {
+  return postEmptyToApi<ApprovalRequest>(`/api/v1/approvals/${approvalId}/approve`);
+}
+
+export function rejectApproval(approvalId: string, reason: string) {
+  return postToApi<ApprovalRequest, ApprovalDecisionRequest>(
+    `/api/v1/approvals/${approvalId}/reject`,
+    { reason },
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Update types
 // ---------------------------------------------------------------------------
@@ -264,7 +368,7 @@ export async function patchToApi<T, TPayload extends object>(
     });
 
     if (!response.ok) {
-      return { ok: false, error: `${response.status} ${response.statusText}` };
+      return { ok: false, error: await formatApiError(response) };
     }
 
     return { ok: true, data: (await response.json()) as T };
@@ -284,7 +388,7 @@ export async function deleteFromApi(path: string): Promise<ApiResult<null>> {
     });
 
     if (!response.ok) {
-      return { ok: false, error: `${response.status} ${response.statusText}` };
+      return { ok: false, error: await formatApiError(response) };
     }
 
     return { ok: true, data: null };

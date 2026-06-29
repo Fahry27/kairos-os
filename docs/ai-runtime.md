@@ -1,14 +1,15 @@
 # AI Runtime Interface
 
-Kairos OS v2.5.0
+Kairos OS v2.7.0
 ================
 
 Kairos OS currently ships with a **metadata-only AI Runtime**. 
 
-> **Important**: In version 2.5.0, the AI Runtime supports local dispatch and response parsing.
+> **Important**: In version 2.7.0, the AI Runtime supports local dispatch, response parsing, metadata-only approval request creation, and dashboard approval review.
 > - **No commands are executed.**
 > - **No connectors are called.**
 > - **No data is mutated.**
+> - **Approvals are metadata-only; approving a request does not execute anything.**
 > - The prompt package is built deterministically based on registry metadata and context limits.
 > - The response parser operates entirely in-memory and never persists raw LLM text.
 
@@ -16,7 +17,7 @@ Kairos OS currently ships with a **metadata-only AI Runtime**.
 
 The `POST /api/v1/ai/prompt/dry-run` endpoint deterministically assembles a prompt package.
 The `POST /api/v1/ai/ollama/dispatch` endpoint (disabled by default) dispatches the prompt to local Ollama.
-The `POST /api/v1/ai/parse-plan` endpoint (v2.5.0) converts raw LLM text into structured planning output without calling any network. 
+The `POST /api/v1/ai/parse-plan` endpoint (v2.5.0) converts raw LLM text into structured planning output without calling any network. It can optionally create metadata-only approval requests when explicitly requested.
 
 This contract enforces:
 1. Max context limits for commands, plugins, and connectors.
@@ -80,6 +81,7 @@ This contract enforces:
 4. **API key authentication** — All `/api/v1/ai/*` endpoints require `X-Kairos-API-Key` when `KAIROS_API_KEY` is configured.
 5. **Dangerous command surfacing** — Commands marked `dangerous=true` (e.g. `core.operations.run_backup`) are clearly flagged in planning and parser responses.
 6. **No persistence of raw LLM text** — The parser processes LLM responses in-memory only. Raw text is never written to the database, filesystem, or application logs.
+7. **Metadata-only approvals** — Approval requests can be reviewed in the dashboard. Approving only updates approval status and does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain data, store raw LLM output, or create autonomous behavior.
 
 ---
 
@@ -105,6 +107,9 @@ This contract enforces:
 | `KAIROS_AI_RESPONSE_PARSER_ENABLED` | `true` | Enables the LLM response parser (v2.5.0). |
 | `KAIROS_AI_MAX_PARSED_STEPS` | `10` | Max plan steps the parser will extract. |
 | `KAIROS_AI_MAX_PARSED_COMMANDS` | `10` | Max command suggestions the parser will extract. |
+| `KAIROS_APPROVAL_GATE_ENABLED` | `true` | Enables metadata-only approval APIs and dashboard review. |
+| `KAIROS_APPROVAL_DEFAULT_TTL_MINUTES` | `60` | Default TTL for pending approval requests. |
+| `KAIROS_APPROVAL_MAX_PENDING` | `100` | Maximum number of pending approval requests. |
 
 ---
 
@@ -124,6 +129,20 @@ This contract enforces:
 | `POST` | `/api/v1/ai/prompt/dry-run` | Builds a deterministic prompt payload for future LLM execution without sending it |
 | `POST` | `/api/v1/ai/ollama/dispatch` | Safely dispatch a compiled prompt to local Ollama (no execution) |
 | `POST` | `/api/v1/ai/parse-plan` | Parse raw LLM text into a structured plan (no network, no execution) |
+| `POST` | `/api/v1/approvals` | Create metadata-only approval requests |
+| `GET` | `/api/v1/approvals` | List approval requests |
+| `GET` | `/api/v1/approvals/{approval_id}` | Inspect one approval request |
+| `POST` | `/api/v1/approvals/{approval_id}/approve` | Mark pending approval metadata as approved |
+| `POST` | `/api/v1/approvals/{approval_id}/reject` | Mark pending approval metadata as rejected |
+
+### Approval Management Dashboard
+
+Kairos v2.7.0 adds an Approval Management card to the dashboard. Users can
+view approval requests, inspect risk level, payload summary, safety notes, and
+non-execution flags, then approve or reject pending requests. This remains a
+control-plane workflow only: approving a request does not execute commands,
+call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate
+domain data, persist raw LLM responses, or add autonomous agents.
 
 ### Planning Request
 
@@ -179,6 +198,7 @@ POST /api/v1/ai/plan
 |-----------|-------------|
 | **v2.0** | Metadata-only AI Runtime Interface. Deterministic planner. No LLM calls. |
 | **v2.1** | Ollama connectivity self-check (health probe only, no inference). |
-| **v2.2** *(current)* | Ollama Model Discovery — enumerate local models via `/api/tags` safely. |
+| **v2.2** | Ollama Model Discovery — enumerate local models via `/api/tags` safely. |
 | **v2.3** | Local LLM planning — route `POST /ai/plan` through Ollama for natural language goal understanding. |
+| **v2.7** *(current)* | Dashboard approval management for metadata-only approval requests. |
 | **v3.0** | Agent loop — Kairos autonomously plans, executes, and observes via plugin + connector pipelines. |

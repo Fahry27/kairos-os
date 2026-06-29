@@ -1,19 +1,16 @@
-import pytest
 from uuid import uuid4
+
 from fastapi.testclient import TestClient
 
-from app.main import app
-from app.models.approval import Approval
-from app.schemas.approval import ApprovalStatus, ApprovalActionType
+from app.core.config import get_settings
 from app.db.base import initialize_database
 from app.db.session import SessionLocal
+from app.main import app
 
 # Initialize SQLite tables before running these tests
 initialize_database()
 
 client = TestClient(app)
-
-from app.core.config import get_settings
 
 def test_approval_gate_disabled(monkeypatch):
     def get_settings_override():

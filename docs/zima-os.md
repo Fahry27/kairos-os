@@ -1,6 +1,6 @@
 # Zima OS (CasaOS) Deployment Guide
 
-Kairos v2.0.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
+Kairos v2.7.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
 
 ## Prerequisites
 - Zima OS / CasaOS installed and running on your local network.
@@ -47,8 +47,9 @@ Kairos v2.0.0 includes a production-leaning `docker-compose.yml` file located at
 
 5. **Verify the Deployment**
     - **Check Containers**: `docker compose ps`
-    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `2.1.0` in the returned JSON.
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `2.7.0` in the returned JSON.
     - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
+    - **Review Approvals**: Use the Approval Management card to view and inspect approval requests. Approving requests remains metadata-only and does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
 
 ## Stopping and Restarting
 
@@ -121,6 +122,7 @@ For a production Zima OS deployment, verify:
 - [ ] **Backups Cron Job**: The backup cron job is registered, active, and permissions on `scripts/backup-sqlite.sh` are set to executable.
 - [ ] **LAN Access API Keys**: `KAIROS_API_KEY` (in API service environment) and `NEXT_PUBLIC_KAIROS_API_KEY` (in dashboard environment) are configured and matching.
 - [ ] **Readiness status**: Accessing `http://<ZIMA_IP>:8000/ready` returns `"status": "ready"`.
+- [ ] **Approval safety**: Approval Management loads or shows a safety-gated unavailable state when `KAIROS_APPROVAL_GATE_ENABLED=false`; no execution layer is enabled by approvals.
 - [ ] **Restart Policy**: Restart policies (`unless-stopped`) are defined for all containers in the compose file.
 
 ## Advanced Deployment Options

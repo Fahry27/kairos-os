@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="2.6.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="2.7.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -143,4 +143,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

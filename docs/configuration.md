@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v1.8.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v2.7.0.
 
 ---
 
@@ -46,6 +46,20 @@ This document details all configuration parameters, environment settings, secret
 | `KAIROS_AI_RESPONSE_PARSER_ENABLED` | API | `true` | Enables the LLM response parser (v2.5.0). |
 | `KAIROS_AI_MAX_PARSED_STEPS` | API | `10` | Max plan steps the parser will extract from LLM responses. |
 | `KAIROS_AI_MAX_PARSED_COMMANDS` | API | `10` | Max command suggestions the parser will extract. |
+| `KAIROS_APPROVAL_GATE_ENABLED` | API | `true` | Enables metadata-only approval request APIs and dashboard review. |
+| `KAIROS_APPROVAL_DEFAULT_TTL_MINUTES` | API | `60` | Default time before pending approval requests expire. |
+| `KAIROS_APPROVAL_MAX_PENDING` | API | `100` | Maximum pending approval requests accepted before new creation is rate-limited. |
+
+---
+
+## Approval Management Safety
+
+Kairos v2.7.0 lets the dashboard view, inspect, approve, and reject approval
+requests created by the Approval Gate. Approval is metadata-only: approving a
+request changes approval status only. It does not execute commands, call
+connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain
+data, store raw LLM responses, store secrets, or introduce autonomous agent
+behavior.
 
 ---
 

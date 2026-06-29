@@ -74,7 +74,7 @@ Expected response:
 {
   "status": "ok",
   "service": "kairos-api",
-  "version": "2.1.0",
+  "version": "2.7.0",
   "uptime": 12,
   "database": "connected",
   "docker_mode": true
@@ -223,7 +223,8 @@ the contents.
 
 ## Production Operations Support
 
-Kairos v2.5.0 includes enhanced operations and monitoring support:
+Kairos v2.7.0 includes enhanced operations, monitoring, and approval
+management support:
 
 ### Structured Logging
 API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE`. Time is always formatted in UTC ISO. This is stdout/stderr friendly and automatically handled by Docker's logging driver (e.g., `json-file` limited to `max-size: 10m` in `docker-compose.yml`).
@@ -232,6 +233,12 @@ API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] ME
 - **Health check (`/health` / `/api/v1/health`)**: Exposes basic health metrics (uptime, database status, docker environment detection).
 - **Readiness check (`/ready` / `/api/v1/ready`)**: Performs startup validation checks (SQLite database file availability, backup directory writability, data path writability) and database query responsiveness. Returns `503 Service Unavailable` if unready.
 - **Metrics check (`/metrics` / `/api/v1/metrics`)**: Exposes JSON stats including uptime, database status, container mode, and processed HTTP request statistics (by HTTP status class). It does not query database record counts on every request to ensure high responsiveness.
+
+### Approval Management Dashboard
+- The dashboard includes an Approval Management card for viewing pending, approved, rejected, expired, or all approval requests.
+- The card can inspect risk level, action metadata, payload summary, safety notes, decision reason, and non-execution flags.
+- Approve/reject controls are available only for pending approvals. Rejection requires a reason in the UI.
+- Approval remains metadata-only. Approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain data, store raw LLM responses, or introduce autonomous agent behavior.
 
 ### Reverse Proxy & Portainer Compatibility
 - **Root Path Routing**: The API exposes a `ROOT_PATH` setting. If set, FastAPI registers all endpoints relative to the given subpath, which is highly useful when mounting the API behind reverse proxies routing to subfolders.
@@ -259,6 +266,13 @@ For API changes, also verify:
 ```sh
 cd apps/api
 pytest
+```
+
+For dashboard/control-plane changes, also verify:
+
+```sh
+cd apps/dashboard
+npm run build
 ```
 
 The Docker Compose command requires Docker Compose to be installed locally.

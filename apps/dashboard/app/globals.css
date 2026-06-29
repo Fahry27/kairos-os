@@ -487,3 +487,255 @@ select:focus-visible {
   margin: 6px 0 0;
 }
 
+/* ------------------------------------------------------------------ */
+/* Approval Management                                                 */
+/* ------------------------------------------------------------------ */
+
+.approvalSafetyNote {
+  background: var(--amber-soft);
+  border: 1px solid rgba(138, 90, 0, 0.32);
+  border-radius: 6px;
+  color: var(--amber);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  padding: 12px;
+}
+
+.approvalFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.successText {
+  color: var(--accent);
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.approvalLayout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+}
+
+.approvalList {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.approvalRecord {
+  background: var(--panel);
+}
+
+.approvalRecordSelected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.approvalBadgeRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.approvalBadge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 24px;
+  padding: 4px 8px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.approvalBadge-pending {
+  background: var(--amber-soft);
+  border: 1px solid rgba(138, 90, 0, 0.32);
+  color: var(--amber);
+}
+
+.approvalBadge-approved,
+.approvalRisk-low {
+  background: var(--accent-soft);
+  border: 1px solid #b9dfd9;
+  color: var(--accent);
+}
+
+.approvalBadge-rejected,
+.approvalRisk-critical {
+  background: #fdf2f2;
+  border: 1px solid #e8c1c1;
+  color: #a33131;
+}
+
+.approvalBadge-expired {
+  background: #eef1f5;
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+}
+
+.approvalRisk-medium {
+  background: #eef1f5;
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+}
+
+.approvalRisk-high {
+  background: #fff1cf;
+  border: 1px solid rgba(138, 90, 0, 0.32);
+  color: #8a5a00;
+}
+
+.approvalDetailPane {
+  min-width: 0;
+}
+
+.approvalDetails {
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.approvalDetailsEmpty {
+  color: var(--muted);
+}
+
+.approvalDetailsHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.approvalDetails h3,
+.approvalDetailBlock h4 {
+  margin: 0;
+}
+
+.approvalDetails p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.approvalMetaGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+}
+
+.approvalMetaGrid div {
+  min-width: 0;
+}
+
+.approvalMetaGrid dt,
+.approvalFlagGrid dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.approvalMetaGrid dd,
+.approvalFlagGrid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.approvalDetailBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.approvalDetailBlock pre {
+  background: #f8fafc;
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.approvalDetailBlock ul {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.approvalFlagGrid {
+  margin: 0;
+}
+
+.approvalDecisionBox {
+  background: #f8fafc;
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.approvalDecisionBox label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .approvalRecord,
+  .approvalDetails,
+  .approvalDetailBlock pre,
+  .approvalDecisionBox {
+    background: #11151a;
+  }
+
+  .approvalBadge-rejected,
+  .approvalRisk-critical {
+    background: #3a1515;
+  }
+
+  .approvalBadge-expired,
+  .approvalRisk-medium {
+    background: #161b22;
+  }
+}
+
+@media (max-width: 960px) {
+  .approvalLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .approvalDetailsHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .approvalBadgeRow {
+    justify-content: flex-start;
+  }
+}
