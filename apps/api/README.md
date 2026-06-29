@@ -1,6 +1,6 @@
 # Kairos Core API
 
-Kairos Core API (v2.8.0) is a FastAPI service for Kairos domain and control-plane modules:
+Kairos Core API (v2.9.0) is a FastAPI service for Kairos domain and control-plane modules:
 
 - Projects
 - Tasks
@@ -133,3 +133,5 @@ sqlite:///.../data/kairos-local.sqlite3
 - `POST /api/v1/approvals/{approval_id}/approve`
 - `POST /api/v1/approvals/{approval_id}/reject`
 - `POST /api/v1/approvals/{approval_id}/trigger-n8n`
+- `GET /api/v1/workflow-runs`
+- `GET /api/v1/workflow-runs/{run_id}`

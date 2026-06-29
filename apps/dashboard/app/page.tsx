@@ -8,6 +8,7 @@ import { MemoriesList } from "../components/MemoriesList";
 import { ProjectsList } from "../components/ProjectsList";
 import { StatsOverview } from "../components/StatsOverview";
 import { TasksList } from "../components/TasksList";
+import { WorkflowRunsCard } from "../components/WorkflowRunsCard";
 import { KAIROS_API_URL } from "../lib/api";
 
 export default function DashboardPage() {
@@ -29,6 +30,9 @@ export default function DashboardPage() {
         </Suspense>
         <Suspense fallback={<p className="stateText">Loading approvals...</p>}>
           <ApprovalsCard />
+        </Suspense>
+        <Suspense fallback={<p className="stateText">Loading workflow runs...</p>}>
+          <WorkflowRunsCard />
         </Suspense>
         <Suspense fallback={<p className="stateText">Loading extensions...</p>}>
           <ExtensionsCard />

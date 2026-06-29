@@ -4,7 +4,7 @@
 
 Kairos OS is planned as a modular system with an API service, a dashboard
 experience, shared documentation, and supporting infrastructure. Kairos Core API
-v2.8.0 is the current controlled n8n webhook trigger milestone.
+v2.9.0 is the current workflow run history and audit trail milestone.
 
 ## Repository Boundaries
 
@@ -25,9 +25,10 @@ The `apps/dashboard/` directory contains the dashboard application.
 ### API
 
 The API is implemented with FastAPI and SQLAlchemy. It exposes health checks,
-basic CRUD modules for Projects, Tasks, and Memories, approval management, and
-one controlled n8n webhook trigger endpoint tied to approved workflow approval
-requests. Direct local development uses persistent SQLite storage in the
+basic CRUD modules for Projects, Tasks, and Memories, approval management, one
+controlled n8n webhook trigger endpoint tied to approved workflow approval
+requests, and read-only workflow run history endpoints. Direct local
+development uses persistent SQLite storage in the
 repository `data/` workspace. Docker Compose runs use PostgreSQL through
 environment-based configuration.
 
@@ -35,8 +36,8 @@ environment-based configuration.
 
 The dashboard is implemented with Next.js as a local interface for Kairos Core
 API health, projects, tasks, memories, registries, AI runtime status, and
-approval management. v2.8.0 does not add dashboard trigger controls; n8n
-triggering remains API-only.
+approval management, and workflow run history. v2.9.0 keeps workflow run
+history read-only and does not add trigger or retry controls.
 
 ### Controlled n8n Trigger
 
@@ -51,6 +52,13 @@ does not store webhook URLs, tokens, credentials, environment values, raw n8n
 response bodies, or raw LLM responses. No connector fan-out, local command
 execution, Hermes/OpenClaw trigger, cloud provider call, background worker,
 automatic retry, or autonomous agent loop is introduced.
+
+### Workflow Run Audit Trail
+
+Kairos v2.9.0 exposes sanitized `WorkflowRun` history through read-only API
+endpoints and a dashboard audit card. Operators can filter by status, approval
+ID, and target type, then inspect request and response summaries. The audit
+surface does not add trigger, retry, approve/reject, or execution controls.
 
 ### Infrastructure
 

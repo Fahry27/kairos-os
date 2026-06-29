@@ -323,6 +323,47 @@ export function rejectApproval(approvalId: string, reason: string) {
   );
 }
 
+export type WorkflowRunStatus = "running" | "succeeded" | "failed";
+
+export type WorkflowRunTargetType = "n8n_webhook";
+
+export type WorkflowRun = {
+  id: string;
+  approval_id: string;
+  target_type: WorkflowRunTargetType;
+  status: WorkflowRunStatus;
+  started_at: string;
+  finished_at?: string | null;
+  http_status_code?: number | null;
+  sanitized_error?: string | null;
+  request_summary?: Record<string, unknown> | null;
+  response_summary?: Record<string, unknown> | null;
+};
+
+export type WorkflowRunListStatus = WorkflowRunStatus | "all";
+
+export function listWorkflowRuns(
+  status: WorkflowRunListStatus = "all",
+  approvalId?: string,
+  targetType?: WorkflowRunTargetType,
+) {
+  const params = new URLSearchParams({ offset: "0", limit: "100" });
+  if (status !== "all") {
+    params.set("status", status);
+  }
+  if (approvalId?.trim()) {
+    params.set("approval_id", approvalId.trim());
+  }
+  if (targetType) {
+    params.set("target_type", targetType);
+  }
+  return fetchFromApi<WorkflowRun[]>(`/api/v1/workflow-runs?${params.toString()}`);
+}
+
+export function getWorkflowRun(runId: string) {
+  return fetchFromApi<WorkflowRun>(`/api/v1/workflow-runs/${runId}`);
+}
+
 // ---------------------------------------------------------------------------
 // Update types
 // ---------------------------------------------------------------------------

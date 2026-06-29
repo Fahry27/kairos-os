@@ -1,3 +1,26 @@
+# Kairos v2.9.0 Release Notes
+
+Welcome to Kairos v2.9.0, introducing the **Workflow Run History / Audit Trail Dashboard**.
+
+## Kairos v2.9.0
+**Date:** June 2026
+
+This release adds read-only observability for sanitized `WorkflowRun` records
+created by the v2.8 controlled n8n webhook trigger.
+
+### Features
+- **Workflow Run API**: Adds read-only `GET /api/v1/workflow-runs` and `GET /api/v1/workflow-runs/{run_id}`.
+- **Filtering**: Workflow run history can be filtered by status, approval ID, and target type.
+- **Audit Trail Dashboard**: Adds a read-only dashboard card for listing and inspecting workflow run metadata.
+- **Sanitized Metadata Inspection**: Displays run status, approval ID, target type, timestamps, HTTP status code, sanitized error, request summary, and response summary.
+
+### Safety Guarantees
+- No trigger button, retry button, approve/reject controls, execution controls, local command execution, connector fan-out, Hermes/OpenClaw integration, cloud provider calls, or autonomous agents.
+- No webhook URL, token, credential, environment value, raw n8n response body, or raw LLM response exposure.
+- API responses redact sensitive summary keys defensively even though v2.8 stores only sanitized run metadata.
+
+---
+
 # Kairos v2.8.0 Release Notes
 
 Welcome to Kairos v2.8.0, introducing the **Controlled n8n Webhook Trigger**.

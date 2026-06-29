@@ -3,7 +3,47 @@ from enum import Enum
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+SENSITIVE_SUMMARY_KEYS = {
+    "api_key",
+    "authorization",
+    "body",
+    "credential",
+    "credentials",
+    "env",
+    "environment",
+    "password",
+    "raw",
+    "raw_body",
+    "raw_llm_response",
+    "raw_n8n_response",
+    "raw_response",
+    "response_body",
+    "secret",
+    "token",
+    "url",
+    "webhook_url",
+}
+
+
+def _is_sensitive_summary_key(key: str) -> bool:
+    normalized = key.lower()
+    return normalized in SENSITIVE_SUMMARY_KEYS or any(
+        fragment in normalized for fragment in ("token", "secret", "credential", "password")
+    )
+
+
+def sanitize_summary(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "[redacted]" if _is_sensitive_summary_key(str(key)) else sanitize_summary(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [sanitize_summary(item) for item in value]
+    return value
 
 
 class ApprovalActionType(str, Enum):
@@ -100,3 +140,8 @@ class WorkflowRunRead(BaseModel):
     sanitized_error: str | None = None
     request_summary: dict[str, Any] | None = None
     response_summary: dict[str, Any] | None = None
+
+    @field_validator("request_summary", "response_summary", mode="before")
+    @classmethod
+    def sanitize_run_summary(cls, value: Any) -> Any:
+        return sanitize_summary(value)

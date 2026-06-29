@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v2.8.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v2.9.0.
 
 ---
 
@@ -56,9 +56,9 @@ This document details all configuration parameters, environment settings, secret
 
 ---
 
-## Approval Management Safety
+## Approval Management And Workflow Run Safety
 
-Kairos v2.8.0 lets the dashboard view, inspect, approve, and reject approval
+Kairos v2.9.0 lets the dashboard view, inspect, approve, and reject approval
 requests created by the Approval Gate. Approval is metadata-only: approving a
 request changes approval status only. It does not execute commands, call
 connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain
@@ -75,6 +75,13 @@ When `KAIROS_OPERATOR_TOKEN` is set, approve, reject, and trigger-n8n require
 `X-Kairos-Operator-Token`. Keep this token server-side only. Do not put real
 operator tokens in dashboard variables, committed files, examples, logs, or
 error messages.
+
+Workflow run history is observability-only. `GET /api/v1/workflow-runs` and
+`GET /api/v1/workflow-runs/{run_id}` return sanitized metadata for audit review
+and support status, approval ID, and target type filtering. These endpoints and
+the dashboard card do not add trigger, retry, approval, or execution controls.
+Webhook URLs, tokens, credentials, environment values, raw n8n response bodies,
+and raw LLM responses must not be exposed.
 
 ---
 
