@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="2.3.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="2.4.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -58,6 +58,13 @@ class Settings(BaseSettings):
     kairos_ollama_base_url: str = Field(default="http://localhost:11434", validation_alias="KAIROS_OLLAMA_BASE_URL")
     kairos_ollama_tags_path: str = Field(default="/api/tags", validation_alias="KAIROS_OLLAMA_TAGS_PATH")
     kairos_ollama_timeout_seconds: int = Field(default=2, validation_alias="KAIROS_OLLAMA_TIMEOUT_SECONDS")
+    
+    # Ollama Local Dispatch (v2.4.0)
+    kairos_ollama_dispatch_enabled: bool = Field(default=False, validation_alias="KAIROS_OLLAMA_DISPATCH_ENABLED")
+    kairos_ollama_generate_path: str = Field(default="/api/generate", validation_alias="KAIROS_OLLAMA_GENERATE_PATH")
+    kairos_ollama_request_timeout_seconds: int = Field(default=30, validation_alias="KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS")
+    kairos_ollama_max_prompt_chars: int = Field(default=12000, validation_alias="KAIROS_OLLAMA_MAX_PROMPT_CHARS")
+    kairos_ollama_max_response_chars: int = Field(default=8000, validation_alias="KAIROS_OLLAMA_MAX_RESPONSE_CHARS")
     database_url: str = Field(
         default=f"sqlite:///{LOCAL_SQLITE_PATH}",
         validation_alias="DATABASE_URL",

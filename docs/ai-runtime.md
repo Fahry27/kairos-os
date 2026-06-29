@@ -1,19 +1,20 @@
 # AI Runtime Interface
 
-Kairos OS v2.3.0
+Kairos OS v2.4.0
 ================
 
 Kairos OS currently ships with a **metadata-only AI Runtime**. 
 
-> **Important**: In version 2.3.0, the AI Runtime is configured exclusively for **Prompt Dry-Run** mode. 
+> **Important**: In version 2.4.0, the AI Runtime is configured exclusively for **Prompt Dry-Run** mode. 
 > - **No LLM network calls are made.**
 > - **No commands are executed.**
 > - **No connectors are called.**
 > - The prompt package is built deterministically based on registry metadata and context limits.
 
-## Prompt Dry-Run Contract
+## Prompt Dry-Run & Local Dispatch (v2.4.0)
 
-The `POST /api/v1/ai/prompt/dry-run` endpoint allows Kairos to deterministically assemble a prompt package showing exactly what context (commands, plugins, connectors) would be sent to the local LLM in future versions. 
+The `POST /api/v1/ai/prompt/dry-run` endpoint allows Kairos to deterministically assemble a prompt package showing exactly what context (commands, plugins, connectors) would be sent to the local LLM. 
+The `POST /api/v1/ai/ollama/dispatch` endpoint (disabled by default) safely dispatches this compiled prompt to local Ollama. 
 
 This contract enforces:
 1. Max context limits for commands, plugins, and connectors.
@@ -71,7 +72,7 @@ This contract enforces:
 
 ## Security Model
 
-1. **Safe Readiness and Discovery Checks** — The only outbound network call in `ai_runtime.py` is a short-timeout `GET` to the Ollama tags endpoint. No prompts or generate requests are sent. It only fetches JSON metadata.
+1. **Safe Readiness, Discovery, and Dispatch** — The only outbound network calls in `ai_runtime.py` are to Ollama via local HTTP paths (`/api/tags` and `/api/generate` when dispatch is enabled). No commands, connectors, or cloud APIs are ever invoked.
 2. **No secrets stored or returned** — Provider manifests carry `auth_type` metadata only. No API keys, tokens, or passwords are ever stored or returned.
 3. **Hard-gated execution** — The planner response always contains `execution_enabled=false` regardless of the `KAIROS_AI_EXECUTION_ENABLED` environment setting. This flag is a forward-looking placeholder only.
 4. **API key authentication** — All `/api/v1/ai/*` endpoints require `X-Kairos-API-Key` when `KAIROS_API_KEY` is configured.
@@ -93,6 +94,11 @@ This contract enforces:
 | `KAIROS_OLLAMA_BASE_URL` | `http://localhost:11434` | Base URL used specifically for the Ollama readiness check. |
 | `KAIROS_OLLAMA_TAGS_PATH` | `/api/tags` | Path used to check Ollama model availability safely. |
 | `KAIROS_OLLAMA_TIMEOUT_SECONDS` | `2` | Short timeout for the readiness check. |
+| `KAIROS_OLLAMA_DISPATCH_ENABLED` | `false` | Enables manual local prompt dispatch to Ollama (v2.4.0). |
+| `KAIROS_OLLAMA_GENERATE_PATH` | `/api/generate` | Path used to generate responses safely without execution. |
+| `KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS` | `30` | Timeout for the dispatch generate call. |
+| `KAIROS_OLLAMA_MAX_PROMPT_CHARS` | `12000` | Max characters allowed for the compiled dispatch prompt string. |
+| `KAIROS_OLLAMA_MAX_RESPONSE_CHARS` | `8000` | Max characters allowed for the generated model response. |
 
 ---
 
@@ -109,6 +115,8 @@ This contract enforces:
 | `GET` | `/api/v1/ai/models` | Current provider model discovery |
 | `GET` | `/api/v1/ai/capabilities` | Full runtime capability summary including discovery |
 | `POST` | `/api/v1/ai/plan` | Generate a deterministic advisory plan |
+| `POST` | `/api/v1/ai/prompt/dry-run` | Builds a deterministic prompt payload for future LLM execution without sending it |
+| `POST` | `/api/v1/ai/ollama/dispatch` | Safely dispatch a compiled prompt to local Ollama (no execution) |
 
 ### Planning Request
 

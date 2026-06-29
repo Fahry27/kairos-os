@@ -38,6 +38,11 @@ This document details all configuration parameters, environment settings, secret
 | `KAIROS_OLLAMA_BASE_URL` | API | `http://localhost:11434` | Base URL used specifically for the Ollama readiness check. |
 | `KAIROS_OLLAMA_TAGS_PATH` | API | `/api/tags` | Path used to check Ollama model availability safely. |
 | `KAIROS_OLLAMA_TIMEOUT_SECONDS` | API | `2` | Short timeout for the readiness check. |
+| `KAIROS_OLLAMA_DISPATCH_ENABLED` | API | `false` | Enables manual local prompt dispatch to Ollama (v2.4.0). |
+| `KAIROS_OLLAMA_GENERATE_PATH` | API | `/api/generate` | Path used to generate responses safely without execution. |
+| `KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS` | API | `30` | Timeout for the dispatch generate call. |
+| `KAIROS_OLLAMA_MAX_PROMPT_CHARS` | API | `12000` | Max characters allowed for the compiled dispatch prompt string. |
+| `KAIROS_OLLAMA_MAX_RESPONSE_CHARS` | API | `8000` | Max characters allowed for the generated model response. |
 
 ---
 

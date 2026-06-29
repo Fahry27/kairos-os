@@ -1,3 +1,21 @@
+# Kairos v2.4.0 Release Notes
+
+Welcome to Kairos v2.4.0, introducing **Local Ollama Prompt Dispatch**.
+
+## Kairos v2.4.0
+**Date:** June 2026
+
+This release adds a safe, manual local Ollama prompt dispatch endpoint that sends prepared prompt packages to the configured local Ollama model. It enforces strict safety guarantees: no commands executed, no connectors called, no data mutated, and no external cloud API calls.
+
+### Features
+- **Local Dispatch**: Sends standard Markdown prompt strings to local Ollama.
+- **Strict Safety Policy**: Explicitly blocks execution and network calls. Truncates prompts and responses safely to avoid memory overload.
+- **API Endpoints**: Added `POST /api/v1/ai/ollama/dispatch`.
+- **Capabilities Enrichment**: `/api/v1/ai/capabilities` now returns local dispatch status and limits.
+- **Dashboard UI Update**: The AI Runtime card displays local dispatch enabled status and configuration.
+
+---
+
 # Kairos v2.3.0 Release Notes
 
 Welcome to Kairos v2.3.0, introducing the **Ollama Prompt Dry-Run Contract**.

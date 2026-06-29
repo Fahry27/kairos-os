@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import verify_api_key
-from app.core.config import get_settings
+from app.core.config import get_settings, Settings
 from app.core.ai_runtime import (
     ai_runtime,
     AICapabilities,
@@ -18,6 +18,8 @@ from app.core.ai_runtime import (
     AIProviderModelsResponse,
     AIPromptDryRunRequest,
     AIPromptDryRunResponse,
+    AIOllamaDispatchRequest,
+    AIOllamaDispatchResponse,
     PlanResponse,
 )
 from app.core.plugins import plugin_registry
@@ -259,6 +261,59 @@ def prompt_dry_run(
         )
         
     return ai_runtime.generate_prompt_dry_run(
+        request=body,
+        settings=settings,
+        plugin_registry=plugin_registry,
+        connector_registry=connector_registry,
+    )
+
+
+@router.post(
+    "/ollama/dispatch",
+    response_model=AIOllamaDispatchResponse,
+    summary="Dispatch a prompt to local Ollama",
+    description="Manually dispatch a prompt to local Ollama. No execution, no mutation."
+)
+def ollama_dispatch(
+    body: AIOllamaDispatchRequest,
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+):
+    if not body.user_goal or not body.user_goal.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="user_goal cannot be empty",
+        )
+        
+    if not settings.kairos_ai_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="AI runtime is disabled.",
+        )
+        
+    if not settings.kairos_ollama_dispatch_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Ollama local dispatch is disabled. Enable KAIROS_OLLAMA_DISPATCH_ENABLED.",
+        )
+        
+    if settings.kairos_ai_provider not in ("ai.ollama", "ollama"):
+        raise HTTPException(
+            status_code=400,
+            detail="Ollama dispatch requires KAIROS_AI_PROVIDER to be ai.ollama.",
+        )
+        
+    # If no model provided, try fallback
+    if not body.model:
+        body.model = settings.kairos_ai_model
+        
+    if not body.model:
+        raise HTTPException(
+            status_code=400,
+            detail="No model provided and KAIROS_AI_MODEL is not configured.",
+        )
+        
+    return ai_runtime.dispatch_to_ollama(
         request=body,
         settings=settings,
         plugin_registry=plugin_registry,

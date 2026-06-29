@@ -202,6 +202,11 @@ export type AICapabilities = {
   max_context_commands: number;
   max_context_connectors: number;
   max_context_plugins: number;
+  ollama_dispatch_enabled: boolean;
+  ollama_generate_path: string;
+  ollama_request_timeout_seconds: number;
+  ollama_max_prompt_chars: number;
+  ollama_max_response_chars: number;
 };
 
 export function getAICapabilities() {

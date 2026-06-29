@@ -113,6 +113,13 @@ class AICapabilities(BaseModel):
     max_context_commands: int = 20
     max_context_connectors: int = 20
     max_context_plugins: int = 20
+    
+    # Ollama Local Dispatch (added in v2.4.0)
+    ollama_dispatch_enabled: bool = False
+    ollama_generate_path: str = "/api/generate"
+    ollama_request_timeout_seconds: int = 30
+    ollama_max_prompt_chars: int = 12000
+    ollama_max_response_chars: int = 8000
 
 
 class AIPromptDryRunRequest(BaseModel):
@@ -139,6 +146,32 @@ class AIPromptDryRunResponse(BaseModel):
     warnings: list[str]
     execution_enabled: bool = False
     network_call_performed: bool = False
+
+
+class AIOllamaDispatchRequest(BaseModel):
+    user_goal: str
+    context: dict | None = Field(default_factory=dict)
+    model: str | None = None
+    dry_run_first: bool = True
+    include_commands: bool = True
+    include_plugins: bool = True
+    include_connectors: bool = True
+
+
+class AIOllamaDispatchResponse(BaseModel):
+    provider_id: str
+    model: str
+    prompt_sent: bool
+    response_text: str
+    raw_response_metadata: dict
+    safety_notes: list[str]
+    latency_ms: int
+    truncated: bool
+    execution_enabled: bool = False
+    command_execution_performed: bool = False
+    connector_calls_performed: bool = False
+    data_mutation_performed: bool = False
+    network_call_performed: bool = True
 
 
 class PlannedCommand(BaseModel):
@@ -352,6 +385,11 @@ class AIRuntime:
             max_context_commands=settings.kairos_ai_max_context_commands,
             max_context_connectors=settings.kairos_ai_max_context_connectors,
             max_context_plugins=settings.kairos_ai_max_context_plugins,
+            ollama_dispatch_enabled=settings.kairos_ollama_dispatch_enabled,
+            ollama_generate_path=settings.kairos_ollama_generate_path,
+            ollama_request_timeout_seconds=settings.kairos_ollama_request_timeout_seconds,
+            ollama_max_prompt_chars=settings.kairos_ollama_max_prompt_chars,
+            ollama_max_response_chars=settings.kairos_ollama_max_response_chars,
         )
 
         if caps.ai_enabled and caps.provider == "ollama":
@@ -789,6 +827,168 @@ class AIRuntime:
             execution_enabled=False,  # hard gate — never True in v2.0
             requires_approval=True,
         )
+
+    def dispatch_to_ollama(
+        self,
+        request: AIOllamaDispatchRequest,
+        settings,
+        plugin_registry,
+        connector_registry
+    ) -> AIOllamaDispatchResponse:
+        """
+        v2.4.0: Safely builds a prompt using dry-run logic and sends it to local Ollama.
+        Guarantees no execution, no data mutation, and no cloud provider calls.
+        """
+        import urllib.request
+        import urllib.error
+        import urllib.parse
+        
+        # 1. Generate the dry-run prompt package
+        dry_req = AIPromptDryRunRequest(
+            user_goal=request.user_goal,
+            context=request.context,
+            preferred_model=request.model,
+            include_commands=request.include_commands,
+            include_plugins=request.include_plugins,
+            include_connectors=request.include_connectors,
+        )
+        pkg = self.generate_prompt_dry_run(dry_req, settings, plugin_registry, connector_registry)
+        model = pkg.model or settings.kairos_ai_model or "llama3.2:3b"
+        
+        # 2. Build the Markdown string prompt
+        prompt_lines = []
+        
+        if pkg.system_instructions:
+            prompt_lines.append("# System Instructions")
+            for inst in pkg.system_instructions:
+                prompt_lines.append(f"- {inst}")
+            prompt_lines.append("")
+            
+        if pkg.safety_policy:
+            prompt_lines.append("# Safety Policy")
+            for policy in pkg.safety_policy:
+                prompt_lines.append(f"- {policy}")
+            prompt_lines.append("")
+            
+        prompt_lines.append("# User Goal")
+        prompt_lines.append(pkg.user_goal)
+        prompt_lines.append("")
+        
+        if pkg.context_summary:
+            prompt_lines.append("# Context Summary")
+            prompt_lines.append(pkg.context_summary)
+            prompt_lines.append("")
+            
+        if pkg.included_commands:
+            prompt_lines.append("# Available Commands")
+            for c in pkg.included_commands:
+                prompt_lines.append(f"- **{c['name']}**: {c['description']} (Category: {c['category']})")
+            prompt_lines.append("")
+            
+        if pkg.included_plugins:
+            prompt_lines.append("# Available Plugins")
+            for p in pkg.included_plugins:
+                prompt_lines.append(f"- **{p['name']}**: {p['description']}")
+            prompt_lines.append("")
+            
+        if pkg.included_connectors:
+            prompt_lines.append("# Available Connectors")
+            for c in pkg.included_connectors:
+                prompt_lines.append(f"- **{c['name']}**: {c['description']}")
+            prompt_lines.append("")
+            
+        prompt_lines.append("# Output Expectations")
+        prompt_lines.append("Provide a response addressing the User Goal. Do not attempt to execute commands.")
+        
+        prompt_string = "\n".join(prompt_lines)
+        
+        # 3. Truncate safely if too long
+        truncated = False
+        warnings = list(pkg.warnings)
+        max_chars = settings.kairos_ollama_max_prompt_chars
+        if len(prompt_string) > max_chars:
+            prompt_string = prompt_string[:max_chars]
+            prompt_string += "\n\n[WARNING: PROMPT TRUNCATED DUE TO LENGTH LIMITS]"
+            truncated = True
+            warnings.append(f"Prompt truncated to {max_chars} chars.")
+            
+        # 4. Perform network call using urllib only
+        base_url = settings.kairos_ollama_base_url.rstrip("/")
+        generate_path = settings.kairos_ollama_generate_path.lstrip("/")
+        url = f"{base_url}/{generate_path}"
+        timeout = settings.kairos_ollama_request_timeout_seconds
+        
+        payload = {
+            "model": model,
+            "prompt": prompt_string,
+            "stream": False
+        }
+        
+        start_time = time.time()
+        
+        def _build_err(msg: str) -> AIOllamaDispatchResponse:
+            return AIOllamaDispatchResponse(
+                provider_id=pkg.provider_id,
+                model=model,
+                prompt_sent=True,
+                response_text="",
+                raw_response_metadata={"error": msg},
+                safety_notes=pkg.safety_policy,
+                latency_ms=int((time.time() - start_time) * 1000),
+                truncated=truncated
+            )
+            
+        try:
+            req_data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(url, data=req_data, method="POST")
+            req.add_header("Content-Type", "application/json")
+            
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                if response.status != 200:
+                    return _build_err(f"HTTP {response.status}")
+                    
+                resp_body = response.read().decode("utf-8")
+                resp_json = json.loads(resp_body)
+                
+                response_text = resp_json.get("response", "")
+                
+                # Enforce max response limit
+                max_resp = settings.kairos_ollama_max_response_chars
+                if len(response_text) > max_resp:
+                    response_text = response_text[:max_resp]
+                    response_text += "\n\n[WARNING: RESPONSE TRUNCATED DUE TO LENGTH LIMITS]"
+                    truncated = True
+                    warnings.append(f"Response truncated to {max_resp} chars.")
+                
+                # Sanitize raw metadata
+                raw_meta = {
+                    k: v for k, v in resp_json.items() 
+                    if k in ["model", "created_at", "done", "total_duration", "load_duration", "prompt_eval_duration", "eval_duration"]
+                }
+                
+                return AIOllamaDispatchResponse(
+                    provider_id=pkg.provider_id,
+                    model=model,
+                    prompt_sent=True,
+                    response_text=response_text,
+                    raw_response_metadata=raw_meta,
+                    safety_notes=pkg.safety_policy + warnings,
+                    latency_ms=latency_ms,
+                    truncated=truncated
+                )
+                
+        except urllib.error.URLError as e:
+            reason = str(e.reason) if hasattr(e, "reason") else str(e)
+            return _build_err(f"Connection error: {reason}")
+        except TimeoutError:
+            return _build_err(f"Timeout after {timeout}s")
+        except json.JSONDecodeError:
+            return _build_err("Invalid JSON response from Ollama")
+        except Exception as e:
+            # Catch-all to prevent unhandled exceptions, return sanitized string
+            return _build_err(f"Unexpected execution error: {type(e).__name__}")
 
 
 # ---------------------------------------------------------------------------

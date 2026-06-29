@@ -185,6 +185,27 @@ export function AIRuntimeCard() {
           </div>
         </div>
 
+        {/* Local Dispatch */}
+        <div style={rowStyle}>
+          <span style={labelStyle}>Local Dispatch</span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <span
+              className="pill"
+              style={{
+                fontSize: "0.7rem",
+                padding: "0.1rem 0.45rem",
+                background: caps.ollama_dispatch_enabled
+                  ? "rgba(74, 222, 128, 0.1)"
+                  : "rgba(156,163,175,0.1)",
+                color: caps.ollama_dispatch_enabled ? "var(--accent)" : "var(--text-secondary)",
+              }}
+              title={`Max Prompt: ${caps.ollama_max_prompt_chars} chars. Endpoint: ${caps.ollama_generate_path}`}
+            >
+              {caps.ollama_dispatch_enabled ? "enabled" : "disabled"}
+            </span>
+          </div>
+        </div>
+
         {/* Divider */}
         <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.25rem 0" }} />
 

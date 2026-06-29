@@ -29,7 +29,7 @@ def test_ai_info_endpoint():
     assert "planning_enabled" in data
     # Hard gate — must always be False in v2.0/2.1
     assert data["execution_enabled"] is False
-    assert data["version"] == "2.3.0"
+    assert data["version"] == "2.4.0"
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +141,13 @@ def test_ai_capabilities_fields():
     assert data["max_context_commands"] == 20
     assert data["max_context_connectors"] == 20
     assert data["max_context_plugins"] == 20
+    
+    # Dispatch defaults
+    assert data["ollama_dispatch_enabled"] is False
+    assert data["ollama_generate_path"] == "/api/generate"
+    assert data["ollama_request_timeout_seconds"] == 30
+    assert data["ollama_max_prompt_chars"] == 12000
+    assert data["ollama_max_response_chars"] == 8000
 
 
 def test_ai_capabilities_execution_always_false():
