@@ -38,7 +38,7 @@ creating records through the Kairos Core API.
 
 ## Current Status
 
-- **Version**: Kairos v2.4.0 (Ollama Readiness Check)
+- **Version**: Kairos v2.5.0 (Ollama Readiness Check)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.

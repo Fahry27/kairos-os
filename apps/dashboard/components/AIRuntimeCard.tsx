@@ -209,6 +209,28 @@ export function AIRuntimeCard() {
         {/* Divider */}
         <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.25rem 0" }} />
 
+        {/* Response Parser */}
+        <div style={rowStyle}>
+          <span style={labelStyle}>Response Parser</span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <span
+              className="pill"
+              style={{
+                fontSize: "0.7rem",
+                padding: "0.1rem 0.45rem",
+                background: caps.response_parser_enabled
+                  ? "rgba(74, 222, 128, 0.1)"
+                  : "rgba(156,163,175,0.1)",
+                color: caps.response_parser_enabled ? "var(--accent)" : "var(--text-secondary)",
+              }}
+              title={`Max Steps: ${caps.max_parsed_steps}, Max Commands: ${caps.max_parsed_commands}`}
+            >
+              {caps.response_parser_enabled ? "enabled" : "disabled"}
+            </span>
+          </div>
+        </div>
+        <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.25rem 0" }} />
+
         {/* Registry counts */}
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <CountBadge label="Plugins" value={caps.available_plugins} />

@@ -29,7 +29,7 @@ def test_ai_info_endpoint():
     assert "planning_enabled" in data
     # Hard gate — must always be False in v2.0/2.1
     assert data["execution_enabled"] is False
-    assert data["version"] == "2.4.0"
+    assert data["version"] == "2.5.0"
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +148,11 @@ def test_ai_capabilities_fields():
     assert data["ollama_request_timeout_seconds"] == 30
     assert data["ollama_max_prompt_chars"] == 12000
     assert data["ollama_max_response_chars"] == 8000
+    
+    # Parser defaults (v2.5.0)
+    assert data["response_parser_enabled"] is True
+    assert data["max_parsed_steps"] == 10
+    assert data["max_parsed_commands"] == 10
 
 
 def test_ai_capabilities_execution_always_false():

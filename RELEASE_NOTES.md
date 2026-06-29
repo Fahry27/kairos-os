@@ -1,3 +1,32 @@
+# Kairos v2.5.0 Release Notes
+
+Welcome to Kairos v2.5.0, introducing the **Local LLM Response Parser & Safe Planning Output**.
+
+## Kairos v2.5.0
+**Date:** June 2026
+
+This release adds a deterministic response parser that converts raw LLM text responses into structured planning output (`AIParsedPlan`) while preserving the non-executing safety model. The parser supports JSON and markdown/text heuristic parsing, matches command IDs against the registry, and flags dangerous commands.
+
+### Features
+- **Response Parser**: Converts raw LLM text into structured `AIParsedPlan` with steps, command suggestions, and safety notes.
+- **JSON & Markdown Parsing**: Attempts JSON parsing first, then falls back to numbered-list/heading heuristics.
+- **Command Registry Matching**: Validates referenced command IDs against the known registry and propagates dangerous flags.
+- **Safe Fallback**: On unparseable output, returns a single "Review manually" step.
+- **No Persistence**: Raw LLM response text is processed in-memory only and never persisted to database, filesystem, or logs.
+- **Dispatch Integration**: `POST /api/v1/ai/ollama/dispatch` now optionally parses responses when `parse_response=true`.
+- **Standalone Endpoint**: `POST /api/v1/ai/parse-plan` accepts pasted LLM output for parser testing without calling Ollama.
+- **Capabilities Enrichment**: `/api/v1/ai/capabilities` returns parser status and limits.
+- **Dashboard UI Update**: AI Runtime card displays response parser enabled status and limits.
+
+### Safety Guarantees
+- No commands executed. No connectors called. No data mutated.
+- No cloud providers called. No autonomous agents added.
+- All execution flags hard-gated to `false`.
+- Raw LLM text never persisted — in-memory processing only.
+- This prepares the foundation for a future user-approval gate.
+
+---
+
 # Kairos v2.4.0 Release Notes
 
 Welcome to Kairos v2.4.0, introducing **Local Ollama Prompt Dispatch**.

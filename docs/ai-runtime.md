@@ -1,20 +1,22 @@
 # AI Runtime Interface
 
-Kairos OS v2.4.0
+Kairos OS v2.5.0
 ================
 
 Kairos OS currently ships with a **metadata-only AI Runtime**. 
 
-> **Important**: In version 2.4.0, the AI Runtime is configured exclusively for **Prompt Dry-Run** mode. 
-> - **No LLM network calls are made.**
+> **Important**: In version 2.5.0, the AI Runtime supports local dispatch and response parsing.
 > - **No commands are executed.**
 > - **No connectors are called.**
+> - **No data is mutated.**
 > - The prompt package is built deterministically based on registry metadata and context limits.
+> - The response parser operates entirely in-memory and never persists raw LLM text.
 
-## Prompt Dry-Run & Local Dispatch (v2.4.0)
+## Prompt Dry-Run, Local Dispatch & Response Parser
 
-The `POST /api/v1/ai/prompt/dry-run` endpoint allows Kairos to deterministically assemble a prompt package showing exactly what context (commands, plugins, connectors) would be sent to the local LLM. 
-The `POST /api/v1/ai/ollama/dispatch` endpoint (disabled by default) safely dispatches this compiled prompt to local Ollama. 
+The `POST /api/v1/ai/prompt/dry-run` endpoint deterministically assembles a prompt package.
+The `POST /api/v1/ai/ollama/dispatch` endpoint (disabled by default) dispatches the prompt to local Ollama.
+The `POST /api/v1/ai/parse-plan` endpoint (v2.5.0) converts raw LLM text into structured planning output without calling any network. 
 
 This contract enforces:
 1. Max context limits for commands, plugins, and connectors.
@@ -72,11 +74,12 @@ This contract enforces:
 
 ## Security Model
 
-1. **Safe Readiness, Discovery, and Dispatch** — The only outbound network calls in `ai_runtime.py` are to Ollama via local HTTP paths (`/api/tags` and `/api/generate` when dispatch is enabled). No commands, connectors, or cloud APIs are ever invoked.
+1. **Safe Readiness, Discovery, Dispatch & Parsing** — Network calls are limited to local Ollama paths (`/api/tags`, `/api/generate`). The response parser makes zero network calls.
 2. **No secrets stored or returned** — Provider manifests carry `auth_type` metadata only. No API keys, tokens, or passwords are ever stored or returned.
 3. **Hard-gated execution** — The planner response always contains `execution_enabled=false` regardless of the `KAIROS_AI_EXECUTION_ENABLED` environment setting. This flag is a forward-looking placeholder only.
 4. **API key authentication** — All `/api/v1/ai/*` endpoints require `X-Kairos-API-Key` when `KAIROS_API_KEY` is configured.
-5. **Dangerous command surfacing** — Commands marked `dangerous=true` (e.g. `core.operations.run_backup`) are clearly flagged in planning responses and surfaced with a safety note.
+5. **Dangerous command surfacing** — Commands marked `dangerous=true` (e.g. `core.operations.run_backup`) are clearly flagged in planning and parser responses.
+6. **No persistence of raw LLM text** — The parser processes LLM responses in-memory only. Raw text is never written to the database, filesystem, or application logs.
 
 ---
 
@@ -99,6 +102,9 @@ This contract enforces:
 | `KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS` | `30` | Timeout for the dispatch generate call. |
 | `KAIROS_OLLAMA_MAX_PROMPT_CHARS` | `12000` | Max characters allowed for the compiled dispatch prompt string. |
 | `KAIROS_OLLAMA_MAX_RESPONSE_CHARS` | `8000` | Max characters allowed for the generated model response. |
+| `KAIROS_AI_RESPONSE_PARSER_ENABLED` | `true` | Enables the LLM response parser (v2.5.0). |
+| `KAIROS_AI_MAX_PARSED_STEPS` | `10` | Max plan steps the parser will extract. |
+| `KAIROS_AI_MAX_PARSED_COMMANDS` | `10` | Max command suggestions the parser will extract. |
 
 ---
 
@@ -117,6 +123,7 @@ This contract enforces:
 | `POST` | `/api/v1/ai/plan` | Generate a deterministic advisory plan |
 | `POST` | `/api/v1/ai/prompt/dry-run` | Builds a deterministic prompt payload for future LLM execution without sending it |
 | `POST` | `/api/v1/ai/ollama/dispatch` | Safely dispatch a compiled prompt to local Ollama (no execution) |
+| `POST` | `/api/v1/ai/parse-plan` | Parse raw LLM text into a structured plan (no network, no execution) |
 
 ### Planning Request
 

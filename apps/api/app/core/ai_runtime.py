@@ -120,6 +120,11 @@ class AICapabilities(BaseModel):
     ollama_request_timeout_seconds: int = 30
     ollama_max_prompt_chars: int = 12000
     ollama_max_response_chars: int = 8000
+    
+    # Response Parser (added in v2.5.0)
+    response_parser_enabled: bool = False
+    max_parsed_steps: int = 10
+    max_parsed_commands: int = 10
 
 
 class AIPromptDryRunRequest(BaseModel):
@@ -156,6 +161,7 @@ class AIOllamaDispatchRequest(BaseModel):
     include_commands: bool = True
     include_plugins: bool = True
     include_connectors: bool = True
+    parse_response: bool = True
 
 
 class AIOllamaDispatchResponse(BaseModel):
@@ -167,11 +173,56 @@ class AIOllamaDispatchResponse(BaseModel):
     safety_notes: list[str]
     latency_ms: int
     truncated: bool
+    parsed_plan: "AIParsedPlan | None" = None
     execution_enabled: bool = False
     command_execution_performed: bool = False
     connector_calls_performed: bool = False
     data_mutation_performed: bool = False
     network_call_performed: bool = True
+
+
+# ---------------------------------------------------------------------------
+# Response Parser models (v2.5.0)
+# ---------------------------------------------------------------------------
+
+
+class AIParsedPlanStep(BaseModel):
+    index: int
+    title: str
+    description: str
+    requires_approval: bool = True
+    dangerous: bool = False
+    related_command_id: str | None = None
+    confidence: float | None = None
+
+
+class AIParsedCommandSuggestion(BaseModel):
+    command_id: str
+    reason: str
+    requires_approval: bool = True
+    dangerous: bool = False
+    execution_required: bool = False
+
+
+class AIParsedPlan(BaseModel):
+    source: str
+    model: str | None
+    user_goal: str
+    summary: str
+    steps: list[AIParsedPlanStep]
+    command_suggestions: list[AIParsedCommandSuggestion]
+    safety_notes: list[str]
+    parser_warnings: list[str]
+    execution_enabled: bool = False
+    command_execution_performed: bool = False
+    connector_calls_performed: bool = False
+    data_mutation_performed: bool = False
+
+
+class AIParsePlanRequest(BaseModel):
+    user_goal: str
+    model: str | None = None
+    response_text: str
 
 
 class PlannedCommand(BaseModel):
@@ -390,6 +441,9 @@ class AIRuntime:
             ollama_request_timeout_seconds=settings.kairos_ollama_request_timeout_seconds,
             ollama_max_prompt_chars=settings.kairos_ollama_max_prompt_chars,
             ollama_max_response_chars=settings.kairos_ollama_max_response_chars,
+            response_parser_enabled=settings.kairos_ai_response_parser_enabled,
+            max_parsed_steps=settings.kairos_ai_max_parsed_steps,
+            max_parsed_commands=settings.kairos_ai_max_parsed_commands,
         )
 
         if caps.ai_enabled and caps.provider == "ollama":
@@ -968,7 +1022,7 @@ class AIRuntime:
                     if k in ["model", "created_at", "done", "total_duration", "load_duration", "prompt_eval_duration", "eval_duration"]
                 }
                 
-                return AIOllamaDispatchResponse(
+                dispatch_resp = AIOllamaDispatchResponse(
                     provider_id=pkg.provider_id,
                     model=model,
                     prompt_sent=True,
@@ -978,6 +1032,22 @@ class AIRuntime:
                     latency_ms=latency_ms,
                     truncated=truncated
                 )
+                
+                # v2.5.0: Optionally parse the response into structured plan
+                if (
+                    request.parse_response
+                    and settings.kairos_ai_response_parser_enabled
+                    and response_text.strip()
+                ):
+                    dispatch_resp.parsed_plan = self.parse_llm_response(
+                        response_text=response_text,
+                        user_goal=request.user_goal,
+                        model=model,
+                        settings=settings,
+                        plugin_registry=plugin_registry,
+                    )
+                
+                return dispatch_resp
                 
         except urllib.error.URLError as e:
             reason = str(e.reason) if hasattr(e, "reason") else str(e)
@@ -989,6 +1059,213 @@ class AIRuntime:
         except Exception as e:
             # Catch-all to prevent unhandled exceptions, return sanitized string
             return _build_err(f"Unexpected execution error: {type(e).__name__}")
+
+    # -------------------------------------------------------------------
+    # Response Parser (v2.5.0)
+    # -------------------------------------------------------------------
+
+    def parse_llm_response(
+        self,
+        response_text: str,
+        user_goal: str,
+        model: str | None,
+        settings,
+        plugin_registry,
+    ) -> AIParsedPlan:
+        """
+        Parse raw LLM response text into a structured AIParsedPlan.
+
+        SAFETY CONTRACT:
+        - Operates entirely in-memory. Never persists raw LLM text to
+          database, filesystem, or logs.
+        - Never executes commands.
+        - Never calls connectors or network endpoints.
+        - Never mutates data.
+        - Never exposes secrets, tokens, or environment values.
+        """
+        import re
+
+        max_steps = settings.kairos_ai_max_parsed_steps
+        max_cmds = settings.kairos_ai_max_parsed_commands
+        parser_warnings: list[str] = []
+        safety_notes = [
+            "Parser output is advisory only — no commands were executed.",
+            "All command suggestions require explicit human approval.",
+            "Raw LLM response was processed in-memory and not persisted.",
+        ]
+
+        # Build command lookup from plugin registry
+        known_commands: dict[str, dict] = {}
+        for plugin in plugin_registry.get_all_plugins(include_disabled=False):
+            for cmd in plugin.commands:
+                known_commands[cmd.id] = {
+                    "name": cmd.name,
+                    "description": cmd.description,
+                    "category": cmd.category,
+                    "dangerous": getattr(cmd, "dangerous", False),
+                    "requires_approval": getattr(cmd, "requires_approval", True),
+                }
+
+        steps: list[AIParsedPlanStep] = []
+        command_suggestions: list[AIParsedCommandSuggestion] = []
+        summary = ""
+
+        parsed_ok = False
+
+        # --- Attempt 1: JSON parsing ---
+        text = response_text.strip()
+        # Strip markdown code fences if present
+        if text.startswith("```"):
+            lines = text.split("\n")
+            # Remove first and last fence lines
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict):
+                # Extract summary
+                summary = str(data.get("summary", data.get("plan", "")))[:500]
+
+                # Extract steps
+                raw_steps = data.get("steps", data.get("plan_steps", []))
+                if isinstance(raw_steps, list):
+                    for i, s in enumerate(raw_steps[:max_steps]):
+                        if isinstance(s, dict):
+                            steps.append(AIParsedPlanStep(
+                                index=i + 1,
+                                title=str(s.get("title", s.get("action", s.get("step", f"Step {i+1}"))))[:200],
+                                description=str(s.get("description", s.get("rationale", s.get("detail", ""))))[:500],
+                                requires_approval=True,
+                                dangerous=bool(s.get("dangerous", False)),
+                                related_command_id=str(s.get("command_id", s.get("related_command_id", ""))) or None,
+                                confidence=None,
+                            ))
+                        elif isinstance(s, str):
+                            steps.append(AIParsedPlanStep(
+                                index=i + 1,
+                                title=s[:200],
+                                description="",
+                                requires_approval=True,
+                            ))
+
+                # Extract command suggestions from JSON
+                raw_cmds = data.get("commands", data.get("command_suggestions", data.get("suggested_commands", [])))
+                if isinstance(raw_cmds, list):
+                    for c in raw_cmds[:max_cmds]:
+                        if isinstance(c, dict):
+                            cid = str(c.get("command_id", c.get("id", "")))
+                            if cid and cid in known_commands:
+                                cmd_meta = known_commands[cid]
+                                command_suggestions.append(AIParsedCommandSuggestion(
+                                    command_id=cid,
+                                    reason=str(c.get("reason", c.get("rationale", "Suggested by LLM")))[:300],
+                                    requires_approval=cmd_meta["requires_approval"],
+                                    dangerous=cmd_meta["dangerous"],
+                                ))
+
+                if steps:
+                    parsed_ok = True
+        except (json.JSONDecodeError, ValueError, TypeError):
+            pass
+
+        # --- Attempt 2: Markdown / text heuristic parsing ---
+        if not parsed_ok:
+            # Split into lines and look for numbered items or heading patterns
+            lines = response_text.strip().split("\n")
+            step_pattern = re.compile(
+                r'^(?:#{1,4}\s*)?(?:step\s*)?'
+                r'(\d+)[.):—\-\s]+(.+)',
+                re.IGNORECASE,
+            )
+            current_step_title = ""
+            current_step_desc_lines: list[str] = []
+            step_index = 0
+
+            def _flush_step():
+                nonlocal step_index
+                if current_step_title and step_index <= max_steps:
+                    step_index += 1
+                    steps.append(AIParsedPlanStep(
+                        index=step_index,
+                        title=current_step_title[:200],
+                        description="\n".join(current_step_desc_lines).strip()[:500],
+                        requires_approval=True,
+                    ))
+
+            for line in lines:
+                match = step_pattern.match(line.strip())
+                if match:
+                    _flush_step()
+                    current_step_title = match.group(2).strip()
+                    current_step_desc_lines = []
+                elif current_step_title:
+                    current_step_desc_lines.append(line.strip())
+
+            _flush_step()
+
+            if steps:
+                parsed_ok = True
+                # Build summary from first line of text
+                first_nonempty = next((line.strip() for line in lines if line.strip()), "")
+                summary = first_nonempty[:300]
+
+        # --- Attempt 3: Scan all text for known command IDs ---
+        if parsed_ok:
+            for cid, cmd_meta in known_commands.items():
+                if len(command_suggestions) >= max_cmds:
+                    break
+                if cid in response_text:
+                    # Don't duplicate
+                    existing_ids = {cs.command_id for cs in command_suggestions}
+                    if cid not in existing_ids:
+                        command_suggestions.append(AIParsedCommandSuggestion(
+                            command_id=cid,
+                            reason="Mentioned in LLM response.",
+                            requires_approval=cmd_meta["requires_approval"],
+                            dangerous=cmd_meta["dangerous"],
+                        ))
+
+        # --- Fallback: unstructured text ---
+        if not parsed_ok:
+            parser_warnings.append("Could not parse structured steps from LLM response. Returning fallback plan.")
+            summary = "Unparseable LLM response — manual review required."
+            steps = [AIParsedPlanStep(
+                index=1,
+                title="Review LLM response manually",
+                description="The parser could not extract structured steps. Review the raw response text in the dispatch result.",
+                requires_approval=True,
+            )]
+
+        # Enforce limits (belt-and-suspenders)
+        if len(steps) > max_steps:
+            parser_warnings.append(f"Steps truncated from {len(steps)} to {max_steps}.")
+            steps = steps[:max_steps]
+        if len(command_suggestions) > max_cmds:
+            parser_warnings.append(f"Command suggestions truncated from {len(command_suggestions)} to {max_cmds}.")
+            command_suggestions = command_suggestions[:max_cmds]
+
+        # Flag dangerous commands in safety notes
+        dangerous_ids = [cs.command_id for cs in command_suggestions if cs.dangerous]
+        if dangerous_ids:
+            safety_notes.append(
+                f"Dangerous commands referenced: {', '.join(dangerous_ids)}. "
+                "These require explicit approval before execution."
+            )
+
+        return AIParsedPlan(
+            source="llm_response_parser",
+            model=model,
+            user_goal=user_goal,
+            summary=summary,
+            steps=steps,
+            command_suggestions=command_suggestions,
+            safety_notes=safety_notes,
+            parser_warnings=parser_warnings,
+        )
 
 
 # ---------------------------------------------------------------------------

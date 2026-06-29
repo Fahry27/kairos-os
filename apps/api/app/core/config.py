@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="2.4.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="2.5.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     kairos_ollama_request_timeout_seconds: int = Field(default=30, validation_alias="KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS")
     kairos_ollama_max_prompt_chars: int = Field(default=12000, validation_alias="KAIROS_OLLAMA_MAX_PROMPT_CHARS")
     kairos_ollama_max_response_chars: int = Field(default=8000, validation_alias="KAIROS_OLLAMA_MAX_RESPONSE_CHARS")
+    
+    # Response Parser (v2.5.0)
+    kairos_ai_response_parser_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_RESPONSE_PARSER_ENABLED")
+    kairos_ai_max_parsed_steps: int = Field(default=10, validation_alias="KAIROS_AI_MAX_PARSED_STEPS")
+    kairos_ai_max_parsed_commands: int = Field(default=10, validation_alias="KAIROS_AI_MAX_PARSED_COMMANDS")
     database_url: str = Field(
         default=f"sqlite:///{LOCAL_SQLITE_PATH}",
         validation_alias="DATABASE_URL",

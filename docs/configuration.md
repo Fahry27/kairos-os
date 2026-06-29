@@ -43,6 +43,9 @@ This document details all configuration parameters, environment settings, secret
 | `KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS` | API | `30` | Timeout for the dispatch generate call. |
 | `KAIROS_OLLAMA_MAX_PROMPT_CHARS` | API | `12000` | Max characters allowed for the compiled dispatch prompt string. |
 | `KAIROS_OLLAMA_MAX_RESPONSE_CHARS` | API | `8000` | Max characters allowed for the generated model response. |
+| `KAIROS_AI_RESPONSE_PARSER_ENABLED` | API | `true` | Enables the LLM response parser (v2.5.0). |
+| `KAIROS_AI_MAX_PARSED_STEPS` | API | `10` | Max plan steps the parser will extract from LLM responses. |
+| `KAIROS_AI_MAX_PARSED_COMMANDS` | API | `10` | Max command suggestions the parser will extract. |
 
 ---
 

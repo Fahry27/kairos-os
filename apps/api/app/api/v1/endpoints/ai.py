@@ -20,6 +20,8 @@ from app.core.ai_runtime import (
     AIPromptDryRunResponse,
     AIOllamaDispatchRequest,
     AIOllamaDispatchResponse,
+    AIParsePlanRequest,
+    AIParsedPlan,
     PlanResponse,
 )
 from app.core.plugins import plugin_registry
@@ -318,4 +320,48 @@ def ollama_dispatch(
         settings=settings,
         plugin_registry=plugin_registry,
         connector_registry=connector_registry,
+    )
+
+
+@router.post(
+    "/parse-plan",
+    response_model=AIParsedPlan,
+    summary="Parse raw LLM text into a structured plan",
+    description="Parser-only endpoint. Does not call Ollama or any network. No execution, no mutation."
+)
+def parse_plan(
+    body: AIParsePlanRequest,
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+):
+    if not body.response_text or not body.response_text.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="response_text cannot be empty.",
+        )
+
+    if not body.user_goal or not body.user_goal.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="user_goal cannot be empty.",
+        )
+
+    if not settings.kairos_ai_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="AI runtime is disabled.",
+        )
+
+    if not settings.kairos_ai_response_parser_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Response parser is disabled. Enable KAIROS_AI_RESPONSE_PARSER_ENABLED.",
+        )
+
+    return ai_runtime.parse_llm_response(
+        response_text=body.response_text,
+        user_goal=body.user_goal,
+        model=body.model,
+        settings=settings,
+        plugin_registry=plugin_registry,
     )

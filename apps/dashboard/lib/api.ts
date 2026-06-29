@@ -207,6 +207,9 @@ export type AICapabilities = {
   ollama_request_timeout_seconds: number;
   ollama_max_prompt_chars: number;
   ollama_max_response_chars: number;
+  response_parser_enabled: boolean;
+  max_parsed_steps: number;
+  max_parsed_commands: number;
 };
 
 export function getAICapabilities() {
