@@ -1,3 +1,28 @@
+# Kairos v2.8.0 Release Notes
+
+Welcome to Kairos v2.8.0, introducing the **Controlled n8n Webhook Trigger**.
+
+## Kairos v2.8.0
+**Date:** June 2026
+
+This release adds a narrow API-only trigger path for approved workflow
+approval requests that target n8n webhooks.
+
+### Features
+- **Approval-Bound Trigger Endpoint**: Adds `POST /api/v1/approvals/{approval_id}/trigger-n8n`.
+- **Separate Approval and Trigger Steps**: Approving an approval request only changes status to `approved`; triggering n8n requires a separate explicit API call.
+- **WorkflowRun History**: Stores sanitized trigger metadata, status, timestamps, HTTP status code, and sanitized summaries.
+- **Operator Token Gate**: `KAIROS_OPERATOR_TOKEN`, when configured, requires `X-Kairos-Operator-Token` for approve, reject, and trigger-n8n actions.
+
+### Safety Guarantees
+- Uses the existing `ApprovalRequest` record as the single approval source of truth.
+- No `/api/v1/workflow-approvals` endpoint and no second approval state machine.
+- Only approved `workflow` approvals marked as `n8n_webhook` can trigger.
+- No local command execution, connector fan-out, Hermes/OpenClaw trigger, cloud provider call, autonomous agent loop, or automatic retry.
+- No webhook URLs, tokens, credentials, environment values, raw n8n response bodies, or raw LLM responses are stored in `WorkflowRun`.
+
+---
+
 # Kairos v2.7.0 Release Notes
 
 Welcome to Kairos v2.7.0, introducing the **Approval Management Dashboard**.

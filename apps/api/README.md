@@ -1,10 +1,12 @@
 # Kairos Core API
 
-Kairos Core API (v1.0.0) is a FastAPI service for the first Kairos domain modules:
+Kairos Core API (v2.8.0) is a FastAPI service for Kairos domain and control-plane modules:
 
 - Projects
 - Tasks
 - Memories
+- Approval requests
+- Controlled n8n webhook trigger history
 
 The service uses SQLAlchemy with environment-based configuration. Direct local
 runs use persistent SQLite storage by default. Docker Compose runs still use
@@ -91,6 +93,14 @@ pytest
   Defaults to `true`.
 - `USE_MOCK_DATA`: serve in-memory local mock data instead of the configured
   database. Defaults to `false`.
+- `KAIROS_OPERATOR_TOKEN`: optional server-side operator token. When set,
+  approve, reject, and trigger-n8n require `X-Kairos-Operator-Token`.
+- `N8N_WEBHOOK_TRIGGER_ENABLED`: enable the controlled n8n trigger endpoint.
+  Defaults to `false`.
+- `N8N_WEBHOOK_URL`: server-side configured n8n webhook URL. Never returned
+  by API responses or stored in workflow run history.
+- `N8N_WEBHOOK_TIMEOUT_SECONDS`: timeout for the single synchronous n8n POST.
+  Defaults to `10`.
 
 Direct local SQLite default:
 
@@ -117,3 +127,9 @@ sqlite:///.../data/kairos-local.sqlite3
 - `GET /api/v1/memories/{memory_id}`
 - `PATCH /api/v1/memories/{memory_id}`
 - `DELETE /api/v1/memories/{memory_id}`
+- `POST /api/v1/approvals`
+- `GET /api/v1/approvals`
+- `GET /api/v1/approvals/{approval_id}`
+- `POST /api/v1/approvals/{approval_id}/approve`
+- `POST /api/v1/approvals/{approval_id}/reject`
+- `POST /api/v1/approvals/{approval_id}/trigger-n8n`

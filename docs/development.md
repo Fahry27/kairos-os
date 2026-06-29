@@ -74,7 +74,7 @@ Expected response:
 {
   "status": "ok",
   "service": "kairos-api",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "uptime": 12,
   "database": "connected",
   "docker_mode": true
@@ -196,7 +196,7 @@ browser, then checking the API list endpoints again.
 Application code is split by runtime:
 
 - `apps/api/` contains the FastAPI service.
-- `apps/dashboard/` contains the read-only Next.js dashboard.
+- `apps/dashboard/` contains the local Next.js dashboard.
 
 Future dashboard modules beyond the v0.1 read-only surface should stay small,
 reviewable, and tied to an explicit implementation task.
@@ -223,8 +223,8 @@ the contents.
 
 ## Production Operations Support
 
-Kairos v2.7.0 includes enhanced operations, monitoring, and approval
-management support:
+Kairos v2.8.0 includes enhanced operations, monitoring, approval management,
+and controlled n8n webhook trigger support:
 
 ### Structured Logging
 API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE`. Time is always formatted in UTC ISO. This is stdout/stderr friendly and automatically handled by Docker's logging driver (e.g., `json-file` limited to `max-size: 10m` in `docker-compose.yml`).
@@ -239,6 +239,8 @@ API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] ME
 - The card can inspect risk level, action metadata, payload summary, safety notes, decision reason, and non-execution flags.
 - Approve/reject controls are available only for pending approvals. Rejection requires a reason in the UI.
 - Approval remains metadata-only. Approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain data, store raw LLM responses, or introduce autonomous agent behavior.
+- The API-only `POST /api/v1/approvals/{approval_id}/trigger-n8n` endpoint can trigger one configured n8n webhook only after an existing workflow approval has been explicitly approved.
+- n8n trigger runs store sanitized `WorkflowRun` metadata only. They do not store webhook URLs, tokens, credentials, raw n8n response bodies, raw LLM responses, or environment values.
 
 ### Reverse Proxy & Portainer Compatibility
 - **Root Path Routing**: The API exposes a `ROOT_PATH` setting. If set, FastAPI registers all endpoints relative to the given subpath, which is highly useful when mounting the API behind reverse proxies routing to subfolders.

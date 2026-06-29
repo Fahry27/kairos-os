@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="2.7.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="2.8.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -75,6 +75,12 @@ class Settings(BaseSettings):
     kairos_approval_gate_enabled: bool = Field(default=True, validation_alias="KAIROS_APPROVAL_GATE_ENABLED")
     kairos_approval_default_ttl_minutes: int = Field(default=60, validation_alias="KAIROS_APPROVAL_DEFAULT_TTL_MINUTES")
     kairos_approval_max_pending: int = Field(default=100, validation_alias="KAIROS_APPROVAL_MAX_PENDING")
+
+    # Controlled n8n Webhook Trigger (v2.8.0)
+    kairos_operator_token: str | None = Field(default=None, validation_alias="KAIROS_OPERATOR_TOKEN")
+    n8n_webhook_trigger_enabled: bool = Field(default=False, validation_alias="N8N_WEBHOOK_TRIGGER_ENABLED")
+    n8n_webhook_url: str = Field(default="", validation_alias="N8N_WEBHOOK_URL")
+    n8n_webhook_timeout_seconds: int = Field(default=10, validation_alias="N8N_WEBHOOK_TIMEOUT_SECONDS")
     
     database_url: str = Field(
         default=f"sqlite:///{LOCAL_SQLITE_PATH}",
@@ -136,6 +142,10 @@ class Settings(BaseSettings):
                 raise ValueError("ROOT_PATH must start with '/'")
             if self.root_path.endswith("/") and self.root_path != "/":
                 raise ValueError("ROOT_PATH must not have a trailing slash except '/'")
+
+        # 4. Validate controlled n8n timeout
+        if self.n8n_webhook_timeout_seconds <= 0:
+            raise ValueError("N8N_WEBHOOK_TIMEOUT_SECONDS must be greater than 0")
 
         return self
 

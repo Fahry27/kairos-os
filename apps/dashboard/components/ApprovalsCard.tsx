@@ -371,8 +371,8 @@ export function ApprovalsCard() {
       </div>
 
       <div className="approvalSafetyNote">
-        Execution is not implemented in v2.7. This dashboard can only inspect requests and
-        mark pending approval metadata as approved or rejected.
+        This dashboard can only inspect requests and mark pending approval metadata as approved
+        or rejected.
       </div>
 
       <div className="approvalFilters" role="tablist" aria-label="Approval status filters">

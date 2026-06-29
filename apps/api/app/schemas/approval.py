@@ -30,6 +30,16 @@ class ApprovalRiskLevel(str, Enum):
     critical = "critical"
 
 
+class WorkflowRunTargetType(str, Enum):
+    n8n_webhook = "n8n_webhook"
+
+
+class WorkflowRunStatus(str, Enum):
+    running = "running"
+    succeeded = "succeeded"
+    failed = "failed"
+
+
 class ApprovalRequestCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
@@ -71,3 +81,22 @@ class ApprovalRequest(BaseModel):
 
 class ApprovalDecisionRequest(BaseModel):
     reason: str | None = None
+
+
+class WorkflowRunTriggerRequest(BaseModel):
+    retry_failed: bool = False
+
+
+class WorkflowRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    approval_id: UUID
+    target_type: WorkflowRunTargetType
+    status: WorkflowRunStatus
+    started_at: datetime
+    finished_at: datetime | None = None
+    http_status_code: int | None = None
+    sanitized_error: str | None = None
+    request_summary: dict[str, Any] | None = None
+    response_summary: dict[str, Any] | None = None

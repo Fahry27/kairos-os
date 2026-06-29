@@ -4,7 +4,7 @@
 
 Kairos OS is planned as a modular system with an API service, a dashboard
 experience, shared documentation, and supporting infrastructure. Kairos Core API
-v0.3 is the current local API milestone.
+v2.8.0 is the current controlled n8n webhook trigger milestone.
 
 ## Repository Boundaries
 
@@ -24,17 +24,33 @@ The `apps/dashboard/` directory contains the dashboard application.
 
 ### API
 
-The API is implemented with FastAPI and SQLAlchemy. It exposes health checks and
-basic CRUD modules for Projects, Tasks, and Memories. Direct local development
-uses persistent SQLite storage in the repository `data/` workspace. Docker
-Compose runs use PostgreSQL through environment-based configuration.
+The API is implemented with FastAPI and SQLAlchemy. It exposes health checks,
+basic CRUD modules for Projects, Tasks, and Memories, approval management, and
+one controlled n8n webhook trigger endpoint tied to approved workflow approval
+requests. Direct local development uses persistent SQLite storage in the
+repository `data/` workspace. Docker Compose runs use PostgreSQL through
+environment-based configuration.
 
 ### Dashboard
 
-The dashboard is implemented with Next.js as a simple local interface for Kairos
-Core API health, projects, tasks, and memories. v0.4 adds lightweight create
-actions while leaving authentication, editing, deletion, and richer workflows for
-later milestones.
+The dashboard is implemented with Next.js as a local interface for Kairos Core
+API health, projects, tasks, memories, registries, AI runtime status, and
+approval management. v2.8.0 does not add dashboard trigger controls; n8n
+triggering remains API-only.
+
+### Controlled n8n Trigger
+
+Kairos v2.8.0 uses the existing Approval Gate as the single source of truth.
+Approving an `ApprovalRequest` only changes status to `approved`; it does not
+execute anything. A separate `POST /api/v1/approvals/{approval_id}/trigger-n8n`
+call may trigger one configured n8n webhook only when the approval is approved,
+has `action_type=workflow`, and is marked as `n8n_webhook`.
+
+Trigger attempts are recorded as sanitized `WorkflowRun` history. The history
+does not store webhook URLs, tokens, credentials, environment values, raw n8n
+response bodies, or raw LLM responses. No connector fan-out, local command
+execution, Hermes/OpenClaw trigger, cloud provider call, background worker,
+automatic retry, or autonomous agent loop is introduced.
 
 ### Infrastructure
 

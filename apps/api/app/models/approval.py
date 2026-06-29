@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, String, Text, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -20,7 +20,7 @@ class Approval(Base):
     source: Mapped[str] = mapped_column(String(255), nullable=False)
     risk_level: Mapped[str] = mapped_column(String(50), nullable=False)
     requires_manual_review: Mapped[bool] = mapped_column(Boolean, default=True)
-    
+
     # SQLite JSON storage mapping
     _payload_summary: Mapped[str | None] = mapped_column("payload_summary", Text, nullable=True)
     _safety_notes: Mapped[str | None] = mapped_column("safety_notes", Text, nullable=True)
@@ -30,6 +30,8 @@ class Approval(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     decision_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    workflow_runs = relationship("WorkflowRun", back_populates="approval")
 
     @property
     def payload_summary(self) -> dict[str, Any] | None:

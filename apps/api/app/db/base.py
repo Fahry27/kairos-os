@@ -7,7 +7,7 @@ class Base(DeclarativeBase):
 
 def create_db_and_tables() -> None:
     from app.db.session import engine
-    from app.models import Approval, Memory, Project, Task  # noqa: F401
+    from app.models import Approval, Memory, Project, Task, WorkflowRun  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 

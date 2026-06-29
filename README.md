@@ -38,7 +38,7 @@ creating records through the Kairos Core API, plus control-plane approval review
 
 ## Current Status
 
-- **Version**: Kairos v2.7.0 (Approval Management Dashboard)
+- **Version**: Kairos v2.8.0 (Controlled n8n Webhook Trigger)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, approval management, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.
@@ -50,6 +50,7 @@ creating records through the Kairos Core API, plus control-plane approval review
 - **Service Connectors**: See [Connector Registry](docs/connectors.md) for external homelab integrations metadata templates.
 - **AI Runtime**: See [AI Runtime Interface](docs/ai-runtime.md) for AI provider registry, capability summary, planning endpoint, and safety model.
 - **Approval Management**: View, inspect, approve, and reject approval requests from the dashboard. Approval remains metadata-only; approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
+- **Controlled n8n Trigger**: API-only `POST /api/v1/approvals/{approval_id}/trigger-n8n` can call one configured n8n webhook after an existing workflow approval is explicitly approved.
 - **Reverse Proxy**: See [Reverse Proxy Setup](docs/reverse-proxy.md) for securing Kairos with domains (like Caddy/Traefik).
 - **Portainer**: See [Portainer Deployment](docs/portainer.md) for deploying Kairos via Portainer stacks.
 

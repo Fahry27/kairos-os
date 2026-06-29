@@ -523,7 +523,7 @@ def test_health_version_260():
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["version"] == "2.6.0"
+    assert data["version"] == "2.8.0"
 
 # ---------------------------------------------------------------------------
 # Approval Gate Integration Tests (v2.6.0)
@@ -651,4 +651,3 @@ def test_dispatch_creates_approvals_when_requested(monkeypatch):
         assert db_appr["risk_level"] == "medium" # test_cmd is not dangerous
     finally:
         app.dependency_overrides.pop(get_settings, None)
-

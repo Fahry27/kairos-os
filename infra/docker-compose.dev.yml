@@ -9,12 +9,14 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 2.7.0
+      APP_VERSION: 2.8.0
       API_V1_PREFIX: /api/v1
       DATABASE_URL: postgresql+psycopg://kairos:kairos_dev_password@postgres:5432/kairos
       CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
       CREATE_TABLES_ON_STARTUP: "true"
       USE_MOCK_DATA: "false"
+      N8N_WEBHOOK_TRIGGER_ENABLED: "false"
+      N8N_WEBHOOK_TIMEOUT_SECONDS: "10"
     ports:
       - "8000:8000"
     depends_on:

@@ -1,3 +1,4 @@
+import hmac
 import logging
 from fastapi import Security, HTTPException, status, Depends
 from fastapi.security import APIKeyHeader
@@ -7,6 +8,7 @@ from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
 api_key_header = APIKeyHeader(name="X-Kairos-API-Key", auto_error=False)
+operator_token_header = APIKeyHeader(name="X-Kairos-Operator-Token", auto_error=False)
 
 
 async def verify_api_key(
@@ -28,4 +30,19 @@ async def verify_api_key(
             )
 
 
-__all__ = ["get_db", "verify_api_key"]
+async def verify_operator_token(
+    operator_token: str | None = Security(operator_token_header),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    expected_token = (settings.kairos_operator_token or "").strip()
+    if not expected_token:
+        return
+    if not operator_token or not hmac.compare_digest(operator_token, expected_token):
+        logger.warning("Operator token authentication failed")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid operator token",
+        )
+
+
+__all__ = ["get_db", "verify_api_key", "verify_operator_token"]

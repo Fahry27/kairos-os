@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v2.7.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v2.8.0.
 
 ---
 
@@ -49,17 +49,32 @@ This document details all configuration parameters, environment settings, secret
 | `KAIROS_APPROVAL_GATE_ENABLED` | API | `true` | Enables metadata-only approval request APIs and dashboard review. |
 | `KAIROS_APPROVAL_DEFAULT_TTL_MINUTES` | API | `60` | Default time before pending approval requests expire. |
 | `KAIROS_APPROVAL_MAX_PENDING` | API | `100` | Maximum pending approval requests accepted before new creation is rate-limited. |
+| `KAIROS_OPERATOR_TOKEN` | API | *None* | Optional server-side operator token. When set, approve, reject, and trigger-n8n require `X-Kairos-Operator-Token`. |
+| `N8N_WEBHOOK_TRIGGER_ENABLED` | API | `false` | Enables the controlled approved-approval n8n webhook trigger endpoint. |
+| `N8N_WEBHOOK_URL` | API | *None* | Server-side n8n webhook URL. Never returned by API responses or stored in run history. |
+| `N8N_WEBHOOK_TIMEOUT_SECONDS` | API | `10` | Timeout for the single synchronous n8n webhook POST. |
 
 ---
 
 ## Approval Management Safety
 
-Kairos v2.7.0 lets the dashboard view, inspect, approve, and reject approval
+Kairos v2.8.0 lets the dashboard view, inspect, approve, and reject approval
 requests created by the Approval Gate. Approval is metadata-only: approving a
 request changes approval status only. It does not execute commands, call
 connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain
 data, store raw LLM responses, store secrets, or introduce autonomous agent
 behavior.
+
+The API also includes one controlled n8n trigger endpoint:
+`POST /api/v1/approvals/{approval_id}/trigger-n8n`. It is separate from
+approval, requires an existing approved `workflow` approval marked as
+`n8n_webhook`, and performs only one synchronous POST to the configured
+`N8N_WEBHOOK_URL`. Failed runs are not retried automatically.
+
+When `KAIROS_OPERATOR_TOKEN` is set, approve, reject, and trigger-n8n require
+`X-Kairos-Operator-Token`. Keep this token server-side only. Do not put real
+operator tokens in dashboard variables, committed files, examples, logs, or
+error messages.
 
 ---
 

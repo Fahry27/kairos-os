@@ -3,12 +3,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, verify_api_key
+from app.api.deps import get_db, verify_api_key, verify_operator_token
 from app.core.config import Settings, get_settings
 from app.schemas.approval import (
     ApprovalDecisionRequest,
     ApprovalRequest,
     ApprovalRequestCreate,
+    WorkflowRunRead,
+    WorkflowRunTriggerRequest,
 )
 from app.services import approval_service
 
@@ -72,6 +74,7 @@ def approve_request(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     _: str = Depends(verify_api_key),
+    __: str = Depends(verify_operator_token),
 ):
     """
     Approve a pending request.
@@ -88,9 +91,36 @@ def reject_request(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     _: str = Depends(verify_api_key),
+    __: str = Depends(verify_operator_token),
 ):
     """
     Reject a pending request.
     """
     _check_gate_enabled(settings)
     return approval_service.reject_request(db, approval_id, payload)
+
+
+@router.post("/{approval_id}/trigger-n8n", response_model=WorkflowRunRead)
+def trigger_n8n(
+    approval_id: UUID,
+    payload: WorkflowRunTriggerRequest | None = None,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+    __: str = Depends(verify_operator_token),
+):
+    """
+    Trigger the configured n8n webhook for an already-approved workflow approval.
+    SAFETY NOTE: This only performs one synchronous n8n webhook POST. It does
+    not execute local commands, call connectors, trigger Hermes/OpenClaw, call
+    cloud providers, run autonomous agents, or store raw LLM/n8n responses.
+    """
+    _check_gate_enabled(settings)
+    return approval_service.trigger_n8n_webhook(
+        db,
+        approval_id,
+        payload or WorkflowRunTriggerRequest(),
+        trigger_enabled=settings.n8n_webhook_trigger_enabled,
+        webhook_url=settings.n8n_webhook_url,
+        timeout_seconds=settings.n8n_webhook_timeout_seconds,
+    )
