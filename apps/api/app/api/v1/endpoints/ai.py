@@ -24,6 +24,10 @@ from app.core.ai_runtime import (
     AIParsedPlan,
     PlanResponse,
 )
+from app.schemas.approval import ApprovalRequestCreate, ApprovalActionType, ApprovalRiskLevel
+from app.services import approval_service
+from app.api.deps import get_db
+from sqlalchemy.orm import Session
 from app.core.plugins import plugin_registry
 from app.core.connectors import connector_registry
 
@@ -279,8 +283,14 @@ def prompt_dry_run(
 def ollama_dispatch(
     body: AIOllamaDispatchRequest,
     settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
+    if body.create_approval_requests and not settings.kairos_approval_gate_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot create approval requests because the approval gate is disabled.",
+        )
     if not body.user_goal or not body.user_goal.strip():
         raise HTTPException(
             status_code=422,
@@ -315,12 +325,18 @@ def ollama_dispatch(
             detail="No model provided and KAIROS_AI_MODEL is not configured.",
         )
         
-    return ai_runtime.dispatch_to_ollama(
+    response = ai_runtime.dispatch_to_ollama(
         request=body,
         settings=settings,
         plugin_registry=plugin_registry,
         connector_registry=connector_registry,
     )
+
+    if body.create_approval_requests and response.parsed_plan:
+        _handle_approval_requests(db, settings, response.parsed_plan)
+        response.approval_requests = response.parsed_plan.approval_requests
+
+    return response
 
 
 @router.post(
@@ -332,6 +348,7 @@ def ollama_dispatch(
 def parse_plan(
     body: AIParsePlanRequest,
     settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
     _: str = Depends(verify_api_key),
 ):
     if not body.response_text or not body.response_text.strip():
@@ -358,10 +375,61 @@ def parse_plan(
             detail="Response parser is disabled. Enable KAIROS_AI_RESPONSE_PARSER_ENABLED.",
         )
 
-    return ai_runtime.parse_llm_response(
+    if body.create_approval_requests and not settings.kairos_approval_gate_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot create approval requests because the approval gate is disabled.",
+        )
+
+    parsed_plan = ai_runtime.parse_llm_response(
         response_text=body.response_text,
         user_goal=body.user_goal,
         model=body.model,
         settings=settings,
         plugin_registry=plugin_registry,
     )
+
+    if body.create_approval_requests:
+        _handle_approval_requests(db, settings, parsed_plan)
+
+    return parsed_plan
+
+def _handle_approval_requests(db: Session, settings: Settings, parsed_plan: AIParsedPlan) -> None:
+    approvals = []
+    for cmd in parsed_plan.command_suggestions:
+        # Create approval request for each suggested command
+        req = ApprovalRequestCreate(
+            title=f"Execute {cmd.command_id}",
+            description=cmd.reason,
+            action_type=ApprovalActionType.command,
+            proposed_action_id=cmd.command_id,
+            source="ai.parsed_plan",
+            risk_level=ApprovalRiskLevel.high if cmd.dangerous else ApprovalRiskLevel.medium,
+            requires_manual_review=True,
+            payload_summary={"user_goal": parsed_plan.user_goal, "reason": cmd.reason},
+            safety_notes=parsed_plan.safety_notes,
+            expires_in_minutes=settings.kairos_approval_default_ttl_minutes,
+        )
+        try:
+            created = approval_service.create_approval(
+                db, 
+                req, 
+                default_ttl_minutes=settings.kairos_approval_default_ttl_minutes,
+                max_pending=settings.kairos_approval_max_pending
+            )
+            # Add simple dict representation for the response
+            approvals.append({
+                "id": str(created.id),
+                "title": created.title,
+                "status": created.status,
+                "action_type": created.action_type,
+                "proposed_action_id": created.proposed_action_id
+            })
+        except HTTPException:
+            # If max pending is reached, we log or append a warning, but don't fail the parse
+            parsed_plan.parser_warnings.append(
+                f"Failed to create approval for {cmd.command_id}: maximum pending approvals reached."
+            )
+    parsed_plan.approval_requests = approvals
+    
+    parsed_plan.approval_requests = approvals

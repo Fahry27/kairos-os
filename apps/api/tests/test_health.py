@@ -30,7 +30,7 @@ def test_root_health():
     res_data = response.json()
     assert res_data["status"] == "ok"
     assert res_data["service"] == "kairos-api"
-    assert res_data["version"] == "2.5.0"
+    assert res_data["version"] == "2.6.0"
     assert "uptime" in res_data
     assert res_data["database"] in ("connected", "mock")
     assert "docker_mode" in res_data
@@ -43,7 +43,7 @@ def test_api_v1_health():
     res_data = response.json()
     assert res_data["status"] == "ok"
     assert res_data["service"] == "kairos-api"
-    assert res_data["version"] == "2.5.0"
+    assert res_data["version"] == "2.6.0"
     assert "uptime" in res_data
     assert res_data["database"] in ("connected", "mock")
     assert "docker_mode" in res_data

@@ -210,6 +210,9 @@ export type AICapabilities = {
   response_parser_enabled: boolean;
   max_parsed_steps: number;
   max_parsed_commands: number;
+  approval_gate_enabled: boolean;
+  approval_default_ttl_minutes: number;
+  approval_max_pending: number;
 };
 
 export function getAICapabilities() {

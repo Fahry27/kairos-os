@@ -121,10 +121,14 @@ class AICapabilities(BaseModel):
     ollama_max_prompt_chars: int = 12000
     ollama_max_response_chars: int = 8000
     
-    # Response Parser (added in v2.5.0)
     response_parser_enabled: bool = False
     max_parsed_steps: int = 10
     max_parsed_commands: int = 10
+    
+    # Approval Gate (added in v2.6.0)
+    approval_gate_enabled: bool = False
+    approval_default_ttl_minutes: int = 60
+    approval_max_pending: int = 100
 
 
 class AIPromptDryRunRequest(BaseModel):
@@ -162,6 +166,7 @@ class AIOllamaDispatchRequest(BaseModel):
     include_plugins: bool = True
     include_connectors: bool = True
     parse_response: bool = True
+    create_approval_requests: bool = False
 
 
 class AIOllamaDispatchResponse(BaseModel):
@@ -174,6 +179,7 @@ class AIOllamaDispatchResponse(BaseModel):
     latency_ms: int
     truncated: bool
     parsed_plan: "AIParsedPlan | None" = None
+    approval_requests: list[dict] = Field(default_factory=list)
     execution_enabled: bool = False
     command_execution_performed: bool = False
     connector_calls_performed: bool = False
@@ -213,6 +219,7 @@ class AIParsedPlan(BaseModel):
     command_suggestions: list[AIParsedCommandSuggestion]
     safety_notes: list[str]
     parser_warnings: list[str]
+    approval_requests: list[dict] = Field(default_factory=list)
     execution_enabled: bool = False
     command_execution_performed: bool = False
     connector_calls_performed: bool = False
@@ -223,6 +230,7 @@ class AIParsePlanRequest(BaseModel):
     user_goal: str
     model: str | None = None
     response_text: str
+    create_approval_requests: bool = False
 
 
 class PlannedCommand(BaseModel):
@@ -444,6 +452,9 @@ class AIRuntime:
             response_parser_enabled=settings.kairos_ai_response_parser_enabled,
             max_parsed_steps=settings.kairos_ai_max_parsed_steps,
             max_parsed_commands=settings.kairos_ai_max_parsed_commands,
+            approval_gate_enabled=settings.kairos_approval_gate_enabled,
+            approval_default_ttl_minutes=settings.kairos_approval_default_ttl_minutes,
+            approval_max_pending=settings.kairos_approval_max_pending,
         )
 
         if caps.ai_enabled and caps.provider == "ollama":

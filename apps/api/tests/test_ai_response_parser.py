@@ -11,6 +11,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 TEST_DATABASE_PATH = Path(tempfile.gettempdir()) / "kairos-api-parser-test.sqlite3"
+if TEST_DATABASE_PATH.exists():
+    TEST_DATABASE_PATH.unlink()
+
 os.environ["CREATE_TABLES_ON_STARTUP"] = "true"
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DATABASE_PATH}"
 os.environ["USE_MOCK_DATA"] = "false"
@@ -21,6 +24,9 @@ from app.main import app  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.ai_runtime import ai_runtime  # noqa: E402
 from app.core.plugins import plugin_registry  # noqa: E402
+from app.db.base import initialize_database  # noqa: E402
+
+initialize_database()
 
 client = TestClient(app)
 
@@ -513,8 +519,136 @@ def test_capabilities_include_parser_fields():
 # ---------------------------------------------------------------------------
 
 
-def test_health_version_250():
+def test_health_version_260():
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["version"] == "2.5.0"
+    assert data["version"] == "2.6.0"
+
+# ---------------------------------------------------------------------------
+# Approval Gate Integration Tests (v2.6.0)
+# ---------------------------------------------------------------------------
+
+def test_parse_plan_does_not_create_approvals_by_default():
+    payload = {
+        "user_goal": "Run ping",
+        "response_text": '{"steps": [], "commands": [{"command_id": "test_cmd", "reason": "test"}], "summary": "test"}'
+    }
+    response = client.post("/api/v1/ai/parse-plan", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["approval_requests"]) == 0
+    assert data["execution_enabled"] is False
+
+def test_parse_plan_creates_approvals_when_requested(monkeypatch):
+    from app.core.config import get_settings
+    def get_settings_override():
+        from app.core.config import Settings
+        settings = Settings()
+        settings.kairos_approval_gate_enabled = True
+        settings.kairos_ai_response_parser_enabled = True
+        settings.kairos_ai_enabled = True
+        return settings
+    app.dependency_overrides[get_settings] = get_settings_override
+    try:
+        payload = {
+            "user_goal": "Run dangerous command",
+            "response_text": '{"steps": [], "commands": [{"command_id": "core.operations.run_backup", "reason": "delete file"}], "summary": "test"}',
+            "create_approval_requests": True
+        }
+        response = client.post("/api/v1/ai/parse-plan", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["approval_requests"]) == 1
+        
+        appr = data["approval_requests"][0]
+        assert appr["action_type"] == "command"
+        assert appr["proposed_action_id"] == "core.operations.run_backup"
+        assert appr["status"] == "pending"
+        
+        # Check it in DB
+        get_res = client.get(f"/api/v1/approvals/{appr['id']}")
+        assert get_res.status_code == 200
+        db_appr = get_res.json()
+        assert db_appr["risk_level"] == "high" # sys.rm is dangerous
+        assert "delete file" in db_appr["description"]
+        assert db_appr["execution_enabled"] is False
+        assert db_appr["execution_performed"] is False
+        assert db_appr["connector_calls_performed"] is False
+        assert db_appr["data_mutation_performed"] is False
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+def test_dispatch_does_not_create_approvals_by_default(monkeypatch):
+    from app.core.config import get_settings
+    def get_settings_override():
+        from app.core.config import Settings
+        settings = Settings()
+        settings.kairos_approval_gate_enabled = True
+        settings.kairos_ai_enabled = True
+        settings.kairos_ai_provider = "ai.ollama"
+        settings.kairos_ollama_dispatch_enabled = True
+        settings.kairos_ai_response_parser_enabled = True
+        return settings
+    app.dependency_overrides[get_settings] = get_settings_override
+    try:
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+        mock_response.status = 200
+        mock_response.read.return_value = b'{"response": "{\\"commands\\": [{\\"command_id\\": \\"core.operations.get_health\\", \\"reason\\": \\"test\\"}]}", "done": true}'
+        
+        monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: mock_response)
+        
+        payload = {
+            "user_goal": "test dispatch",
+            "model": "llama",
+            "create_approval_requests": False
+        }
+        response = client.post("/api/v1/ai/ollama/dispatch", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["approval_requests"]) == 0
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+
+def test_dispatch_creates_approvals_when_requested(monkeypatch):
+    from app.core.config import get_settings
+    def get_settings_override():
+        from app.core.config import Settings
+        settings = Settings()
+        settings.kairos_approval_gate_enabled = True
+        settings.kairos_ai_enabled = True
+        settings.kairos_ai_provider = "ai.ollama"
+        settings.kairos_ollama_dispatch_enabled = True
+        settings.kairos_ai_response_parser_enabled = True
+        return settings
+    app.dependency_overrides[get_settings] = get_settings_override
+    try:
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value = mock_response
+        mock_response.__exit__.return_value = None
+        mock_response.status = 200
+        mock_response.read.return_value = b'{"response": "{\\"commands\\": [{\\"command_id\\": \\"core.operations.get_health\\", \\"reason\\": \\"test\\"}]}", "done": true}'
+        
+        monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: mock_response)
+        
+        payload = {
+            "user_goal": "test dispatch",
+            "model": "llama",
+            "create_approval_requests": True
+        }
+        response = client.post("/api/v1/ai/ollama/dispatch", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        print("DATA:", data)
+        assert len(data["approval_requests"]) == 1
+        
+        appr_id = data["approval_requests"][0]["id"]
+        get_res = client.get(f"/api/v1/approvals/{appr_id}")
+        assert get_res.status_code == 200
+        db_appr = get_res.json()
+        assert db_appr["risk_level"] == "medium" # test_cmd is not dangerous
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
+

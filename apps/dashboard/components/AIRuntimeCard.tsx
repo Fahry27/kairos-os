@@ -229,6 +229,27 @@ export function AIRuntimeCard() {
             </span>
           </div>
         </div>
+
+        {/* Approval Gate */}
+        <div style={rowStyle}>
+          <span style={labelStyle}>Approval Gate</span>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <span
+              className="pill"
+              style={{
+                fontSize: "0.7rem",
+                padding: "0.1rem 0.45rem",
+                background: caps.approval_gate_enabled
+                  ? "rgba(74, 222, 128, 0.1)"
+                  : "rgba(156,163,175,0.1)",
+                color: caps.approval_gate_enabled ? "var(--accent)" : "var(--text-secondary)",
+              }}
+              title={`TTL: ${caps.approval_default_ttl_minutes}m, Max Pending: ${caps.approval_max_pending}`}
+            >
+              {caps.approval_gate_enabled ? "enabled" : "disabled"}
+            </span>
+          </div>
+        </div>
         <hr style={{ border: "none", borderTop: "1px solid var(--border-color)", margin: "0.25rem 0" }} />
 
         {/* Registry counts */}
