@@ -1,6 +1,6 @@
 # Kairos Dashboard
 
-Kairos Dashboard v2.9.0 is a lightweight Next.js App Router app for viewing API
+Kairos Dashboard v3.0.0 is a lightweight Next.js App Router app for viewing API
 health, managing local projects, tasks, and memories, reviewing approvals, and
 inspecting read-only workflow run history.
 

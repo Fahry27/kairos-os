@@ -4,7 +4,8 @@
 
 Kairos OS is planned as a modular system with an API service, a dashboard
 experience, shared documentation, and supporting infrastructure. Kairos Core API
-v2.9.0 is the current workflow run history and audit trail milestone.
+v3.0.0 is the current production-ready baseline after the Zima OS Production
+Acceptance Test.
 
 ## Repository Boundaries
 
@@ -36,7 +37,7 @@ environment-based configuration.
 
 The dashboard is implemented with Next.js as a local interface for Kairos Core
 API health, projects, tasks, memories, registries, AI runtime status, and
-approval management, and workflow run history. v2.9.0 keeps workflow run
+approval management, and workflow run history. v3.0.0 keeps workflow run
 history read-only and does not add trigger or retry controls.
 
 ### Controlled n8n Trigger
@@ -55,10 +56,20 @@ automatic retry, or autonomous agent loop is introduced.
 
 ### Workflow Run Audit Trail
 
-Kairos v2.9.0 exposes sanitized `WorkflowRun` history through read-only API
+Kairos v2.9.0 added sanitized `WorkflowRun` history through read-only API
 endpoints and a dashboard audit card. Operators can filter by status, approval
 ID, and target type, then inspect request and response summaries. The audit
 surface does not add trigger, retry, approve/reject, or execution controls.
+
+### Production Acceptance Baseline
+
+Kairos v3.0.0 promotes the verified v2.9.0 deployment without changing the
+runtime contract. The accepted end-to-end production flow is:
+`Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
+The Zima OS acceptance run verified API and dashboard availability, Swagger
+dual auth with `X-Kairos-API-Key` and `X-Kairos-Operator-Token`, n8n
+environment wiring, production webhook reachability, and sanitized
+`WorkflowRun` audit status.
 
 ### Infrastructure
 

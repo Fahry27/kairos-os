@@ -1,6 +1,6 @@
 # Zima OS (CasaOS) Deployment Guide
 
-Kairos v2.9.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
+Kairos v3.0.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
 
 ## Prerequisites
 - Zima OS / CasaOS installed and running on your local network.
@@ -38,6 +38,8 @@ Kairos v2.9.0 includes a production-leaning `docker-compose.yml` file located at
 
    > [!IMPORTANT]
    > **LAN Security Warning**: This local API key authentication is designed for private local network (LAN) security. The key is transmitted from the browser to the API. It is **not** designed for exposure over the public internet, which would require HTTPS and reverse proxies. Never expose the dashboard or API ports directly to the internet without proper TLS encryption and standard edge routing.
+   > Replace placeholder API keys, dashboard keys, operator tokens, and webhook URLs with deployment-specific values before exposing Kairos beyond local development.
+   > Restrict `CORS_ORIGINS` to the exact dashboard origins before exposing Kairos beyond a private LAN.
 
 4. **Deploy with Docker Compose**
    Start the services in detached mode:
@@ -47,11 +49,13 @@ Kairos v2.9.0 includes a production-leaning `docker-compose.yml` file located at
 
 5. **Verify the Deployment**
     - **Check Containers**: `docker compose ps`
-    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `2.9.0` in the returned JSON.
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `3.0.0` in the returned JSON.
     - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
     - **Review Approvals**: Use the Approval Management card to view and inspect approval requests. Approving requests remains metadata-only and does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
     - **Controlled n8n Trigger**: If enabled privately, trigger n8n only through `POST /api/v1/approvals/{approval_id}/trigger-n8n` after an existing workflow approval is approved. Do not place operator tokens or webhook URLs in dashboard variables.
     - **Workflow Run History**: Use the Workflow Runs card to inspect sanitized trigger history. It is read-only and has no trigger or retry controls.
+    - **Production Acceptance Baseline**: v3.0.0 was accepted after verifying API and dashboard availability, Swagger dual auth, n8n env wiring, production webhook reachability, `trigger-n8n` success, and a sanitized `WorkflowRun` with `status=succeeded`.
+    - **Verified End-to-End Flow**: `Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
 
 ## Stopping and Restarting
 

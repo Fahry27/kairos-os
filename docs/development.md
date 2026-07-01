@@ -74,7 +74,7 @@ Expected response:
 {
   "status": "ok",
   "service": "kairos-api",
-  "version": "2.9.0",
+  "version": "3.0.0",
   "uptime": 12,
   "database": "connected",
   "docker_mode": true
@@ -223,7 +223,7 @@ the contents.
 
 ## Production Operations Support
 
-Kairos v2.9.0 includes enhanced operations, monitoring, approval management,
+Kairos v3.0.0 includes enhanced operations, monitoring, approval management,
 controlled n8n webhook trigger support, and read-only workflow run history:
 
 ### Structured Logging

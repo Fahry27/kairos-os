@@ -1,3 +1,43 @@
+# Kairos v3.0.0 Release Notes
+
+Welcome to Kairos v3.0.0, the **Production Ready Baseline** release.
+
+## Kairos v3.0.0
+**Date:** July 2026
+
+This release promotes the proven v2.9.0 deployment to a production-ready
+baseline after a successful Production Acceptance Test on Zima OS. It is a
+release and documentation milestone only: business logic, approval behavior,
+n8n trigger behavior, dashboard controls, and security posture remain
+unchanged.
+
+### Production Acceptance Test Result
+- **Environment:** Zima OS deployment.
+- **Result:** Passed.
+- **Backup checkpoint:** `backups/deploy-v2.9-openapi-n8n-success`.
+- **Verified services:** Kairos API and Kairos Dashboard running.
+- **Verified Swagger auth:** `X-Kairos-API-Key` and `X-Kairos-Operator-Token`.
+- **Verified n8n wiring:** compose environment variables load the n8n trigger toggle, webhook URL, and timeout from runtime environment values.
+- **Verified webhook:** production n8n webhook reachable.
+- **Verified audit:** `WorkflowRun` recorded `status=succeeded`.
+
+### Verified End-to-End Flow
+1. Approval request was explicitly approved.
+2. `POST /api/v1/approvals/{approval_id}/trigger-n8n` was called.
+3. Kairos posted to the configured n8n webhook.
+4. n8n accepted the production webhook request.
+5. Kairos recorded a sanitized `WorkflowRun` with `status=succeeded`.
+
+### Safety Guarantees
+- No new business logic, production services, approval behavior, n8n trigger behavior, dashboard trigger UI, retry behavior, local command execution, connector fan-out, cloud provider calls, or autonomous agent behavior.
+- Approval remains metadata-first: approving a request does not execute anything by itself.
+- n8n triggering remains a separate API-only operator action for already-approved n8n workflow approvals.
+- Workflow run history remains read-only and stores sanitized metadata only.
+- Placeholder API keys, operator tokens, webhook URLs, and dashboard secrets must be replaced with deployment-specific values before broader network exposure.
+- `CORS_ORIGINS` must be restricted to the actual dashboard origins before production exposure beyond a private LAN.
+
+---
+
 # Kairos v2.9.0 Release Notes
 
 Welcome to Kairos v2.9.0, introducing the **Workflow Run History / Audit Trail Dashboard**.

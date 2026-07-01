@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v2.9.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.0.0.
 
 ---
 
@@ -58,7 +58,7 @@ This document details all configuration parameters, environment settings, secret
 
 ## Approval Management And Workflow Run Safety
 
-Kairos v2.9.0 lets the dashboard view, inspect, approve, and reject approval
+Kairos v3.0.0 lets the dashboard view, inspect, approve, and reject approval
 requests created by the Approval Gate. Approval is metadata-only: approving a
 request changes approval status only. It does not execute commands, call
 connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain
@@ -87,6 +87,23 @@ the dashboard card do not add trigger, retry, approval, or execution controls.
 Webhook URLs, tokens, credentials, environment values, raw n8n response bodies,
 and raw LLM responses must not be exposed.
 
+## Production Acceptance Result
+
+Kairos v3.0.0 is the production-ready baseline promoted from the verified
+v2.9.0 Zima OS deployment. The Production Acceptance Test passed with:
+
+- Kairos API running.
+- Kairos Dashboard running.
+- Swagger dual auth working with `X-Kairos-API-Key` and `X-Kairos-Operator-Token`.
+- n8n environment wiring loading trigger enablement, webhook URL, and timeout from runtime environment values.
+- n8n production webhook reachable.
+- `trigger-n8n` completed successfully.
+- `WorkflowRun` audit recorded `status=succeeded`.
+- Final backup checkpoint created at `backups/deploy-v2.9-openapi-n8n-success`.
+
+The verified end-to-end production flow is:
+`Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
+
 ---
 
 ## API Key Authentication & Secrets Warning
@@ -95,6 +112,8 @@ and raw LLM responses must not be exposed.
 > - **Shared LAN Secret**: `KAIROS_API_KEY` acts as a shared secret key for LAN (Local Area Network) deployments. It is **not** a full multi-user authentication system (there are no user accounts, passwords, or role permissions).
 > - **Client-side exposure**: Because the Next.js dashboard is compiled and runs client-side inside the user's web browser, the `NEXT_PUBLIC_KAIROS_API_KEY` is transmitted in HTTP headers and is visible in browser network inspector panels.
 > - **Exposure Recommendation**: For private LAN (e.g. Zima OS/homelabs), this shared secret is sufficient to prevent unauthorized local queries. However, **do not expose Kairos ports directly to the public internet** or configure public DNS forwarding without wrapping access behind a secure VPN (like Tailscale) or proxy gate (like Authelia, Cloudflare Tunnels, or basic auth gates).
+> - **No placeholders in exposed deployments**: Replace placeholder API keys, dashboard keys, operator tokens, and webhook URLs with deployment-specific values before exposing Kairos beyond local development.
+> - **Restrict CORS before exposure**: Before production exposure beyond a private LAN, set `CORS_ORIGINS` to the exact dashboard origin list. Do not rely on broad or wildcard origins.
 
 ---
 

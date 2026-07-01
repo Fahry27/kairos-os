@@ -38,7 +38,7 @@ creating records through the Kairos Core API, plus control-plane approval review
 
 ## Current Status
 
-- **Version**: Kairos v2.9.0 (Workflow Run History / Audit Trail Dashboard)
+- **Version**: Kairos v3.0.0 (Production Ready Baseline)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
 - **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, approval management, workflow run audit history, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.
@@ -52,6 +52,8 @@ creating records through the Kairos Core API, plus control-plane approval review
 - **Approval Management**: View, inspect, approve, and reject approval requests from the dashboard. Approval remains metadata-only; approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
 - **Controlled n8n Trigger**: API-only `POST /api/v1/approvals/{approval_id}/trigger-n8n` can call one configured n8n webhook after an existing workflow approval is explicitly approved.
 - **Workflow Run History**: View and inspect sanitized `WorkflowRun` records from the dashboard without trigger, retry, approval, or execution controls.
+- **Production Acceptance**: v3.0.0 promotes the proven v2.9.0 Zima OS deployment after verifying the approved approval -> `trigger-n8n` -> n8n webhook -> `WorkflowRun` succeeded path.
+- **Exposure Hardening**: Replace placeholder API keys, operator tokens, webhook URLs, and dashboard secrets before broader network exposure. Restrict `CORS_ORIGINS` to the actual dashboard origins before exposing beyond a private LAN.
 - **Reverse Proxy**: See [Reverse Proxy Setup](docs/reverse-proxy.md) for securing Kairos with domains (like Caddy/Traefik).
 - **Portainer**: See [Portainer Deployment](docs/portainer.md) for deploying Kairos via Portainer stacks.
 

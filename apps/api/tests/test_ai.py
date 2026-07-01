@@ -29,7 +29,7 @@ def test_ai_info_endpoint():
     assert "planning_enabled" in data
     # Hard gate — must always be False in v2.0/2.1
     assert data["execution_enabled"] is False
-    assert data["version"] == "2.9.0"
+    assert data["version"] == "3.0.0"
 
 
 # ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
 # AI Runtime Interface
 
-Kairos OS v2.9.0
+Kairos OS v3.0.0
 ================
 
 Kairos OS currently ships with a **metadata-only AI Runtime**. 
 
-> **Important**: In version 2.9.0, the AI Runtime supports local dispatch, response parsing, metadata-only approval request creation, dashboard approval review, a separate approval-gated n8n webhook trigger endpoint, and read-only workflow run audit history.
+> **Important**: In version 3.0.0, the AI Runtime supports local dispatch, response parsing, metadata-only approval request creation, dashboard approval review, a separate approval-gated n8n webhook trigger endpoint, and read-only workflow run audit history.
 > - **No commands are executed.**
 > - **No connectors are called.**
 > - **No data is mutated.**
@@ -156,9 +156,14 @@ call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate
 domain data, persist raw LLM responses, or add autonomous agents. Kairos v2.8.0
 keeps n8n triggering API-only; the dashboard does not add a trigger control.
 
-Kairos v2.9.0 adds a read-only Workflow Runs card for audit history. It can
+Kairos v2.9.0 added a read-only Workflow Runs card for audit history. It can
 filter and inspect sanitized `WorkflowRun` metadata, but it does not provide
 trigger, retry, approval, or execution controls.
+
+Kairos v3.0.0 promotes the accepted production baseline after verifying:
+`Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
+It does not add autonomous execution or change approval and n8n trigger
+behavior.
 
 ### Planning Request
 
@@ -218,5 +223,6 @@ POST /api/v1/ai/plan
 | **v2.3** | Local LLM planning — route `POST /ai/plan` through Ollama for natural language goal understanding. |
 | **v2.7** | Dashboard approval management for metadata-only approval requests. |
 | **v2.8** | Controlled API-only n8n webhook trigger for approved workflow approvals. |
-| **v2.9** *(current)* | Read-only WorkflowRun history API and dashboard audit trail. |
-| **v3.0** | Agent loop — Kairos autonomously plans, executes, and observes via plugin + connector pipelines. |
+| **v2.9** | Read-only WorkflowRun history API and dashboard audit trail. |
+| **v3.0** *(current)* | Production-ready baseline after Zima OS acceptance testing. No autonomous execution. |
+| **Future** | Any agent loop or autonomous execution work remains out of scope for v3.0.0 and requires a separate design and approval milestone. |

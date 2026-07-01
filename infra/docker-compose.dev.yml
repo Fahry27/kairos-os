@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 2.9.0
+      APP_VERSION: 3.0.0
       API_V1_PREFIX: /api/v1
       DATABASE_URL: postgresql+psycopg://kairos:kairos_dev_password@postgres:5432/kairos
       CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
