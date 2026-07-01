@@ -4,6 +4,7 @@ import logging
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
@@ -23,6 +24,11 @@ from app.db.base import initialize_database
 # Initialize logging at import time to capture all early startup logs
 setup_logging()
 logger = logging.getLogger("app.main")
+DUAL_HEADER_OPERATOR_PATHS = (
+    "/api/v1/approvals/{approval_id}/approve",
+    "/api/v1/approvals/{approval_id}/reject",
+    "/api/v1/approvals/{approval_id}/trigger-n8n",
+)
 
 
 @asynccontextmanager
@@ -153,6 +159,25 @@ def create_app() -> FastAPI:
             "http_requests_total": metrics_tracker.total_requests,
             "http_response_status_codes": metrics_tracker.status_codes,
         }
+
+    def custom_openapi() -> dict:
+        if app.openapi_schema:
+            return app.openapi_schema
+
+        openapi_schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            routes=app.routes,
+        )
+        for path in DUAL_HEADER_OPERATOR_PATHS:
+            operation = openapi_schema.get("paths", {}).get(path, {}).get("post")
+            if operation:
+                operation["security"] = [{"KairosApiKey": [], "KairosOperatorToken": []}]
+
+        app.openapi_schema = openapi_schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
 
     return app
 

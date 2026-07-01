@@ -94,7 +94,10 @@ pytest
 - `USE_MOCK_DATA`: serve in-memory local mock data instead of the configured
   database. Defaults to `false`.
 - `KAIROS_OPERATOR_TOKEN`: optional server-side operator token. When set,
-  approve, reject, and trigger-n8n require `X-Kairos-Operator-Token`.
+  approve, reject, and trigger-n8n require `X-Kairos-Operator-Token` in
+  addition to `X-Kairos-API-Key` when the API key is configured. Swagger
+  `/docs` shows separate `KairosApiKey` and `KairosOperatorToken` Authorize
+  entries so both headers can be supplied for protected operator actions.
 - `N8N_WEBHOOK_TRIGGER_ENABLED`: enable the controlled n8n trigger endpoint.
   Defaults to `false`.
 - `N8N_WEBHOOK_URL`: server-side configured n8n webhook URL. Never returned

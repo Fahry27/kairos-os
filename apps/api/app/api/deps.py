@@ -7,8 +7,16 @@ from app.core.config import get_settings, Settings
 from app.db.session import get_db
 
 logger = logging.getLogger(__name__)
-api_key_header = APIKeyHeader(name="X-Kairos-API-Key", auto_error=False)
-operator_token_header = APIKeyHeader(name="X-Kairos-Operator-Token", auto_error=False)
+api_key_header = APIKeyHeader(
+    name="X-Kairos-API-Key",
+    scheme_name="KairosApiKey",
+    auto_error=False,
+)
+operator_token_header = APIKeyHeader(
+    name="X-Kairos-Operator-Token",
+    scheme_name="KairosOperatorToken",
+    auto_error=False,
+)
 
 
 async def verify_api_key(

@@ -16,16 +16,19 @@ client = TestClient(app)
 
 N8N_URL = "http://n8n.local/webhook/kairos"
 OPERATOR_TOKEN = "operator-test-token"
+API_KEY = "api-test-key"
 
 
 def _override_settings(
     *,
+    api_key: str | None = None,
     operator_token: str | None = None,
     n8n_enabled: bool = False,
     n8n_url: str = "",
 ):
     def get_settings_override():
         settings = Settings()
+        settings.kairos_api_key = api_key
         settings.kairos_operator_token = operator_token
         settings.n8n_webhook_trigger_enabled = n8n_enabled
         settings.n8n_webhook_url = n8n_url
@@ -45,6 +48,7 @@ def _create_approval(
     proposed_action_id: str | None = "n8n_webhook",
     payload_summary: dict | None = None,
     expires_in_minutes: int | None = None,
+    api_key: str | None = None,
 ) -> str:
     payload = {
         "title": "Controlled n8n trigger",
@@ -60,14 +64,52 @@ def _create_approval(
     if expires_in_minutes is not None:
         payload["expires_in_minutes"] = expires_in_minutes
 
-    response = client.post("/api/v1/approvals", json=payload)
+    headers = {"X-Kairos-API-Key": api_key} if api_key else {}
+    response = client.post("/api/v1/approvals", json=payload, headers=headers)
     assert response.status_code == 201
     return response.json()["id"]
 
 
-def _approve(approval_id: str, *, token: str | None = None):
-    headers = {"X-Kairos-Operator-Token": token} if token else {}
+def _approve(
+    approval_id: str,
+    *,
+    api_key: str | None = None,
+    token: str | None = None,
+):
+    headers = {}
+    if api_key:
+        headers["X-Kairos-API-Key"] = api_key
+    if token:
+        headers["X-Kairos-Operator-Token"] = token
     return client.post(f"/api/v1/approvals/{approval_id}/approve", headers=headers)
+
+
+def test_openapi_approval_operator_actions_include_dual_header_security():
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+
+    security_schemes = schema["components"]["securitySchemes"]
+    assert security_schemes["KairosApiKey"] == {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Kairos-API-Key",
+    }
+    assert security_schemes["KairosOperatorToken"] == {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Kairos-Operator-Token",
+    }
+    assert API_KEY not in response.text
+    assert OPERATOR_TOKEN not in response.text
+
+    for path in (
+        "/api/v1/approvals/{approval_id}/approve",
+        "/api/v1/approvals/{approval_id}/reject",
+        "/api/v1/approvals/{approval_id}/trigger-n8n",
+    ):
+        security = schema["paths"][path]["post"]["security"]
+        assert security == [{"KairosApiKey": [], "KairosOperatorToken": []}]
 
 def test_approval_gate_disabled(monkeypatch):
     def get_settings_override():
@@ -245,6 +287,123 @@ def test_operator_token_required_for_approve_and_reject_when_configured():
         )
         assert rejected.status_code == 200
         assert rejected.json()["status"] == "rejected"
+    finally:
+        _clear_overrides()
+
+
+def test_api_key_and_operator_token_required_for_operator_actions_when_configured(monkeypatch):
+    _override_settings(
+        api_key=API_KEY,
+        operator_token=OPERATOR_TOKEN,
+        n8n_enabled=True,
+        n8n_url=N8N_URL,
+    )
+    try:
+        approve_id = _create_approval(
+            action_type="generic",
+            proposed_action_id=None,
+            api_key=API_KEY,
+        )
+
+        missing_api_key = client.post(
+            f"/api/v1/approvals/{approve_id}/approve",
+            headers={"X-Kairos-Operator-Token": OPERATOR_TOKEN},
+        )
+        assert missing_api_key.status_code == 401
+
+        invalid_api_key = client.post(
+            f"/api/v1/approvals/{approve_id}/approve",
+            headers={
+                "X-Kairos-API-Key": "wrong-key",
+                "X-Kairos-Operator-Token": OPERATOR_TOKEN,
+            },
+        )
+        assert invalid_api_key.status_code == 401
+
+        missing_operator_token = client.post(
+            f"/api/v1/approvals/{approve_id}/approve",
+            headers={"X-Kairos-API-Key": API_KEY},
+        )
+        assert missing_operator_token.status_code == 403
+        assert API_KEY not in missing_operator_token.text
+        assert OPERATOR_TOKEN not in missing_operator_token.text
+
+        invalid_operator_token = client.post(
+            f"/api/v1/approvals/{approve_id}/approve",
+            headers={
+                "X-Kairos-API-Key": API_KEY,
+                "X-Kairos-Operator-Token": "wrong-token",
+            },
+        )
+        assert invalid_operator_token.status_code == 403
+
+        approved = client.post(
+            f"/api/v1/approvals/{approve_id}/approve",
+            headers={
+                "X-Kairos-API-Key": API_KEY,
+                "X-Kairos-Operator-Token": OPERATOR_TOKEN,
+            },
+        )
+        assert approved.status_code == 200
+        assert approved.json()["status"] == "approved"
+
+        reject_id = _create_approval(
+            action_type="generic",
+            proposed_action_id=None,
+            api_key=API_KEY,
+        )
+        reject_missing_api_key = client.post(
+            f"/api/v1/approvals/{reject_id}/reject",
+            json={"reason": "no api key"},
+            headers={"X-Kairos-Operator-Token": OPERATOR_TOKEN},
+        )
+        assert reject_missing_api_key.status_code == 401
+
+        rejected = client.post(
+            f"/api/v1/approvals/{reject_id}/reject",
+            json={"reason": "not needed"},
+            headers={
+                "X-Kairos-API-Key": API_KEY,
+                "X-Kairos-Operator-Token": OPERATOR_TOKEN,
+            },
+        )
+        assert rejected.status_code == 200
+        assert rejected.json()["status"] == "rejected"
+
+        trigger_id = _create_approval(api_key=API_KEY)
+        assert _approve(trigger_id, api_key=API_KEY, token=OPERATOR_TOKEN).status_code == 200
+        calls = []
+
+        def fake_post(*args, **kwargs):
+            calls.append((args, kwargs))
+            return httpx.Response(204, content=b"accepted")
+
+        monkeypatch.setattr("app.services.approval_service.httpx.post", fake_post)
+
+        trigger_missing_api_key = client.post(
+            f"/api/v1/approvals/{trigger_id}/trigger-n8n",
+            headers={"X-Kairos-Operator-Token": OPERATOR_TOKEN},
+        )
+        assert trigger_missing_api_key.status_code == 401
+        assert calls == []
+
+        trigger_missing_operator_token = client.post(
+            f"/api/v1/approvals/{trigger_id}/trigger-n8n",
+            headers={"X-Kairos-API-Key": API_KEY},
+        )
+        assert trigger_missing_operator_token.status_code == 403
+        assert calls == []
+
+        triggered = client.post(
+            f"/api/v1/approvals/{trigger_id}/trigger-n8n",
+            headers={
+                "X-Kairos-API-Key": API_KEY,
+                "X-Kairos-Operator-Token": OPERATOR_TOKEN,
+            },
+        )
+        assert triggered.status_code == 200
+        assert triggered.json()["status"] == "succeeded"
+        assert len(calls) == 1
     finally:
         _clear_overrides()
 

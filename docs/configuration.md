@@ -72,9 +72,13 @@ approval, requires an existing approved `workflow` approval marked as
 `N8N_WEBHOOK_URL`. Failed runs are not retried automatically.
 
 When `KAIROS_OPERATOR_TOKEN` is set, approve, reject, and trigger-n8n require
-`X-Kairos-Operator-Token`. Keep this token server-side only. Do not put real
-operator tokens in dashboard variables, committed files, examples, logs, or
-error messages.
+`X-Kairos-Operator-Token`. When `KAIROS_API_KEY` is also configured, those same
+operator actions require both `X-Kairos-API-Key` and
+`X-Kairos-Operator-Token`. Swagger `/docs` exposes separate `KairosApiKey` and
+`KairosOperatorToken` Authorize entries for testing protected operator
+endpoints. Keep real token values server-side only; they must not appear in
+OpenAPI, dashboard variables, committed files, examples, logs, or error
+messages.
 
 Workflow run history is observability-only. `GET /api/v1/workflow-runs` and
 `GET /api/v1/workflow-runs/{run_id}` return sanitized metadata for audit review
