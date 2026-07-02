@@ -24,6 +24,15 @@ from app.core.ai_runtime import (
     AIParsedPlan,
     PlanResponse,
 )
+from app.core.ai_provider_router import (
+    AIProviderMetadata,
+    AIProviderRouteResponse,
+    AIProviderRouterDispatchRequest,
+    AIProviderRouterDispatchResponse,
+    AIProviderRouterModelsResponse,
+    provider_registry,
+    provider_router,
+)
 from app.schemas.approval import ApprovalRequestCreate, ApprovalActionType, ApprovalRiskLevel
 from app.services import approval_service
 from app.api.deps import get_db
@@ -203,6 +212,79 @@ def get_ai_capabilities(
 ):
     """Return a full runtime capabilities summary derived from live registries."""
     return ai_runtime.get_capabilities(settings, plugin_registry, connector_registry)
+
+
+@router.get("/provider-router/providers", response_model=list[AIProviderMetadata])
+def list_router_providers(
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+):
+    """Return provider router metadata.
+
+    Cloud providers are metadata-only stubs in this release.
+    """
+    if not settings.kairos_ai_enabled:
+        return []
+    return provider_registry.list()
+
+
+@router.get("/provider-router/route", response_model=AIProviderRouteResponse)
+def get_provider_route(
+    provider_id: str | None = None,
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+):
+    """Return the provider selected by the current router policy."""
+    if not settings.kairos_ai_enabled:
+        raise HTTPException(status_code=503, detail="AI runtime is disabled.")
+    return provider_router.route(settings, provider_id)
+
+
+@router.get("/provider-router/models", response_model=AIProviderRouterModelsResponse)
+def get_provider_router_models(
+    provider_id: str | None = None,
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+):
+    """Return model metadata through the provider router interface."""
+    if not settings.kairos_ai_enabled:
+        raise HTTPException(status_code=503, detail="AI runtime is disabled.")
+    return provider_router.list_models(settings, provider_id)
+
+
+@router.post("/provider-router/dispatch", response_model=AIProviderRouterDispatchResponse)
+def provider_router_dispatch(
+    body: AIProviderRouterDispatchRequest,
+    settings: Settings = Depends(get_settings),
+    _: str = Depends(verify_api_key),
+):
+    """Dispatch through the provider router.
+
+    Only Ollama can dispatch in v3.3.0. Metadata-only provider stubs are never
+    called externally and are skipped by fallback.
+    """
+    if body.create_approval_requests:
+        raise HTTPException(
+            status_code=400,
+            detail="Provider router dispatch does not create approvals. Use parse-plan explicitly.",
+        )
+    if not body.user_goal or not body.user_goal.strip():
+        raise HTTPException(status_code=422, detail="user_goal cannot be empty")
+    if not settings.kairos_ai_enabled:
+        raise HTTPException(status_code=503, detail="AI runtime is disabled.")
+    if not settings.kairos_ollama_dispatch_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Provider router dispatch is disabled. Enable KAIROS_OLLAMA_DISPATCH_ENABLED.",
+        )
+    if not body.model:
+        body.model = settings.kairos_ai_model
+    if not body.model:
+        raise HTTPException(
+            status_code=400,
+            detail="No model provided and KAIROS_AI_MODEL is not configured.",
+        )
+    return provider_router.dispatch(body, settings, plugin_registry, connector_registry)
 
 
 @router.post("/plan", response_model=PlanResponse)

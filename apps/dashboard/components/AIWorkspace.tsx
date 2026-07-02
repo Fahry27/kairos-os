@@ -4,17 +4,17 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createAIPlan,
   createPromptDryRun,
-  dispatchOllama,
-  getAICapabilities,
-  getAIModels,
+  dispatchAIProvider,
+  getAIProviderRoute,
+  getAIProviderRouterModels,
   parseAIPlan,
-  type AICapabilities,
   type AIParsedPlan,
+  type AIProviderRouteResponse,
+  type AIProviderRouterDispatchResponse,
+  type AIProviderRouterModelsResponse,
   type AIPlanResponse,
   type AIPromptDryRunResponse,
-  type AIOllamaDispatchResponse,
   type ApiResult,
-  type AIProviderModelsResponse,
 } from "../lib/api";
 
 function buildContext(rawContext: string): ApiResult<Record<string, unknown>> {
@@ -71,40 +71,41 @@ function ResultBadge({ label, ok }: { label: string; ok: boolean }) {
 }
 
 function RuntimeSummary({
-  capabilities,
+  providerRoute,
   models,
 }: {
-  capabilities: ApiResult<AICapabilities> | null;
-  models: ApiResult<AIProviderModelsResponse> | null;
+  providerRoute: ApiResult<AIProviderRouteResponse> | null;
+  models: ApiResult<AIProviderRouterModelsResponse> | null;
 }) {
-  if (!capabilities) {
-    return <p className="stateText">Loading runtime...</p>;
+  if (!providerRoute) {
+    return <p className="stateText">Loading provider router...</p>;
   }
 
-  if (!capabilities.ok) {
-    return <p className="errorText">{capabilities.error}</p>;
+  if (!providerRoute.ok) {
+    return <p className="errorText">{providerRoute.error}</p>;
   }
 
-  const caps = capabilities.data;
-  const modelCount = models?.ok ? models.data.model_count : caps.model_count;
+  const route = providerRoute.data;
+  const selected = route.selected_provider;
+  const modelCount = models?.ok ? models.data.model_count : "-";
 
   return (
     <dl className="statGrid workspaceRuntimeGrid">
       <div>
         <dt>Provider</dt>
-        <dd>{caps.provider}</dd>
+        <dd>{selected?.name ?? "None"}</dd>
       </div>
       <div>
         <dt>Models</dt>
-        <dd>{modelCount ?? "-"}</dd>
+        <dd>{modelCount}</dd>
       </div>
       <div>
         <dt>Dispatch</dt>
-        <dd>{caps.ollama_dispatch_enabled ? "enabled" : "disabled"}</dd>
+        <dd>{route.dispatch_enabled ? "enabled" : "disabled"}</dd>
       </div>
       <div>
-        <dt>Execution</dt>
-        <dd>{caps.execution_enabled ? "enabled" : "locked"}</dd>
+        <dt>Policy</dt>
+        <dd>{route.policy.mode}</dd>
       </div>
     </dl>
   );
@@ -159,7 +160,7 @@ function DryRunResult({ dryRun }: { dryRun: AIPromptDryRunResponse }) {
   );
 }
 
-function DispatchResult({ dispatch }: { dispatch: AIOllamaDispatchResponse }) {
+function DispatchResult({ dispatch }: { dispatch: AIProviderRouterDispatchResponse }) {
   const error = typeof dispatch.raw_response_metadata.error === "string"
     ? dispatch.raw_response_metadata.error
     : null;
@@ -167,8 +168,8 @@ function DispatchResult({ dispatch }: { dispatch: AIOllamaDispatchResponse }) {
   return (
     <div className="workspaceResultBlock">
       <div className="workspaceResultHeader">
-        <h3>Local Model Result</h3>
-        <ResultBadge label={`${dispatch.latency_ms} ms`} ok={!error} />
+        <h3>{dispatch.selected_provider_name} Result</h3>
+        <ResultBadge label={dispatch.fallback_used ? "fallback" : `${dispatch.latency_ms} ms`} ok={!error} />
       </div>
       {error ? (
         <p className="errorText">{error}</p>
@@ -217,8 +218,9 @@ function ParsedPlanResult({ parsedPlan }: { parsedPlan: AIParsedPlan }) {
 }
 
 export function AIWorkspace() {
-  const [capabilities, setCapabilities] = useState<ApiResult<AICapabilities> | null>(null);
-  const [models, setModels] = useState<ApiResult<AIProviderModelsResponse> | null>(null);
+  const [providerRoute, setProviderRoute] = useState<ApiResult<AIProviderRouteResponse> | null>(null);
+  const [models, setModels] = useState<ApiResult<AIProviderRouterModelsResponse> | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState("auto");
   const [goal, setGoal] = useState("");
   const [contextText, setContextText] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -228,33 +230,46 @@ export function AIWorkspace() {
   const [success, setSuccess] = useState<string | null>(null);
   const [plan, setPlan] = useState<AIPlanResponse | null>(null);
   const [dryRun, setDryRun] = useState<AIPromptDryRunResponse | null>(null);
-  const [dispatch, setDispatch] = useState<AIOllamaDispatchResponse | null>(null);
+  const [dispatch, setDispatch] = useState<AIProviderRouterDispatchResponse | null>(null);
   const [parsedPlan, setParsedPlan] = useState<AIParsedPlan | null>(null);
   const [parseSourceText, setParseSourceText] = useState("");
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([getAICapabilities(), getAIModels()]).then(([nextCaps, nextModels]) => {
+    Promise.all([
+      getAIProviderRoute(selectedProvider),
+      getAIProviderRouterModels(selectedProvider),
+    ]).then(([nextRoute, nextModels]) => {
       if (mounted) {
-        setCapabilities(nextCaps);
+        setProviderRoute(nextRoute);
         setModels(nextModels);
       }
     });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [selectedProvider]);
 
   const modelOptions = useMemo(() => {
     const discovered = models?.ok
       ? models.data.models.map((model) => model.model || model.name).filter(Boolean)
       : [];
-    const configured = capabilities?.ok && capabilities.data.model ? [capabilities.data.model] : [];
+    const configured =
+      providerRoute?.ok && providerRoute.data.selected_provider?.configured_model
+        ? [providerRoute.data.selected_provider.configured_model]
+        : [];
     return [...new Set([...discovered, ...configured])];
-  }, [capabilities, models]);
+  }, [models, providerRoute]);
+
+  const providerOptions = useMemo(
+    () => (providerRoute?.ok ? providerRoute.data.providers : []),
+    [providerRoute],
+  );
 
   useEffect(() => {
-    if (!selectedModel && modelOptions.length > 0) {
+    if (modelOptions.length === 0 && selectedModel) {
+      setSelectedModel("");
+    } else if (modelOptions.length > 0 && !modelOptions.includes(selectedModel)) {
       setSelectedModel(modelOptions[0]);
     }
   }, [modelOptions, selectedModel]);
@@ -304,8 +319,9 @@ export function AIWorkspace() {
       }
 
       let sourceText = "";
-      if (capabilities?.ok && capabilities.data.ollama_dispatch_enabled && selectedModel) {
-        const nextDispatch = await dispatchOllama({
+      if (providerRoute?.ok && providerRoute.data.dispatch_enabled && selectedModel) {
+        const nextDispatch = await dispatchAIProvider({
+          provider_id: selectedProvider === "auto" ? null : selectedProvider,
           user_goal: trimmedGoal,
           context: contextResult.data,
           model: selectedModel,
@@ -316,7 +332,7 @@ export function AIWorkspace() {
           setDispatch(nextDispatch.data);
           sourceText = nextDispatch.data.response_text.trim();
         } else {
-          errors.push(`Local dispatch failed: ${nextDispatch.error}`);
+          errors.push(`Provider dispatch failed: ${nextDispatch.error}`);
         }
       }
 
@@ -387,7 +403,7 @@ export function AIWorkspace() {
         </div>
       </div>
 
-      <RuntimeSummary capabilities={capabilities} models={models} />
+      <RuntimeSummary providerRoute={providerRoute} models={models} />
 
       <div className="workspaceLayout">
         <form className="workspaceForm" onSubmit={handleGenerate}>
@@ -412,7 +428,25 @@ export function AIWorkspace() {
           </label>
 
           <label>
-            <span>Local model</span>
+            <span>Provider</span>
+            <select
+              onChange={(event) => {
+                setSelectedProvider(event.target.value);
+                setSelectedModel("");
+              }}
+              value={selectedProvider}
+            >
+              <option value="auto">Auto provider</option>
+              {providerOptions.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name} ({provider.status})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>Model</span>
             {modelOptions.length > 0 ? (
               <select
                 onChange={(event) => setSelectedModel(event.target.value)}
@@ -420,7 +454,9 @@ export function AIWorkspace() {
               >
                 {modelOptions.map((modelName) => {
                   const manifest = models?.ok
-                    ? models.data.models.find((model) => model.model === modelName || model.name === modelName)
+                    ? models.data.models.find(
+                        (model) => model.model === modelName || model.name === modelName,
+                      )
                     : undefined;
                   const size = formatModelSize(manifest?.size);
                   return (
@@ -433,7 +469,7 @@ export function AIWorkspace() {
             ) : (
               <input
                 onChange={(event) => setSelectedModel(event.target.value)}
-                placeholder="No local model discovered"
+                placeholder="No model discovered"
                 value={selectedModel}
               />
             )}

@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.2.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.3.0.
 
 ---
 
@@ -30,6 +30,9 @@ This document details all configuration parameters, environment settings, secret
 | :--- | :--- | :--- | :--- |
 | `KAIROS_AI_ENABLED` | API | `true` | Master toggle for the AI Runtime capabilities. |
 | `KAIROS_AI_PROVIDER` | API | `ollama` | The active AI provider to use. |
+| `KAIROS_AI_PROVIDER_MODE` | API | `auto` | Provider router mode: `auto` selects from fallback order; `manual` prefers `KAIROS_AI_PROVIDER`. |
+| `KAIROS_AI_PROVIDER_FALLBACK_ENABLED` | API | `true` | Enables automatic fallback across provider metadata entries. |
+| `KAIROS_AI_PROVIDER_FALLBACK_ORDER` | API | `ai.ollama,ai.openai,ai.gemini,ai.claude` | Provider router fallback order. Only Ollama is functional in v3.3.0. |
 | `KAIROS_AI_DRY_RUN_ENABLED` | API | `true` | Enables safe prompt package assembly without outbound LLM calls. |
 | `KAIROS_AI_MAX_CONTEXT_COMMANDS` | API | `20` | Max commands to include in dry-run context. |
 | `KAIROS_AI_MAX_CONTEXT_CONNECTORS` | API | `20` | Max connectors to include in dry-run context. |
@@ -58,12 +61,18 @@ This document details all configuration parameters, environment settings, secret
 
 ## Approval Management And Workflow Run Safety
 
+Kairos v3.3.0 adds an AI Provider Router. The Workspace uses router endpoints
+for provider selection, model discovery, and dispatch. The router supports
+auto/manual selection and fallback order. Ollama is the only functional
+provider. OpenAI, Gemini, and Claude are metadata-only stubs with no OAuth,
+token storage, or external API calls.
+
 Kairos v3.2.0 adds an AI Workspace dashboard page at `/workspace`. It uses the
-existing AI runtime, prompt dry-run, Ollama dispatch, and parse-plan APIs. It
-does not add chat, autonomous agents, backend execution logic, local command
-execution, connector fan-out, cloud provider calls, or automatic approval
-creation. Approval requests are created only through an explicit workspace
-button and remain metadata-only.
+existing AI runtime, prompt dry-run, provider router dispatch, and parse-plan
+APIs. It does not add chat, autonomous agents, backend execution logic, local
+command execution, connector fan-out, cloud provider calls, or automatic
+approval creation. Approval requests are created only through an explicit
+workspace button and remain metadata-only.
 
 Kairos v3.1.0 lets the dashboard view, inspect, approve, and reject approval
 requests created by the Approval Gate. Approval is metadata-only: approving a

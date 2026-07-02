@@ -1,6 +1,6 @@
 # Kairos Dashboard
 
-Kairos Dashboard v3.2.0 is a lightweight Next.js App Router app for viewing API
+Kairos Dashboard v3.3.0 is a lightweight Next.js App Router app for viewing API
 health, managing local projects, tasks, and memories, reviewing approvals, and
 operating approved n8n workflow triggers and AI workspace planning.
 
@@ -56,7 +56,7 @@ cp .env.example .env.local
 - Memories from `GET /api/v1/memories`
 - Approval requests from `GET /api/v1/approvals`
 - Workflow run history from `GET /api/v1/workflow-runs`
-- AI workspace data from `GET /api/v1/ai/capabilities`, `GET /api/v1/ai/models`, `POST /api/v1/ai/plan`, `POST /api/v1/ai/prompt/dry-run`, `POST /api/v1/ai/ollama/dispatch`, and `POST /api/v1/ai/parse-plan`
+- AI workspace data from `GET /api/v1/ai/provider-router/route`, `GET /api/v1/ai/provider-router/models`, `POST /api/v1/ai/provider-router/dispatch`, `POST /api/v1/ai/plan`, `POST /api/v1/ai/prompt/dry-run`, and `POST /api/v1/ai/parse-plan`
 
 ## Features
 
@@ -66,7 +66,7 @@ cp .env.example .env.local
 - **Search & Filter**: Client-side filtering to quickly find and sort local data.
 - **Project Views**: Focus the dashboard on a single project via `?project_id=` deep links to filter related tasks and memories automatically.
 - **Stats & Overview**: A compact dashboard-wide stats panel showing project, task, and memory counts. When a project is focused, it shows linked task/memory counts and a visual completion progress bar.
-- **AI Workspace**: Enter goals, add optional context, choose a local model, generate advisory plans, parse output, and optionally create approval requests.
+- **AI Workspace**: Enter goals, add optional context, choose a provider/model through the provider router, generate advisory plans, parse output, and optionally create approval requests.
 - **Approval Management**: Inspect and decide pending approval requests without executing anything.
 - **Operator Token**: Save `X-Kairos-Operator-Token` in browser `localStorage` only for protected approve, reject, and trigger actions.
 - **Controlled n8n Trigger**: Trigger approved n8n workflow approvals and explicitly retry failed n8n triggers from the approval detail pane.

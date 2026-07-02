@@ -4,8 +4,8 @@
 
 Kairos OS is planned as a modular system with an API service, a dashboard
 experience, shared documentation, and supporting infrastructure. Kairos Core API
-v3.2.0 builds on the daily operator console with a simple AI Workspace in the
-dashboard.
+v3.3.0 adds an AI provider router so workspace provider selection stays behind
+a backend abstraction.
 
 ## Repository Boundaries
 
@@ -37,7 +37,7 @@ environment-based configuration.
 
 The dashboard is implemented with Next.js as a local interface for Kairos Core
 API health, projects, tasks, memories, registries, AI runtime status, AI
-Workspace planning, approval management, controlled n8n workflow triggering,
+Workspace planning through the provider router, approval management, controlled n8n workflow triggering,
 retry of failed n8n triggers, and workflow run history.
 
 ### Controlled n8n Trigger
@@ -73,6 +73,15 @@ optional local Ollama dispatch, parse-plan display, and explicit approval
 request creation from parsed command suggestions. It does not add chat,
 autonomous agents, backend execution logic, local command execution, connector
 fan-out, or cloud provider calls.
+
+### AI Provider Router
+
+Kairos v3.3.0 adds provider registry and router components under the API core.
+The router owns provider metadata, auto/manual selection policy, fallback order,
+model discovery, and dispatch routing. Ollama is the only functional provider.
+OpenAI, Gemini, and Claude are metadata-only stubs and are never called
+externally. The Workspace uses the router interface instead of provider-specific
+implementation endpoints.
 
 ### Production Acceptance Baseline
 

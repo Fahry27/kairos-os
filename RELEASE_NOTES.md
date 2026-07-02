@@ -1,3 +1,27 @@
+# Kairos v3.3.0 Release Notes
+
+Welcome to Kairos v3.3.0, the **AI Provider Router** release.
+
+## Kairos v3.3.0
+**Date:** July 2026
+
+This release introduces a provider abstraction layer so the Workspace can route
+through multiple provider definitions without knowing implementation details.
+
+### Features
+- **Provider Registry:** Adds first-class provider metadata for Ollama, OpenAI, Gemini, and Claude.
+- **Provider Router:** Adds provider route, model, and dispatch endpoints under the existing AI API.
+- **Selection Policy:** Supports auto and manual provider selection modes with explicit fallback order.
+- **Automatic Fallback:** Metadata-only stubs are skipped and fallback routes to Ollama when available.
+- **Workspace Router Dependency:** The Workspace now uses provider-router model and dispatch APIs instead of Ollama-specific dispatch calls.
+
+### Safety Guarantees
+- Ollama remains the only functional provider in v3.3.0.
+- OpenAI, Gemini, and Claude are metadata-only stubs with no OAuth, token storage, or external API calls.
+- No approval, workflow, backend execution, local command execution, connector fan-out, chat, or autonomous agent logic is changed.
+
+---
+
 # Kairos v3.2.0 Release Notes
 
 Welcome to Kairos v3.2.0, the **AI Workspace** release.

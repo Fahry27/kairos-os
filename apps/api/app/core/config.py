@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="3.2.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="3.3.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     # AI Runtime settings (v2.2.0)
     kairos_ai_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_ENABLED")
     kairos_ai_provider: str = Field(default="ollama", validation_alias="KAIROS_AI_PROVIDER")
+    kairos_ai_provider_mode: str = Field(default="auto", validation_alias="KAIROS_AI_PROVIDER_MODE")
+    kairos_ai_provider_fallback_enabled: bool = Field(
+        default=True,
+        validation_alias="KAIROS_AI_PROVIDER_FALLBACK_ENABLED",
+    )
+    kairos_ai_provider_fallback_order: str = Field(
+        default="ai.ollama,ai.openai,ai.gemini,ai.claude",
+        validation_alias="KAIROS_AI_PROVIDER_FALLBACK_ORDER",
+    )
     kairos_ai_model: str = Field(default="", validation_alias="KAIROS_AI_MODEL")
     kairos_ai_base_url: str = Field(default="", validation_alias="KAIROS_AI_BASE_URL")
     kairos_ai_planning_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_PLANNING_ENABLED")
@@ -129,6 +138,9 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"Invalid APP_ENV: {self.app_env}. Must be one of: development, production, test."
             )
+
+        if self.kairos_ai_provider_mode not in ("auto", "manual"):
+            raise ValueError("KAIROS_AI_PROVIDER_MODE must be 'auto' or 'manual'")
 
         # 2. Validate DATABASE_URL scheme
         if not (self.database_url.startswith("sqlite://") or self.database_url.startswith("postgresql")):

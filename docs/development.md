@@ -74,7 +74,7 @@ Expected response:
 {
   "status": "ok",
   "service": "kairos-api",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "uptime": 12,
   "database": "connected",
   "docker_mode": true
@@ -223,9 +223,9 @@ the contents.
 
 ## Production Operations Support
 
-Kairos v3.2.0 includes enhanced operations, monitoring, AI Workspace planning,
-approval management, controlled n8n webhook trigger support, and workflow run
-history:
+Kairos v3.3.0 includes enhanced operations, monitoring, AI Workspace planning
+through the provider router, approval management, controlled n8n webhook
+trigger support, and workflow run history:
 
 ### Structured Logging
 API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE`. Time is always formatted in UTC ISO. This is stdout/stderr friendly and automatically handled by Docker's logging driver (e.g., `json-file` limited to `max-size: 10m` in `docker-compose.yml`).
@@ -237,7 +237,8 @@ API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] ME
 
 ### Approval Management Dashboard
 
-- The AI Workspace page at `/workspace` uses existing AI runtime endpoints for goal/context planning, prompt dry-run, optional local Ollama dispatch, parse-plan display, and explicit approval request creation.
+- The AI Workspace page at `/workspace` uses provider-router endpoints for provider selection, model discovery, and dispatch. Ollama is the only functional provider; OpenAI, Gemini, and Claude are metadata-only stubs.
+- Workspace planning still uses existing AI runtime endpoints for goal/context planning, prompt dry-run, parse-plan display, and explicit approval request creation.
 - The workspace does not add chat, autonomous agents, backend execution logic, local command execution, connector fan-out, cloud provider calls, or automatic approval creation.
 - The dashboard includes an Approval Management card for viewing pending, approved, rejected, expired, or all approval requests.
 - The card can inspect risk level, action metadata, payload summary, safety notes, decision reason, and non-execution flags.

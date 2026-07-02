@@ -1,12 +1,13 @@
 # Kairos Core API
 
-Kairos Core API (v3.2.0) is a FastAPI service for Kairos domain and control-plane modules:
+Kairos Core API (v3.3.0) is a FastAPI service for Kairos domain and control-plane modules:
 
 - Projects
 - Tasks
 - Memories
 - Approval requests
 - Controlled n8n webhook trigger history
+- AI provider router metadata and dispatch abstraction
 
 The service uses SQLAlchemy with environment-based configuration. Direct local
 runs use persistent SQLite storage by default. Docker Compose runs still use
@@ -98,6 +99,9 @@ pytest
   addition to `X-Kairos-API-Key` when the API key is configured. Swagger
   `/docs` shows separate `KairosApiKey` and `KairosOperatorToken` Authorize
   entries so both headers can be supplied for protected operator actions.
+- `KAIROS_AI_PROVIDER_MODE`: provider router mode, `auto` or `manual`.
+- `KAIROS_AI_PROVIDER_FALLBACK_ENABLED`: enable provider fallback routing.
+- `KAIROS_AI_PROVIDER_FALLBACK_ORDER`: comma-separated provider fallback order.
 - `N8N_WEBHOOK_TRIGGER_ENABLED`: enable the controlled n8n trigger endpoint.
   Defaults to `false`.
 - `N8N_WEBHOOK_URL`: server-side configured n8n webhook URL. Never returned
@@ -138,3 +142,7 @@ sqlite:///.../data/kairos-local.sqlite3
 - `POST /api/v1/approvals/{approval_id}/trigger-n8n`
 - `GET /api/v1/workflow-runs`
 - `GET /api/v1/workflow-runs/{run_id}`
+- `GET /api/v1/ai/provider-router/providers`
+- `GET /api/v1/ai/provider-router/route`
+- `GET /api/v1/ai/provider-router/models`
+- `POST /api/v1/ai/provider-router/dispatch`

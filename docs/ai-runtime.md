@@ -1,11 +1,11 @@
 # AI Runtime Interface
 
-Kairos OS v3.2.0
+Kairos OS v3.3.0
 ================
 
 Kairos OS currently ships with a **metadata-only AI Runtime**. 
 
-> **Important**: In version 3.2.0, the AI Runtime supports local dispatch, response parsing, metadata-only approval request creation, dashboard workspace planning, dashboard approval review, explicit dashboard/API n8n webhook triggering for approved workflow approvals, and sanitized workflow run audit history.
+> **Important**: In version 3.3.0, the AI Runtime supports provider router metadata and selection, local dispatch through the router, response parsing, metadata-only approval request creation, dashboard workspace planning, dashboard approval review, explicit dashboard/API n8n webhook triggering for approved workflow approvals, and sanitized workflow run audit history.
 > - **No commands are executed.**
 > - **No connectors are called.**
 > - **No data is mutated.**
@@ -167,6 +167,12 @@ explicitly create approval requests from parsed command suggestions. It does
 not add chat, autonomous agents, local command execution, connector fan-out, or
 backend execution logic.
 
+Kairos v3.3.0 adds the AI Provider Router. The Workspace uses router endpoints
+for provider selection, model discovery, and dispatch. The router supports auto
+provider mode, manual selection, fallback policy, and provider metadata. Ollama
+is the only functional provider. OpenAI, Gemini, and Claude are metadata-only
+stubs with no OAuth, token storage, or external API calls.
+
 Kairos v3.0.0 promotes the accepted production baseline after verifying:
 `Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
 Kairos v3.1.0 keeps that backend contract and exposes the existing protected
@@ -233,5 +239,6 @@ POST /api/v1/ai/plan
 | **v2.9** | Read-only WorkflowRun history API and dashboard audit trail. |
 | **v3.0** | Production-ready baseline after Zima OS acceptance testing. No autonomous execution. |
 | **v3.1** | Simple daily operator console for dashboard approval decisions, explicit n8n trigger/retry, localStorage operator token, and latest run status. |
-| **v3.2** *(current)* | AI Workspace for goal/context entry, local model selection, safe planning, parsed plan display, and explicit approval request creation. |
-| **Future** | Any chat, agent loop, or autonomous execution work remains out of scope for v3.2.0 and requires a separate design and approval milestone. |
+| **v3.2** | AI Workspace for goal/context entry, local model selection, safe planning, parsed plan display, and explicit approval request creation. |
+| **v3.3** *(current)* | AI Provider Router with auto mode, provider metadata, fallback policy, and metadata-only OpenAI/Gemini/Claude stubs. |
+| **Future** | OAuth, external provider API calls, chat, agent loops, and autonomous execution remain out of scope for v3.3.0 and require separate design milestones. |

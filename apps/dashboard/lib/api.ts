@@ -306,6 +306,58 @@ export type AIProviderModelsResponse = {
   message?: string | null;
 };
 
+export type AIProviderMetadata = {
+  id: string;
+  name: string;
+  provider_type: string;
+  enabled: boolean;
+  functional: boolean;
+  status: string;
+  auth_type: string;
+  oauth_implemented: boolean;
+  external_api_calls_enabled: boolean;
+  default_model?: string | null;
+  configured_model?: string | null;
+  supports_local: boolean;
+  supports_chat: boolean;
+  supports_tools: boolean;
+  supports_vision: boolean;
+  priority: number;
+  capabilities: string[];
+  notes: string[];
+};
+
+export type AIProviderSelectionPolicy = {
+  mode: "auto" | "manual";
+  requested_provider_id?: string | null;
+  selected_provider_id?: string | null;
+  fallback_enabled: boolean;
+  fallback_order: string[];
+  attempts: string[];
+  reason: string;
+};
+
+export type AIProviderRouteResponse = {
+  providers: AIProviderMetadata[];
+  selected_provider?: AIProviderMetadata | null;
+  policy: AIProviderSelectionPolicy;
+  auto_mode: boolean;
+  dispatch_enabled: boolean;
+};
+
+export type AIProviderRouterModelsResponse = {
+  provider_id: string;
+  provider_name: string;
+  policy: AIProviderSelectionPolicy;
+  checked: boolean;
+  reachable?: boolean | null;
+  models: OllamaModelManifest[];
+  model_count: number;
+  configured_model_available?: boolean | null;
+  error_type?: string | null;
+  message?: string | null;
+};
+
 export type AIPromptDryRunRequest = {
   user_goal: string;
   context?: Record<string, unknown>;
@@ -372,6 +424,11 @@ export type AIOllamaDispatchRequest = {
   create_approval_requests?: boolean;
 };
 
+export type AIProviderRouterDispatchRequest = AIOllamaDispatchRequest & {
+  provider_id?: string | null;
+  fallback_enabled?: boolean | null;
+};
+
 export type AIParsedPlanStep = {
   index: number;
   title: string;
@@ -424,6 +481,14 @@ export type AIOllamaDispatchResponse = {
   network_call_performed: boolean;
 };
 
+export type AIProviderRouterDispatchResponse = AIOllamaDispatchResponse & {
+  selected_provider_id: string;
+  selected_provider_name: string;
+  policy: AIProviderSelectionPolicy;
+  fallback_used: boolean;
+  provider_attempts: string[];
+};
+
 export type AIParsePlanRequest = {
   user_goal: string;
   model?: string | null;
@@ -433,6 +498,28 @@ export type AIParsePlanRequest = {
 
 export function getAIModels() {
   return fetchFromApi<AIProviderModelsResponse>("/api/v1/ai/models");
+}
+
+export function getAIProviderRoute(providerId?: string) {
+  const params = new URLSearchParams();
+  if (providerId && providerId !== "auto") {
+    params.set("provider_id", providerId);
+  }
+  const query = params.toString();
+  return fetchFromApi<AIProviderRouteResponse>(
+    `/api/v1/ai/provider-router/route${query ? `?${query}` : ""}`,
+  );
+}
+
+export function getAIProviderRouterModels(providerId?: string) {
+  const params = new URLSearchParams();
+  if (providerId && providerId !== "auto") {
+    params.set("provider_id", providerId);
+  }
+  const query = params.toString();
+  return fetchFromApi<AIProviderRouterModelsResponse>(
+    `/api/v1/ai/provider-router/models${query ? `?${query}` : ""}`,
+  );
 }
 
 export function createAIPlan(userGoal: string, context: Record<string, unknown>) {
@@ -452,6 +539,13 @@ export function createPromptDryRun(payload: AIPromptDryRunRequest) {
 export function dispatchOllama(payload: AIOllamaDispatchRequest) {
   return postToApi<AIOllamaDispatchResponse, AIOllamaDispatchRequest>(
     "/api/v1/ai/ollama/dispatch",
+    payload,
+  );
+}
+
+export function dispatchAIProvider(payload: AIProviderRouterDispatchRequest) {
+  return postToApi<AIProviderRouterDispatchResponse, AIProviderRouterDispatchRequest>(
+    "/api/v1/ai/provider-router/dispatch",
     payload,
   );
 }
