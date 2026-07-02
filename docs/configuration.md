@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.1.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.2.0.
 
 ---
 
@@ -57,6 +57,13 @@ This document details all configuration parameters, environment settings, secret
 ---
 
 ## Approval Management And Workflow Run Safety
+
+Kairos v3.2.0 adds an AI Workspace dashboard page at `/workspace`. It uses the
+existing AI runtime, prompt dry-run, Ollama dispatch, and parse-plan APIs. It
+does not add chat, autonomous agents, backend execution logic, local command
+execution, connector fan-out, cloud provider calls, or automatic approval
+creation. Approval requests are created only through an explicit workspace
+button and remain metadata-only.
 
 Kairos v3.1.0 lets the dashboard view, inspect, approve, and reject approval
 requests created by the Approval Gate. Approval is metadata-only: approving a

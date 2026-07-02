@@ -1,6 +1,6 @@
 # Zima OS (CasaOS) Deployment Guide
 
-Kairos v3.1.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
+Kairos v3.2.0 includes a production-leaning `docker-compose.yml` file located at the repository root. This makes it straightforward to deploy on Zima OS (CasaOS) or any other Docker-based homelab environment.
 
 ## Prerequisites
 - Zima OS / CasaOS installed and running on your local network.
@@ -49,8 +49,9 @@ Kairos v3.1.0 includes a production-leaning `docker-compose.yml` file located at
 
 5. **Verify the Deployment**
     - **Check Containers**: `docker compose ps`
-    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `3.1.0` in the returned JSON.
+    - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `3.2.0` in the returned JSON.
     - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
+    - **Open AI Workspace**: From another device, open `http://<ZIMA_IP>:3000/workspace` for goal-based advisory planning with local models.
     - **Review Approvals**: Use the Approval Management card to view and inspect approval requests. Approving requests remains metadata-only and does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
     - **Controlled n8n Trigger**: If enabled privately, save the operator token in the dashboard's browser-local token field, then trigger only approved n8n workflow approvals from the approval detail pane or `POST /api/v1/approvals/{approval_id}/trigger-n8n`. Do not place operator tokens or webhook URLs in dashboard variables.
     - **Workflow Run History**: Use the Workflow Runs card to inspect sanitized trigger history and latest run status.

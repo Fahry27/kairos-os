@@ -4,8 +4,8 @@
 
 Kairos OS is planned as a modular system with an API service, a dashboard
 experience, shared documentation, and supporting infrastructure. Kairos Core API
-v3.1.0 builds on the Zima OS Production Acceptance Test baseline with a simple
-daily operator console in the dashboard.
+v3.2.0 builds on the daily operator console with a simple AI Workspace in the
+dashboard.
 
 ## Repository Boundaries
 
@@ -36,9 +36,9 @@ environment-based configuration.
 ### Dashboard
 
 The dashboard is implemented with Next.js as a local interface for Kairos Core
-API health, projects, tasks, memories, registries, AI runtime status, and
-approval management, controlled n8n workflow triggering, retry of failed n8n
-triggers, and workflow run history.
+API health, projects, tasks, memories, registries, AI runtime status, AI
+Workspace planning, approval management, controlled n8n workflow triggering,
+retry of failed n8n triggers, and workflow run history.
 
 ### Controlled n8n Trigger
 
@@ -64,6 +64,15 @@ Kairos v3.1.0 exposes the existing protected approve, reject, and trigger-n8n
 actions in the dashboard. The operator token is stored only in browser
 `localStorage`; trigger and retry buttons are shown only for approved n8n
 workflow approvals when no succeeded or running n8n run already exists.
+
+### AI Workspace
+
+Kairos v3.2.0 adds `/workspace`, a dashboard page over the existing AI runtime
+APIs. It supports goal and context entry, local model selection, prompt dry-run,
+optional local Ollama dispatch, parse-plan display, and explicit approval
+request creation from parsed command suggestions. It does not add chat,
+autonomous agents, backend execution logic, local command execution, connector
+fan-out, or cloud provider calls.
 
 ### Production Acceptance Baseline
 

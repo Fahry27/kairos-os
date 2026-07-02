@@ -1,3 +1,28 @@
+# Kairos v3.2.0 Release Notes
+
+Welcome to Kairos v3.2.0, the **AI Workspace** release.
+
+## Kairos v3.2.0
+**Date:** July 2026
+
+This release adds a simple dashboard workspace for everyday local planning with
+the existing AI runtime APIs.
+
+### Features
+- **Workspace page:** Adds `/workspace` for entering a goal, optional context, and local model selection.
+- **Runtime planning:** Generates an advisory plan through the existing AI runtime plan endpoint.
+- **Prompt dry-run:** Shows the safe prompt dry-run context package before local dispatch.
+- **Local model dispatch:** Uses the existing Ollama dispatch endpoint when dispatch is enabled and a model is selected.
+- **Parsed plan display:** Parses model output through the existing parse-plan endpoint and displays structured steps and command suggestions.
+- **Approval request creation:** Creates metadata-only approval requests from a parsed plan only when explicitly requested.
+
+### Safety Guarantees
+- No chat UI, autonomous agents, agent loop, backend execution changes, local command execution, connector fan-out, or cloud provider calls are added.
+- The workspace only calls existing AI runtime, prompt dry-run, dispatch, parse-plan, and approval APIs.
+- Approval creation remains metadata-only and still requires separate operator review before any future execution layer could act.
+
+---
+
 # Kairos v3.1.0 Release Notes
 
 Welcome to Kairos v3.1.0, the **Simple Daily Operator Console** release.

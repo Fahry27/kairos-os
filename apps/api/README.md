@@ -1,6 +1,6 @@
 # Kairos Core API
 
-Kairos Core API (v3.1.0) is a FastAPI service for Kairos domain and control-plane modules:
+Kairos Core API (v3.2.0) is a FastAPI service for Kairos domain and control-plane modules:
 
 - Projects
 - Tasks

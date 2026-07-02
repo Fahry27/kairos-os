@@ -1,11 +1,11 @@
 # AI Runtime Interface
 
-Kairos OS v3.1.0
+Kairos OS v3.2.0
 ================
 
 Kairos OS currently ships with a **metadata-only AI Runtime**. 
 
-> **Important**: In version 3.1.0, the AI Runtime supports local dispatch, response parsing, metadata-only approval request creation, dashboard approval review, explicit dashboard/API n8n webhook triggering for approved workflow approvals, and sanitized workflow run audit history.
+> **Important**: In version 3.2.0, the AI Runtime supports local dispatch, response parsing, metadata-only approval request creation, dashboard workspace planning, dashboard approval review, explicit dashboard/API n8n webhook triggering for approved workflow approvals, and sanitized workflow run audit history.
 > - **No commands are executed.**
 > - **No connectors are called.**
 > - **No data is mutated.**
@@ -160,6 +160,13 @@ store `X-Kairos-Operator-Token` in browser `localStorage`, trigger an approved
 n8n workflow approval, retry a failed n8n trigger only through an explicit
 button, and inspect latest sanitized workflow run status.
 
+Kairos v3.2.0 adds an AI Workspace page at `/workspace`. Operators can enter a
+goal, add optional context, choose a discovered local model, generate an
+advisory plan, dispatch to local Ollama when enabled, parse the response, and
+explicitly create approval requests from parsed command suggestions. It does
+not add chat, autonomous agents, local command execution, connector fan-out, or
+backend execution logic.
+
 Kairos v3.0.0 promotes the accepted production baseline after verifying:
 `Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
 Kairos v3.1.0 keeps that backend contract and exposes the existing protected
@@ -225,5 +232,6 @@ POST /api/v1/ai/plan
 | **v2.8** | Controlled API-only n8n webhook trigger for approved workflow approvals. |
 | **v2.9** | Read-only WorkflowRun history API and dashboard audit trail. |
 | **v3.0** | Production-ready baseline after Zima OS acceptance testing. No autonomous execution. |
-| **v3.1** *(current)* | Simple daily operator console for dashboard approval decisions, explicit n8n trigger/retry, localStorage operator token, and latest run status. |
-| **Future** | Any agent loop or autonomous execution work remains out of scope for v3.1.0 and requires a separate design and approval milestone. |
+| **v3.1** | Simple daily operator console for dashboard approval decisions, explicit n8n trigger/retry, localStorage operator token, and latest run status. |
+| **v3.2** *(current)* | AI Workspace for goal/context entry, local model selection, safe planning, parsed plan display, and explicit approval request creation. |
+| **Future** | Any chat, agent loop, or autonomous execution work remains out of scope for v3.2.0 and requires a separate design and approval milestone. |

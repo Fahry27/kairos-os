@@ -276,6 +276,190 @@ export function getAICapabilities() {
   return fetchFromApi<AICapabilities>("/api/v1/ai/capabilities");
 }
 
+export type OllamaModelDetails = {
+  parent_model?: string | null;
+  format?: string | null;
+  family?: string | null;
+  families?: string[] | null;
+  parameter_size?: string | null;
+  quantization_level?: string | null;
+};
+
+export type OllamaModelManifest = {
+  name: string;
+  model: string;
+  modified_at?: string | null;
+  size?: number | null;
+  digest?: string | null;
+  details?: OllamaModelDetails | null;
+  metadata?: Record<string, unknown>;
+};
+
+export type AIProviderModelsResponse = {
+  provider_id: string;
+  checked: boolean;
+  reachable?: boolean | null;
+  models: OllamaModelManifest[];
+  model_count: number;
+  configured_model_available?: boolean | null;
+  error_type?: string | null;
+  message?: string | null;
+};
+
+export type AIPromptDryRunRequest = {
+  user_goal: string;
+  context?: Record<string, unknown>;
+  preferred_model?: string | null;
+  include_commands?: boolean;
+  include_plugins?: boolean;
+  include_connectors?: boolean;
+};
+
+export type AIPromptDryRunResponse = {
+  dry_run: boolean;
+  provider_id: string;
+  model?: string | null;
+  user_goal: string;
+  system_instructions: string[];
+  context_summary: string;
+  included_commands: Record<string, unknown>[];
+  included_plugins: Record<string, unknown>[];
+  included_connectors: Record<string, unknown>[];
+  safety_policy: string[];
+  estimated_context_items: number;
+  warnings: string[];
+  execution_enabled: boolean;
+  network_call_performed: boolean;
+};
+
+export type AIPlanCommand = {
+  command_id: string;
+  command_name: string;
+  description: string;
+  category: string;
+  execution_required: boolean;
+  requires_approval: boolean;
+  dangerous: boolean;
+};
+
+export type AIPlanStep = {
+  step: number;
+  action: string;
+  rationale: string;
+  commands: AIPlanCommand[];
+};
+
+export type AIPlanResponse = {
+  goal: string;
+  summary: string;
+  available_context: Record<string, unknown>;
+  suggested_steps: AIPlanStep[];
+  suggested_commands: AIPlanCommand[];
+  safety_notes: string[];
+  execution_enabled: boolean;
+  requires_approval: boolean;
+};
+
+export type AIOllamaDispatchRequest = {
+  user_goal: string;
+  context?: Record<string, unknown>;
+  model?: string | null;
+  dry_run_first?: boolean;
+  include_commands?: boolean;
+  include_plugins?: boolean;
+  include_connectors?: boolean;
+  parse_response?: boolean;
+  create_approval_requests?: boolean;
+};
+
+export type AIParsedPlanStep = {
+  index: number;
+  title: string;
+  description: string;
+  requires_approval: boolean;
+  dangerous: boolean;
+  related_command_id?: string | null;
+  confidence?: number | null;
+};
+
+export type AIParsedCommandSuggestion = {
+  command_id: string;
+  reason: string;
+  requires_approval: boolean;
+  dangerous: boolean;
+  execution_required: boolean;
+};
+
+export type AIParsedPlan = {
+  source: string;
+  model?: string | null;
+  user_goal: string;
+  summary: string;
+  steps: AIParsedPlanStep[];
+  command_suggestions: AIParsedCommandSuggestion[];
+  safety_notes: string[];
+  parser_warnings: string[];
+  approval_requests: Record<string, unknown>[];
+  execution_enabled: boolean;
+  command_execution_performed: boolean;
+  connector_calls_performed: boolean;
+  data_mutation_performed: boolean;
+};
+
+export type AIOllamaDispatchResponse = {
+  provider_id: string;
+  model: string;
+  prompt_sent: boolean;
+  response_text: string;
+  raw_response_metadata: Record<string, unknown>;
+  safety_notes: string[];
+  latency_ms: number;
+  truncated: boolean;
+  parsed_plan?: AIParsedPlan | null;
+  approval_requests: Record<string, unknown>[];
+  execution_enabled: boolean;
+  command_execution_performed: boolean;
+  connector_calls_performed: boolean;
+  data_mutation_performed: boolean;
+  network_call_performed: boolean;
+};
+
+export type AIParsePlanRequest = {
+  user_goal: string;
+  model?: string | null;
+  response_text: string;
+  create_approval_requests?: boolean;
+};
+
+export function getAIModels() {
+  return fetchFromApi<AIProviderModelsResponse>("/api/v1/ai/models");
+}
+
+export function createAIPlan(userGoal: string, context: Record<string, unknown>) {
+  return postToApi<AIPlanResponse, { user_goal: string; context: Record<string, unknown> }>(
+    "/api/v1/ai/plan",
+    { user_goal: userGoal, context },
+  );
+}
+
+export function createPromptDryRun(payload: AIPromptDryRunRequest) {
+  return postToApi<AIPromptDryRunResponse, AIPromptDryRunRequest>(
+    "/api/v1/ai/prompt/dry-run",
+    payload,
+  );
+}
+
+export function dispatchOllama(payload: AIOllamaDispatchRequest) {
+  return postToApi<AIOllamaDispatchResponse, AIOllamaDispatchRequest>(
+    "/api/v1/ai/ollama/dispatch",
+    payload,
+  );
+}
+
+export function parseAIPlan(payload: AIParsePlanRequest) {
+  return postToApi<AIParsedPlan, AIParsePlanRequest>("/api/v1/ai/parse-plan", payload);
+}
+
 export type ApprovalActionType =
   | "command"
   | "connector"

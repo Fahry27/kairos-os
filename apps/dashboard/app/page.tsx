@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { HealthCard } from "../components/HealthCard";
 import { AIRuntimeCard } from "../components/AIRuntimeCard";
 import { ApprovalsCard } from "../components/ApprovalsCard";
@@ -20,7 +21,12 @@ export default function DashboardPage() {
           <h1>Simple Daily Operator Console</h1>
           <p className="subtitle">Dashboard connected to {KAIROS_API_URL}</p>
         </div>
-        <div className="apiBadge">API base URL: {KAIROS_API_URL}</div>
+        <div className="topBarActions">
+          <Link className="btnSmall btnSave" href="/workspace">
+            AI Workspace
+          </Link>
+          <div className="apiBadge">API base URL: {KAIROS_API_URL}</div>
+        </div>
       </header>
 
       <div className="dashboardGrid">

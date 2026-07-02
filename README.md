@@ -39,9 +39,9 @@ approval review and controlled n8n workflow triggering.
 
 ## Current Status
 
-- **Version**: Kairos v3.1.0 (Simple Daily Operator Console)
+- **Version**: Kairos v3.2.0 (AI Workspace)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
-- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, approval management, controlled n8n trigger/retry controls, workflow run audit history, and dark mode theming under `apps/dashboard/`.
+- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, AI Workspace planning, approval management, controlled n8n trigger/retry controls, workflow run audit history, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.
 - **Infrastructure**: Core API and Dashboard run via Docker Compose with customized log rotation policies, Portainer Stack support, and trusted reverse proxy configurations.
 - **Development**: See `docs/development.md` for full setup instructions, test commands, and architectural notes.
@@ -50,6 +50,7 @@ approval review and controlled n8n workflow triggering.
 - **Plugins & Extensions**: See [Plugin Framework](docs/plugins.md) for extension manifests layout and registry routes.
 - **Service Connectors**: See [Connector Registry](docs/connectors.md) for external homelab integrations metadata templates.
 - **AI Runtime**: See [AI Runtime Interface](docs/ai-runtime.md) for AI provider registry, capability summary, planning endpoint, and safety model.
+- **AI Workspace**: Use `/workspace` to enter a goal, add optional context, choose a local model, generate an advisory plan, parse the response, and optionally create metadata-only approval requests.
 - **Approval Management**: View, inspect, approve, and reject approval requests from the dashboard. Approval remains metadata-only; approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
 - **Controlled n8n Trigger**: Trigger approved n8n workflow approvals from the dashboard or `POST /api/v1/approvals/{approval_id}/trigger-n8n`. Failed runs require an explicit retry action.
 - **Workflow Run History**: View and inspect sanitized `WorkflowRun` records from the dashboard, including latest run status.
