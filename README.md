@@ -5,7 +5,8 @@ This repository contains the project foundation and the first Kairos Core API
 implementation.
 
 The dashboard application provides a simple local interface for reading from and
-creating records through the Kairos Core API, plus control-plane approval review.
+creating records through the Kairos Core API, plus a daily operator console for
+approval review and controlled n8n workflow triggering.
 
 ## Repository Structure
 
@@ -38,9 +39,9 @@ creating records through the Kairos Core API, plus control-plane approval review
 
 ## Current Status
 
-- **Version**: Kairos v3.0.0 (Production Ready Baseline)
+- **Version**: Kairos v3.1.0 (Simple Daily Operator Console)
 - **Local-first**: The Kairos Core API uses persistent local SQLite storage for direct local API development (`data/kairos-local.sqlite3`).
-- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, approval management, workflow run audit history, and dark mode theming under `apps/dashboard/`.
+- **Dashboard**: Features projects, tasks, memories, CRUD, filtering, project focus views, approval management, controlled n8n trigger/retry controls, workflow run audit history, and dark mode theming under `apps/dashboard/`.
 - **Operations & Monitoring**: Structured logging is unified across backend and backup tasks. Uptime, container health, and endpoint stats are available via `/ready` and `/metrics` JSON endpoints.
 - **Infrastructure**: Core API and Dashboard run via Docker Compose with customized log rotation policies, Portainer Stack support, and trusted reverse proxy configurations.
 - **Development**: See `docs/development.md` for full setup instructions, test commands, and architectural notes.
@@ -50,8 +51,8 @@ creating records through the Kairos Core API, plus control-plane approval review
 - **Service Connectors**: See [Connector Registry](docs/connectors.md) for external homelab integrations metadata templates.
 - **AI Runtime**: See [AI Runtime Interface](docs/ai-runtime.md) for AI provider registry, capability summary, planning endpoint, and safety model.
 - **Approval Management**: View, inspect, approve, and reject approval requests from the dashboard. Approval remains metadata-only; approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
-- **Controlled n8n Trigger**: API-only `POST /api/v1/approvals/{approval_id}/trigger-n8n` can call one configured n8n webhook after an existing workflow approval is explicitly approved.
-- **Workflow Run History**: View and inspect sanitized `WorkflowRun` records from the dashboard without trigger, retry, approval, or execution controls.
+- **Controlled n8n Trigger**: Trigger approved n8n workflow approvals from the dashboard or `POST /api/v1/approvals/{approval_id}/trigger-n8n`. Failed runs require an explicit retry action.
+- **Workflow Run History**: View and inspect sanitized `WorkflowRun` records from the dashboard, including latest run status.
 - **Production Acceptance**: v3.0.0 promotes the proven v2.9.0 Zima OS deployment after verifying the approved approval -> `trigger-n8n` -> n8n webhook -> `WorkflowRun` succeeded path.
 - **Exposure Hardening**: Replace placeholder API keys, operator tokens, webhook URLs, and dashboard secrets before broader network exposure. Restrict `CORS_ORIGINS` to the actual dashboard origins before exposing beyond a private LAN.
 - **Reverse Proxy**: See [Reverse Proxy Setup](docs/reverse-proxy.md) for securing Kairos with domains (like Caddy/Traefik).

@@ -5,6 +5,12 @@ export const KAIROS_API_URL =
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
+export const WORKFLOW_RUNS_REFRESH_EVENT = "kairos:workflow-runs-refresh";
+
+type ApiRequestOptions = {
+  operatorToken?: string;
+};
+
 export type Health = {
   status: string;
   service: string;
@@ -67,7 +73,10 @@ export type MemoryCreate = {
   importance?: string;
 };
 
-function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+function getHeaders(
+  extraHeaders: Record<string, string> = {},
+  options: ApiRequestOptions = {},
+): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...extraHeaders,
@@ -75,6 +84,10 @@ function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, s
   const apiKey = process.env.NEXT_PUBLIC_KAIROS_API_KEY;
   if (apiKey) {
     headers["X-Kairos-API-Key"] = apiKey;
+  }
+  const operatorToken = options.operatorToken?.trim();
+  if (operatorToken) {
+    headers["X-Kairos-Operator-Token"] = operatorToken;
   }
   return headers;
 }
@@ -121,11 +134,12 @@ export async function fetchFromApi<T>(path: string): Promise<ApiResult<T>> {
 export async function postToApi<T, TPayload extends object>(
   path: string,
   payload: TPayload,
+  options: ApiRequestOptions = {},
 ): Promise<ApiResult<T>> {
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
       method: "POST",
-      headers: getHeaders({ "Content-Type": "application/json" }),
+      headers: getHeaders({ "Content-Type": "application/json" }, options),
       body: JSON.stringify(payload),
     });
 
@@ -142,11 +156,14 @@ export async function postToApi<T, TPayload extends object>(
   }
 }
 
-export async function postEmptyToApi<T>(path: string): Promise<ApiResult<T>> {
+export async function postEmptyToApi<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<ApiResult<T>> {
   try {
     const response = await fetch(`${KAIROS_API_URL}${path}`, {
       method: "POST",
-      headers: getHeaders(),
+      headers: getHeaders({}, options),
     });
 
     if (!response.ok) {
@@ -312,14 +329,17 @@ export function getApproval(approvalId: string) {
   return fetchFromApi<ApprovalRequest>(`/api/v1/approvals/${approvalId}`);
 }
 
-export function approveApproval(approvalId: string) {
-  return postEmptyToApi<ApprovalRequest>(`/api/v1/approvals/${approvalId}/approve`);
+export function approveApproval(approvalId: string, operatorToken?: string) {
+  return postEmptyToApi<ApprovalRequest>(`/api/v1/approvals/${approvalId}/approve`, {
+    operatorToken,
+  });
 }
 
-export function rejectApproval(approvalId: string, reason: string) {
+export function rejectApproval(approvalId: string, reason: string, operatorToken?: string) {
   return postToApi<ApprovalRequest, ApprovalDecisionRequest>(
     `/api/v1/approvals/${approvalId}/reject`,
     { reason },
+    { operatorToken },
   );
 }
 
@@ -342,6 +362,10 @@ export type WorkflowRun = {
 
 export type WorkflowRunListStatus = WorkflowRunStatus | "all";
 
+export type WorkflowRunTriggerRequest = {
+  retry_failed?: boolean;
+};
+
 export function listWorkflowRuns(
   status: WorkflowRunListStatus = "all",
   approvalId?: string,
@@ -362,6 +386,18 @@ export function listWorkflowRuns(
 
 export function getWorkflowRun(runId: string) {
   return fetchFromApi<WorkflowRun>(`/api/v1/workflow-runs/${runId}`);
+}
+
+export function triggerN8nApproval(
+  approvalId: string,
+  retryFailed: boolean,
+  operatorToken?: string,
+) {
+  return postToApi<WorkflowRun, WorkflowRunTriggerRequest>(
+    `/api/v1/approvals/${approvalId}/trigger-n8n`,
+    { retry_failed: retryFailed },
+    { operatorToken },
+  );
 }
 
 // ---------------------------------------------------------------------------

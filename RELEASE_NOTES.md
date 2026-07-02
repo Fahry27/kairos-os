@@ -1,3 +1,29 @@
+# Kairos v3.1.0 Release Notes
+
+Welcome to Kairos v3.1.0, the **Simple Daily Operator Console** release.
+
+## Kairos v3.1.0
+**Date:** July 2026
+
+This release makes the dashboard usable for the everyday approval and n8n
+operator flow without Swagger or curl.
+
+### Features
+- **Browser-local operator token:** The dashboard can store `X-Kairos-Operator-Token` in browser `localStorage` only. No operator token is hardcoded or read from dashboard environment variables.
+- **Approval decisions:** Pending approvals can be approved or rejected from the dashboard. Rejection still requires an explicit reason in the UI.
+- **Controlled dashboard n8n trigger:** Approved `workflow` approvals marked as `n8n_webhook` can be triggered from the approval detail pane.
+- **Explicit failed-run retry:** A retry button appears only after a failed n8n workflow run and sends `retry_failed=true`.
+- **Latest workflow status:** Approval details and the Workflow Runs card show the latest sanitized run status, and lists refresh after operator actions.
+
+### Safety Guarantees
+- Backend security is unchanged: approve, reject, and trigger-n8n still use the existing protected API endpoints and require `X-Kairos-Operator-Token` when `KAIROS_OPERATOR_TOKEN` is configured.
+- Approving a request remains metadata-only and never triggers n8n automatically.
+- Trigger and retry buttons are only shown for approved n8n workflow approvals when no succeeded or running run already exists.
+- No chat, planner, agent loop, Hermes, OpenClaw, local command execution, connector fan-out, cloud provider call, or autonomous execution behavior is added.
+- Workflow runs continue to store sanitized metadata only, with no webhook URLs, tokens, credentials, environment values, raw n8n response bodies, or raw LLM responses.
+
+---
+
 # Kairos v3.0.0 Release Notes
 
 Welcome to Kairos v3.0.0, the **Production Ready Baseline** release.

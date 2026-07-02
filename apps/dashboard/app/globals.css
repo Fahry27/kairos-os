@@ -510,6 +510,36 @@ select:focus-visible {
   margin-bottom: 16px;
 }
 
+.operatorTokenPanel {
+  align-items: end;
+  background: #f8fafc;
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) auto;
+  margin-bottom: 16px;
+  padding: 12px;
+}
+
+.operatorTokenPanel h3 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.operatorTokenPanel label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.operatorTokenPanel .successText {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .successText {
   color: var(--accent);
   font-weight: 700;
@@ -678,6 +708,33 @@ select:focus-visible {
   word-break: break-word;
 }
 
+.workflowRunSummary {
+  background: #f8fafc;
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.workflowRunLatestSummary {
+  margin-bottom: 16px;
+}
+
+.workflowRunSummaryHeader {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.workflowRunSummaryHeader span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .approvalDetailBlock ul {
   color: var(--muted);
   line-height: 1.5;
@@ -762,6 +819,8 @@ select:focus-visible {
   .approvalDetails,
   .approvalDetailBlock pre,
   .approvalDecisionBox,
+  .operatorTokenPanel,
+  .workflowRunSummary,
   .workflowRunFilterForm {
     background: #11151a;
   }
@@ -784,6 +843,10 @@ select:focus-visible {
   }
 
   .workflowRunFilterForm {
+    grid-template-columns: 1fr;
+  }
+
+  .operatorTokenPanel {
     grid-template-columns: 1fr;
   }
 

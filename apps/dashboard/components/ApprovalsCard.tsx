@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   approveApproval,
   getApproval,
   listApprovals,
+  listWorkflowRuns,
   rejectApproval,
+  triggerN8nApproval,
   type ApiResult,
   type ApprovalListStatus,
   type ApprovalRequest,
+  type WorkflowRun,
+  WORKFLOW_RUNS_REFRESH_EVENT,
 } from "../lib/api";
 
 const STATUS_FILTERS: ApprovalListStatus[] = [
@@ -18,6 +22,8 @@ const STATUS_FILTERS: ApprovalListStatus[] = [
   "expired",
   "all",
 ];
+const OPERATOR_TOKEN_STORAGE_KEY = "kairos.operatorToken";
+const N8N_TARGET_TYPE = "n8n_webhook";
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
@@ -39,6 +45,33 @@ function renderPayload(value?: Record<string, unknown> | null) {
   return JSON.stringify(value, null, 2);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isN8nWorkflowApproval(approval: ApprovalRequest) {
+  const payload = approval.payload_summary;
+  const workflowType = isRecord(payload) ? payload.workflow_type : null;
+  return (
+    approval.action_type === "workflow" &&
+    (approval.proposed_action_id === N8N_TARGET_TYPE || workflowType === N8N_TARGET_TYPE)
+  );
+}
+
+function getLatestWorkflowRun(runs: WorkflowRun[]) {
+  return [...runs].sort((first, second) => {
+    const firstStarted = new Date(first.started_at).getTime();
+    const secondStarted = new Date(second.started_at).getTime();
+    return secondStarted - firstStarted;
+  })[0];
+}
+
+function notifyWorkflowRunsChanged() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(WORKFLOW_RUNS_REFRESH_EVENT));
+  }
+}
+
 function isGateDisabled(error: string) {
   return error.startsWith("403") && error.toLowerCase().includes("approval gate");
 }
@@ -55,6 +88,10 @@ function RiskBadge({ risk }: { risk: ApprovalRequest["risk_level"] }) {
   return <span className={`approvalBadge approvalRisk-${risk}`}>{risk}</span>;
 }
 
+function WorkflowRunStatusBadge({ status }: { status: WorkflowRun["status"] }) {
+  return <span className={`workflowRunBadge workflowRunBadge-${status}`}>{status}</span>;
+}
+
 function SafetyFlag({ label, value }: { label: string; value: boolean }) {
   return (
     <div>
@@ -64,24 +101,140 @@ function SafetyFlag({ label, value }: { label: string; value: boolean }) {
   );
 }
 
+function OperatorTokenControl({
+  hasOperatorToken,
+  tokenDraft,
+  tokenMessage,
+  onClear,
+  onDraftChange,
+  onSave,
+}: {
+  hasOperatorToken: boolean;
+  tokenDraft: string;
+  tokenMessage: string | null;
+  onClear: () => void;
+  onDraftChange: (value: string) => void;
+  onSave: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <form className="operatorTokenPanel" onSubmit={onSave}>
+      <div>
+        <p className="eyebrow">Operator Token</p>
+        <h3>Protected Actions</h3>
+        <p className="stateText">Stored in this browser only.</p>
+      </div>
+      <label>
+        <span>{hasOperatorToken ? "Replace token" : "Token"}</span>
+        <input
+          autoComplete="off"
+          onChange={(event) => onDraftChange(event.target.value)}
+          placeholder={hasOperatorToken ? "Token saved locally" : "Paste operator token"}
+          type="password"
+          value={tokenDraft}
+        />
+      </label>
+      <div className="recordActions">
+        <button className="btnSmall btnSave" type="submit">
+          {hasOperatorToken ? "Update token" : "Save token"}
+        </button>
+        {hasOperatorToken && (
+          <button className="btnSmall btnOutline" onClick={onClear} type="button">
+            Clear
+          </button>
+        )}
+      </div>
+      {tokenMessage && <p className="successText">{tokenMessage}</p>}
+    </form>
+  );
+}
+
+function LatestWorkflowRunStatus({
+  isLoadingRuns,
+  runResult,
+}: {
+  isLoadingRuns: boolean;
+  runResult: ApiResult<WorkflowRun[]> | null;
+}) {
+  if (isLoadingRuns || !runResult) {
+    return <p className="stateText">Loading latest workflow run...</p>;
+  }
+
+  if (!runResult.ok) {
+    return <p className="errorText">Unable to load workflow runs: {runResult.error}</p>;
+  }
+
+  const latestRun = getLatestWorkflowRun(runResult.data);
+  if (!latestRun) {
+    return <p className="stateText">No n8n workflow run recorded for this approval.</p>;
+  }
+
+  return (
+    <div className="workflowRunSummary">
+      <div className="workflowRunSummaryHeader">
+        <span>Latest run</span>
+        <WorkflowRunStatusBadge status={latestRun.status} />
+      </div>
+      <dl className="approvalMetaGrid">
+        <div>
+          <dt>Run ID</dt>
+          <dd>{latestRun.id}</dd>
+        </div>
+        <div>
+          <dt>HTTP Status</dt>
+          <dd>{latestRun.http_status_code ?? "-"}</dd>
+        </div>
+        <div>
+          <dt>Started</dt>
+          <dd>{formatDateTime(latestRun.started_at)}</dd>
+        </div>
+        <div>
+          <dt>Finished</dt>
+          <dd>{formatDateTime(latestRun.finished_at)}</dd>
+        </div>
+      </dl>
+      {latestRun.sanitized_error && <p className="errorText">{latestRun.sanitized_error}</p>}
+    </div>
+  );
+}
+
 function ApprovalDetails({
   approval,
   actionError,
   isDeciding,
+  isLoadingRuns,
+  isTriggering,
   rejectionReason,
+  runResult,
   onApprove,
   onReject,
   onReasonChange,
+  onTriggerN8n,
 }: {
   approval: ApprovalRequest;
   actionError: string | null;
   isDeciding: boolean;
+  isLoadingRuns: boolean;
+  isTriggering: boolean;
   rejectionReason: string;
+  runResult: ApiResult<WorkflowRun[]> | null;
   onApprove: () => void;
   onReject: () => void;
   onReasonChange: (value: string) => void;
+  onTriggerN8n: (retryFailed: boolean) => void;
 }) {
   const isPending = approval.status === "pending";
+  const isN8nApproval = isN8nWorkflowApproval(approval);
+  const workflowRuns = runResult?.ok ? runResult.data : [];
+  const hasSucceededRun = workflowRuns.some((run) => run.status === "succeeded");
+  const hasRunningRun = workflowRuns.some((run) => run.status === "running");
+  const hasFailedRun = workflowRuns.some((run) => run.status === "failed");
+  const canTriggerN8n =
+    approval.status === "approved" &&
+    isN8nApproval &&
+    runResult?.ok === true &&
+    !hasSucceededRun &&
+    !hasRunningRun;
+  const retryFailed = hasFailedRun;
 
   return (
     <div className="approvalDetails">
@@ -126,9 +279,8 @@ function ApprovalDetails({
       </dl>
 
       <div className="approvalSafetyNote">
-        Approving changes only this approval request status. It does not execute commands,
-        call connectors, trigger n8n, Hermes, or OpenClaw, call cloud providers, or mutate
-        domain data. The execution layer is not implemented.
+        Approving changes only this approval request status. n8n triggering is a separate
+        explicit operator action for approved n8n workflow approvals only.
       </div>
 
       <div className="approvalDetailBlock">
@@ -163,6 +315,15 @@ function ApprovalDetails({
         <SafetyFlag label="Data Mutation" value={approval.data_mutation_performed} />
       </dl>
 
+      {isN8nApproval && (
+        <div className="approvalDetailBlock">
+          <h4>Latest Workflow Run</h4>
+          <LatestWorkflowRunStatus isLoadingRuns={isLoadingRuns} runResult={runResult} />
+        </div>
+      )}
+
+      {actionError && <p className="errorText">{actionError}</p>}
+
       {isPending ? (
         <div className="approvalDecisionBox">
           <label>
@@ -192,10 +353,34 @@ function ApprovalDetails({
               {isDeciding ? "Saving..." : "Reject"}
             </button>
           </div>
-          {actionError && <p className="errorText">{actionError}</p>}
         </div>
       ) : (
         <p className="stateText">Only pending approval requests can be approved or rejected.</p>
+      )}
+
+      {canTriggerN8n && (
+        <div className="approvalDecisionBox">
+          <div>
+            <p className="eyebrow">n8n Workflow</p>
+            <h4>{retryFailed ? "Failed Trigger Retry" : "Approved Trigger"}</h4>
+          </div>
+          <div className="recordActions">
+            <button
+              className={retryFailed ? "btnSmall btnDanger" : "btnSmall btnSave"}
+              disabled={isTriggering}
+              onClick={() => onTriggerN8n(retryFailed)}
+              type="button"
+            >
+              {isTriggering
+                ? retryFailed
+                  ? "Retrying..."
+                  : "Triggering..."
+                : retryFailed
+                  ? "Retry failed n8n trigger"
+                  : "Trigger n8n"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -205,10 +390,16 @@ export function ApprovalsCard() {
   const [statusFilter, setStatusFilter] = useState<ApprovalListStatus>("pending");
   const [result, setResult] = useState<ApiResult<ApprovalRequest[]> | null>(null);
   const [selected, setSelected] = useState<ApprovalRequest | null>(null);
+  const [runResult, setRunResult] = useState<ApiResult<WorkflowRun[]> | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [operatorToken, setOperatorToken] = useState("");
+  const [operatorTokenDraft, setOperatorTokenDraft] = useState("");
+  const [operatorTokenMessage, setOperatorTokenMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDeciding, setIsDeciding] = useState(false);
+  const [isLoadingRuns, setIsLoadingRuns] = useState(false);
+  const [isTriggering, setIsTriggering] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
   async function loadApprovals(nextStatus = statusFilter) {
@@ -219,10 +410,24 @@ export function ApprovalsCard() {
     return nextResult;
   }
 
+  async function loadWorkflowRunsForApproval(approvalId: string) {
+    setIsLoadingRuns(true);
+    const nextResult = await listWorkflowRuns("all", approvalId, N8N_TARGET_TYPE);
+    setRunResult(nextResult);
+    setIsLoadingRuns(false);
+    return nextResult;
+  }
+
+  useEffect(() => {
+    const storedToken = window.localStorage.getItem(OPERATOR_TOKEN_STORAGE_KEY)?.trim() ?? "";
+    setOperatorToken(storedToken);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     setResult(null);
     setSelected(null);
+    setRunResult(null);
     setSuccessMessage(null);
     setActionError(null);
     setRejectionReason("");
@@ -240,11 +445,40 @@ export function ApprovalsCard() {
 
   const approvals = useMemo(() => (result?.ok ? result.data : []), [result]);
 
+  function handleOperatorTokenSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextToken = operatorTokenDraft.trim();
+    if (!nextToken) {
+      window.localStorage.removeItem(OPERATOR_TOKEN_STORAGE_KEY);
+      setOperatorToken("");
+      setOperatorTokenDraft("");
+      setOperatorTokenMessage("Operator token cleared.");
+      return;
+    }
+
+    window.localStorage.setItem(OPERATOR_TOKEN_STORAGE_KEY, nextToken);
+    setOperatorToken(nextToken);
+    setOperatorTokenDraft("");
+    setOperatorTokenMessage("Operator token saved locally.");
+  }
+
+  function handleOperatorTokenClear() {
+    window.localStorage.removeItem(OPERATOR_TOKEN_STORAGE_KEY);
+    setOperatorToken("");
+    setOperatorTokenDraft("");
+    setOperatorTokenMessage("Operator token cleared.");
+  }
+
   async function inspectApproval(approvalId: string) {
     setActionError(null);
     setSuccessMessage(null);
     setRejectionReason("");
-    const detail = await getApproval(approvalId);
+    setRunResult(null);
+    setIsLoadingRuns(true);
+    const [detail, workflowRuns] = await Promise.all([
+      getApproval(approvalId),
+      listWorkflowRuns("all", approvalId, N8N_TARGET_TYPE),
+    ]);
     if (detail.ok) {
       setSelected(detail.data);
     } else {
@@ -252,30 +486,45 @@ export function ApprovalsCard() {
       const fallback = approvals.find((approval) => approval.id === approvalId) ?? null;
       setSelected(fallback);
     }
+    setRunResult(workflowRuns);
+    setIsLoadingRuns(false);
   }
 
   async function handleRefresh() {
     setSuccessMessage(null);
     setActionError(null);
-    await loadApprovals();
+    await Promise.all([
+      loadApprovals(),
+      selected ? loadWorkflowRunsForApproval(selected.id) : Promise.resolve(null),
+    ]);
   }
 
   async function handleApprove() {
     if (!selected) return;
     setIsDeciding(true);
     setActionError(null);
+    setSuccessMessage(null);
 
-    const decision = await approveApproval(selected.id);
-    if (decision.ok) {
-      setSelected(decision.data);
-      setSuccessMessage(`Approved "${decision.data.title}". No execution was performed.`);
-      await loadApprovals();
-    } else {
-      setActionError(`Approve failed: ${decision.error}. Refresh to check current status.`);
-      await loadApprovals();
+    try {
+      const decision = await approveApproval(selected.id, operatorToken);
+      if (decision.ok) {
+        setSelected(decision.data);
+        setSuccessMessage(`Approved "${decision.data.title}". No execution was performed.`);
+        await Promise.all([
+          loadApprovals(),
+          loadWorkflowRunsForApproval(decision.data.id),
+        ]);
+      } else {
+        setActionError(`Approve failed: ${decision.error}. Refresh to check current status.`);
+        await Promise.all([
+          loadApprovals(),
+          loadWorkflowRunsForApproval(selected.id),
+        ]);
+      }
+      notifyWorkflowRunsChanged();
+    } finally {
+      setIsDeciding(false);
     }
-
-    setIsDeciding(false);
   }
 
   async function handleReject() {
@@ -288,19 +537,58 @@ export function ApprovalsCard() {
 
     setIsDeciding(true);
     setActionError(null);
+    setSuccessMessage(null);
 
-    const decision = await rejectApproval(selected.id, reason);
-    if (decision.ok) {
-      setSelected(decision.data);
-      setRejectionReason("");
-      setSuccessMessage(`Rejected "${decision.data.title}". No execution was performed.`);
-      await loadApprovals();
-    } else {
-      setActionError(`Reject failed: ${decision.error}. Refresh to check current status.`);
-      await loadApprovals();
+    try {
+      const decision = await rejectApproval(selected.id, reason, operatorToken);
+      if (decision.ok) {
+        setSelected(decision.data);
+        setRejectionReason("");
+        setSuccessMessage(`Rejected "${decision.data.title}". No execution was performed.`);
+        await Promise.all([
+          loadApprovals(),
+          loadWorkflowRunsForApproval(decision.data.id),
+        ]);
+      } else {
+        setActionError(`Reject failed: ${decision.error}. Refresh to check current status.`);
+        await Promise.all([
+          loadApprovals(),
+          loadWorkflowRunsForApproval(selected.id),
+        ]);
+      }
+      notifyWorkflowRunsChanged();
+    } finally {
+      setIsDeciding(false);
     }
+  }
 
-    setIsDeciding(false);
+  async function handleTriggerN8n(retryFailed: boolean) {
+    if (!selected) return;
+    setIsTriggering(true);
+    setActionError(null);
+    setSuccessMessage(null);
+
+    try {
+      const run = await triggerN8nApproval(selected.id, retryFailed, operatorToken);
+      if (run.ok) {
+        if (run.data.status === "succeeded") {
+          setSuccessMessage(`n8n trigger succeeded for "${selected.title}".`);
+        } else if (run.data.status === "failed") {
+          setActionError(
+            "n8n trigger completed with failed status. Review the latest run before retrying.",
+          );
+        } else {
+          setSuccessMessage(`n8n trigger started for "${selected.title}".`);
+        }
+      } else {
+        setActionError(`n8n trigger failed: ${run.error}. Refresh to check current status.`);
+      }
+
+      await Promise.all([loadApprovals(), loadWorkflowRunsForApproval(selected.id)]);
+      notifyWorkflowRunsChanged();
+    } finally {
+      setIsTriggering(false);
+    }
   }
 
   if (!result) {
@@ -356,8 +644,7 @@ export function ApprovalsCard() {
           <p className="eyebrow">Approval Management</p>
           <h2>Approval Requests</h2>
           <p className="stateText">
-            Review v2.6 Approval Gate requests. Approving is metadata-only and does not
-            execute anything.
+            Review pending requests, decide them, and trigger approved n8n workflows.
           </p>
         </div>
         <button
@@ -371,9 +658,18 @@ export function ApprovalsCard() {
       </div>
 
       <div className="approvalSafetyNote">
-        This dashboard can only inspect requests and mark pending approval metadata as approved
-        or rejected.
+        Approve and reject only update approval state. n8n trigger and retry are separate
+        explicit actions for approved n8n workflow approvals.
       </div>
+
+      <OperatorTokenControl
+        hasOperatorToken={Boolean(operatorToken)}
+        onClear={handleOperatorTokenClear}
+        onDraftChange={setOperatorTokenDraft}
+        onSave={handleOperatorTokenSave}
+        tokenDraft={operatorTokenDraft}
+        tokenMessage={operatorTokenMessage}
+      />
 
       <div className="approvalFilters" role="tablist" aria-label="Approval status filters">
         {STATUS_FILTERS.map((status) => (
@@ -440,10 +736,14 @@ export function ApprovalsCard() {
                 actionError={actionError}
                 approval={selected}
                 isDeciding={isDeciding}
+                isLoadingRuns={isLoadingRuns}
+                isTriggering={isTriggering}
                 onApprove={handleApprove}
                 onReject={handleReject}
                 onReasonChange={setRejectionReason}
+                onTriggerN8n={handleTriggerN8n}
                 rejectionReason={rejectionReason}
+                runResult={runResult}
               />
             ) : (
               <div className="approvalDetails approvalDetailsEmpty">

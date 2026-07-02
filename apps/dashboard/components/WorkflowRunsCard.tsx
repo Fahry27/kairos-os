@@ -1,12 +1,13 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   getWorkflowRun,
   listWorkflowRuns,
   type ApiResult,
   type WorkflowRun,
   type WorkflowRunListStatus,
+  WORKFLOW_RUNS_REFRESH_EVENT,
 } from "../lib/api";
 
 const RUN_STATUS_FILTERS: WorkflowRunListStatus[] = ["all", "running", "succeeded", "failed"];
@@ -28,6 +29,31 @@ function renderSummary(value?: Record<string, unknown> | null) {
 
 function RunStatusBadge({ status }: { status: WorkflowRun["status"] }) {
   return <span className={`workflowRunBadge workflowRunBadge-${status}`}>{status}</span>;
+}
+
+function getLatestRun(runs: WorkflowRun[]) {
+  return [...runs].sort((first, second) => {
+    const firstStarted = new Date(first.started_at).getTime();
+    const secondStarted = new Date(second.started_at).getTime();
+    return secondStarted - firstStarted;
+  })[0];
+}
+
+function LatestRunSummary({ run }: { run: WorkflowRun }) {
+  return (
+    <div className="workflowRunSummary workflowRunLatestSummary">
+      <div className="workflowRunSummaryHeader">
+        <span>Latest run</span>
+        <RunStatusBadge status={run.status} />
+      </div>
+      <div className="metaRow">
+        <span>Approval: {run.approval_id}</span>
+        <span>HTTP: {run.http_status_code ?? "-"}</span>
+        <span>Started: {formatDateTime(run.started_at)}</span>
+      </div>
+      {run.sanitized_error && <p className="errorText">{run.sanitized_error}</p>}
+    </div>
+  );
 }
 
 function WorkflowRunDetails({ run }: { run: WorkflowRun }) {
@@ -90,13 +116,16 @@ export function WorkflowRunsCard() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  async function loadRuns(nextStatus = statusFilter, nextApprovalId = activeApprovalFilter) {
-    setIsRefreshing(true);
-    const nextResult = await listWorkflowRuns(nextStatus, nextApprovalId || undefined);
-    setResult(nextResult);
-    setIsRefreshing(false);
-    return nextResult;
-  }
+  const loadRuns = useCallback(
+    async (nextStatus = statusFilter, nextApprovalId = activeApprovalFilter) => {
+      setIsRefreshing(true);
+      const nextResult = await listWorkflowRuns(nextStatus, nextApprovalId || undefined);
+      setResult(nextResult);
+      setIsRefreshing(false);
+      return nextResult;
+    },
+    [activeApprovalFilter, statusFilter],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -115,7 +144,19 @@ export function WorkflowRunsCard() {
     };
   }, [statusFilter, activeApprovalFilter]);
 
+  useEffect(() => {
+    function refreshWorkflowRuns() {
+      void loadRuns();
+    }
+
+    window.addEventListener(WORKFLOW_RUNS_REFRESH_EVENT, refreshWorkflowRuns);
+    return () => {
+      window.removeEventListener(WORKFLOW_RUNS_REFRESH_EVENT, refreshWorkflowRuns);
+    };
+  }, [loadRuns]);
+
   const runs = useMemo(() => (result?.ok ? result.data : []), [result]);
+  const latestRun = useMemo(() => getLatestRun(runs), [runs]);
 
   async function inspectRun(runId: string) {
     setActionError(null);
@@ -190,9 +231,11 @@ export function WorkflowRunsCard() {
       </div>
 
       <div className="approvalSafetyNote">
-        Read-only sanitized history. No trigger, retry, approval, or execution controls are
-        available here.
+        Read-only sanitized history. Trigger and retry actions are performed from approval
+        details only.
       </div>
+
+      {latestRun && <LatestRunSummary run={latestRun} />}
 
       <div className="approvalFilters" role="tablist" aria-label="Workflow run status filters">
         {RUN_STATUS_FILTERS.map((status) => (

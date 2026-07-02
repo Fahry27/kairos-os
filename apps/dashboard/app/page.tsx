@@ -17,7 +17,7 @@ export default function DashboardPage() {
       <header className="topBar">
         <div>
           <p className="eyebrow">Kairos OS</p>
-          <h1>Local-first Personal AI Operating System</h1>
+          <h1>Simple Daily Operator Console</h1>
           <p className="subtitle">Dashboard connected to {KAIROS_API_URL}</p>
         </div>
         <div className="apiBadge">API base URL: {KAIROS_API_URL}</div>

@@ -1,6 +1,6 @@
 # Configuration & Secrets Management Guide
 
-This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.0.0.
+This document details all configuration parameters, environment settings, secrets handling, and deployment guidance for Kairos v3.1.0.
 
 ---
 
@@ -58,7 +58,7 @@ This document details all configuration parameters, environment settings, secret
 
 ## Approval Management And Workflow Run Safety
 
-Kairos v3.0.0 lets the dashboard view, inspect, approve, and reject approval
+Kairos v3.1.0 lets the dashboard view, inspect, approve, and reject approval
 requests created by the Approval Gate. Approval is metadata-only: approving a
 request changes approval status only. It does not execute commands, call
 connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain
@@ -76,16 +76,17 @@ When `KAIROS_OPERATOR_TOKEN` is set, approve, reject, and trigger-n8n require
 operator actions require both `X-Kairos-API-Key` and
 `X-Kairos-Operator-Token`. Swagger `/docs` exposes separate `KairosApiKey` and
 `KairosOperatorToken` Authorize entries for testing protected operator
-endpoints. Keep real token values server-side only; they must not appear in
-OpenAPI, dashboard variables, committed files, examples, logs, or error
-messages.
+endpoints. The dashboard can store the operator token only in browser
+`localStorage`; do not place it in dashboard environment variables, committed
+files, examples, logs, or error messages.
 
-Workflow run history is observability-only. `GET /api/v1/workflow-runs` and
-`GET /api/v1/workflow-runs/{run_id}` return sanitized metadata for audit review
-and support status, approval ID, and target type filtering. These endpoints and
-the dashboard card do not add trigger, retry, approval, or execution controls.
-Webhook URLs, tokens, credentials, environment values, raw n8n response bodies,
-and raw LLM responses must not be exposed.
+Workflow run history remains sanitized observability. `GET /api/v1/workflow-runs`
+and `GET /api/v1/workflow-runs/{run_id}` return metadata for audit review and
+support status, approval ID, and target type filtering. Dashboard trigger and
+retry controls call the existing approval-bound trigger endpoint only after an
+approval is approved and no succeeded or running run already exists. Webhook
+URLs, tokens, credentials, environment values, raw n8n response bodies, and raw
+LLM responses must not be exposed.
 
 ## Production Acceptance Result
 

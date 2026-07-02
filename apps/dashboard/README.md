@@ -1,8 +1,8 @@
 # Kairos Dashboard
 
-Kairos Dashboard v3.0.0 is a lightweight Next.js App Router app for viewing API
+Kairos Dashboard v3.1.0 is a lightweight Next.js App Router app for viewing API
 health, managing local projects, tasks, and memories, reviewing approvals, and
-inspecting read-only workflow run history.
+operating approved n8n workflow triggers.
 
 ## Setup
 
@@ -66,7 +66,9 @@ cp .env.example .env.local
 - **Project Views**: Focus the dashboard on a single project via `?project_id=` deep links to filter related tasks and memories automatically.
 - **Stats & Overview**: A compact dashboard-wide stats panel showing project, task, and memory counts. When a project is focused, it shows linked task/memory counts and a visual completion progress bar.
 - **Approval Management**: Inspect and decide pending approval requests without executing anything.
-- **Workflow Run History**: Inspect sanitized run metadata without trigger, retry, or execution controls.
+- **Operator Token**: Save `X-Kairos-Operator-Token` in browser `localStorage` only for protected approve, reject, and trigger actions.
+- **Controlled n8n Trigger**: Trigger approved n8n workflow approvals and explicitly retry failed n8n triggers from the approval detail pane.
+- **Workflow Run History**: Inspect sanitized run metadata and latest run status.
 - **Accessibility & Responsive Polish**: Improved layout for mobile devices, proper focus states for keyboard navigation, and ARIA labels for action buttons.
 - **Theming**: Dark mode support via CSS media queries.
 

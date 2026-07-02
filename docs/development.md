@@ -74,7 +74,7 @@ Expected response:
 {
   "status": "ok",
   "service": "kairos-api",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "uptime": 12,
   "database": "connected",
   "docker_mode": true
@@ -223,8 +223,8 @@ the contents.
 
 ## Production Operations Support
 
-Kairos v3.0.0 includes enhanced operations, monitoring, approval management,
-controlled n8n webhook trigger support, and read-only workflow run history:
+Kairos v3.1.0 includes enhanced operations, monitoring, approval management,
+controlled n8n webhook trigger support, and workflow run history:
 
 ### Structured Logging
 API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] MESSAGE`. Time is always formatted in UTC ISO. This is stdout/stderr friendly and automatically handled by Docker's logging driver (e.g., `json-file` limited to `max-size: 10m` in `docker-compose.yml`).
@@ -239,9 +239,10 @@ API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] ME
 - The card can inspect risk level, action metadata, payload summary, safety notes, decision reason, and non-execution flags.
 - Approve/reject controls are available only for pending approvals. Rejection requires a reason in the UI.
 - Approval remains metadata-only. Approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, mutate domain data, store raw LLM responses, or introduce autonomous agent behavior.
-- The API-only `POST /api/v1/approvals/{approval_id}/trigger-n8n` endpoint can trigger one configured n8n webhook only after an existing workflow approval has been explicitly approved.
+- The dashboard and `POST /api/v1/approvals/{approval_id}/trigger-n8n` endpoint can trigger one configured n8n webhook only after an existing workflow approval has been explicitly approved.
+- Failed n8n trigger runs can be retried only through an explicit retry action.
 - n8n trigger runs store sanitized `WorkflowRun` metadata only. They do not store webhook URLs, tokens, credentials, raw n8n response bodies, raw LLM responses, or environment values.
-- The Workflow Runs dashboard card and `/api/v1/workflow-runs` endpoints are read-only audit surfaces. They do not add trigger, retry, approval, or execution controls.
+- The Workflow Runs dashboard card and `/api/v1/workflow-runs` endpoints remain sanitized audit surfaces for latest run status and history.
 
 ### Reverse Proxy & Portainer Compatibility
 - **Root Path Routing**: The API exposes a `ROOT_PATH` setting. If set, FastAPI registers all endpoints relative to the given subpath, which is highly useful when mounting the API behind reverse proxies routing to subfolders.
