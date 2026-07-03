@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -28,6 +29,8 @@ from app.services.decision_plan_validator import (
 
 class PlannerEngineError(RuntimeError):
     """Base error for Planner Engine orchestration failures."""
+
+logger = logging.getLogger(__name__)
 
 
 class PlannerProviderError(PlannerEngineError):
@@ -183,6 +186,7 @@ class PlannerEngine:
         }
 
     def _parse_provider_output(self, response_text: str, settings) -> dict[str, Any]:
+        logger.debug(f"Raw provider output:\n{response_text}")
         max_chars = getattr(settings, "kairos_planner_max_provider_response_chars", 8000)
         if len(response_text) > max_chars:
             raise PlannerOutputError("Provider planning output exceeded configured size limit")
@@ -194,13 +198,16 @@ class PlannerEngine:
 
         if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
             text = text[start_idx : end_idx + 1]
+            logger.debug(f"Extracted JSON string:\n{text}")
 
         try:
             parsed = json.loads(text)
         except json.JSONDecodeError as exc:
+            logger.error(f"Parser exception: {exc}")
             raise PlannerOutputError("Provider planning output is not valid JSON") from exc
 
         if not isinstance(parsed, dict):
+            logger.error("Parsed JSON is not a dictionary.")
             raise PlannerOutputError("Provider planning output must be a JSON object")
         return parsed
 
@@ -208,6 +215,7 @@ class PlannerEngine:
         try:
             return self.validator(payload)
         except DecisionPlanValidationError as exc:
+            logger.error(f"Validation exception for payload: {exc}")
             raise PlannerValidationError(str(exc)) from exc
 
     def _persist(self, db: Session, payload: DecisionPlanCreate) -> DecisionPlan:
