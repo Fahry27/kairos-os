@@ -6,15 +6,16 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-# Set the default API URL for the build context
-ENV NEXT_PUBLIC_KAIROS_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_KAIROS_API_URL
+ENV NEXT_PUBLIC_KAIROS_API_URL=$NEXT_PUBLIC_KAIROS_API_URL
 RUN npm run build
 
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_KAIROS_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_KAIROS_API_URL
+ENV NEXT_PUBLIC_KAIROS_API_URL=$NEXT_PUBLIC_KAIROS_API_URL
 
 # Copy necessary files from builder
 COPY --from=builder /app/package.json ./package.json

@@ -1,7 +1,10 @@
-const DEFAULT_API_URL = "http://localhost:8000";
+const LOCAL_DEV_API_URL = "http://localhost:8000";
+const configuredApiUrl = process.env.NEXT_PUBLIC_KAIROS_API_URL?.trim();
 
 export const KAIROS_API_URL =
-  process.env.NEXT_PUBLIC_KAIROS_API_URL?.replace(/\/$/, "") ?? DEFAULT_API_URL;
+  (configuredApiUrl ||
+    (process.env.NODE_ENV === "development" ? LOCAL_DEV_API_URL : "")
+  ).replace(/\/$/, "");
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
 

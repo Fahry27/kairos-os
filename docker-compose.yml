@@ -49,6 +49,8 @@ services:
     build:
       context: ./apps/dashboard
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_KAIROS_API_URL: ${NEXT_PUBLIC_KAIROS_API_URL:-http://localhost:8000}
     container_name: kairos-dashboard
     restart: unless-stopped
     # Uncomment to load configurations from a local .env file:
@@ -57,7 +59,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_KAIROS_API_URL: http://localhost:8000
+      NEXT_PUBLIC_KAIROS_API_URL: ${NEXT_PUBLIC_KAIROS_API_URL:-http://localhost:8000}
       # NEXT_PUBLIC_KAIROS_API_KEY: "your-secure-api-key-here" # Must match KAIROS_API_KEY if enabled
     logging:
       driver: "json-file"
