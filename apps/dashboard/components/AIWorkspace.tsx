@@ -2,19 +2,14 @@
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  createAIPlan,
-  createPromptDryRun,
-  dispatchAIProvider,
+  createDecisionPlan,
   getAIProviderRoute,
   getAIProviderRouterModels,
-  parseAIPlan,
-  type AIParsedPlan,
   type AIProviderRouteResponse,
-  type AIProviderRouterDispatchResponse,
   type AIProviderRouterModelsResponse,
-  type AIPlanResponse,
-  type AIPromptDryRunResponse,
   type ApiResult,
+  type DecisionPath,
+  type DecisionPlan,
 } from "../lib/api";
 
 function buildContext(rawContext: string): ApiResult<Record<string, unknown>> {
@@ -36,24 +31,6 @@ function buildContext(rawContext: string): ApiResult<Record<string, unknown>> {
   }
 
   return { ok: true, data: { notes: trimmed } };
-}
-
-function planToParseSource(plan: AIPlanResponse) {
-  return JSON.stringify(
-    {
-      summary: plan.summary,
-      steps: plan.suggested_steps.map((step) => ({
-        title: step.action,
-        description: step.rationale,
-      })),
-      commands: plan.suggested_commands.map((command) => ({
-        command_id: command.command_id,
-        reason: command.description || command.command_name,
-      })),
-    },
-    null,
-    2,
-  );
 }
 
 function formatModelSize(value?: number | null) {
@@ -111,28 +88,33 @@ function RuntimeSummary({
   );
 }
 
-function PlanResult({ plan }: { plan: AIPlanResponse }) {
+function EmptyList({ label }: { label: string }) {
+  return <p className="stateText">{label}</p>;
+}
+
+function DecisionPathBlock({ label, path }: { label: string; path: DecisionPath }) {
   return (
     <div className="workspaceResultBlock">
       <div className="workspaceResultHeader">
-        <h3>Runtime Plan</h3>
-        <ResultBadge label="advisory" ok={!plan.execution_enabled} />
+        <h3>{label}</h3>
+        <ResultBadge label={`${path.steps.length} steps`} ok />
       </div>
-      <p>{plan.summary}</p>
+      <h4>{path.title}</h4>
+      <p>{path.summary}</p>
       <ol className="workspaceStepList">
-        {plan.suggested_steps.map((step) => (
-          <li key={step.step}>
-            <strong>{step.action}</strong>
-            <span>{step.rationale}</span>
+        {path.steps.map((step, index) => (
+          <li key={`${path.title}-${index}`}>
+            <strong>{`Step ${index + 1}`}</strong>
+            <span>{step}</span>
           </li>
         ))}
       </ol>
-      {plan.suggested_commands.length > 0 && (
+      {path.capability_refs.length > 0 && (
         <div className="workspaceCommandList">
-          {plan.suggested_commands.map((command) => (
-            <div key={command.command_id}>
-              <strong>{command.command_id}</strong>
-              <span>{command.dangerous ? "high risk" : command.category}</span>
+          {path.capability_refs.map((ref) => (
+            <div key={`${ref.type}-${ref.id}`}>
+              <strong>{ref.id}</strong>
+              <span>{ref.type}</span>
             </div>
           ))}
         </div>
@@ -141,79 +123,104 @@ function PlanResult({ plan }: { plan: AIPlanResponse }) {
   );
 }
 
-function DryRunResult({ dryRun }: { dryRun: AIPromptDryRunResponse }) {
+function DecisionPlanResult({ decisionPlan }: { decisionPlan: DecisionPlan }) {
   return (
-    <div className="workspaceResultBlock">
+    <>
       <div className="workspaceResultHeader">
-        <h3>Prompt Dry-Run</h3>
-        <ResultBadge label={`${dryRun.estimated_context_items} items`} ok />
-      </div>
-      <p>{dryRun.context_summary}</p>
-      {dryRun.warnings.length > 0 && (
-        <ul className="workspacePlainList">
-          {dryRun.warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function DispatchResult({ dispatch }: { dispatch: AIProviderRouterDispatchResponse }) {
-  const error = typeof dispatch.raw_response_metadata.error === "string"
-    ? dispatch.raw_response_metadata.error
-    : null;
-
-  return (
-    <div className="workspaceResultBlock">
-      <div className="workspaceResultHeader">
-        <h3>{dispatch.selected_provider_name} Result</h3>
-        <ResultBadge label={dispatch.fallback_used ? "fallback" : `${dispatch.latency_ms} ms`} ok={!error} />
-      </div>
-      {error ? (
-        <p className="errorText">{error}</p>
-      ) : (
-        <pre className="workspaceResponseText">{dispatch.response_text || "No response text."}</pre>
-      )}
-    </div>
-  );
-}
-
-function ParsedPlanResult({ parsedPlan }: { parsedPlan: AIParsedPlan }) {
-  return (
-    <div className="workspaceResultBlock">
-      <div className="workspaceResultHeader">
-        <h3>Parsed Plan</h3>
-        <ResultBadge label={`${parsedPlan.command_suggestions.length} commands`} ok />
-      </div>
-      <p>{parsedPlan.summary}</p>
-      <ol className="workspaceStepList">
-        {parsedPlan.steps.map((step) => (
-          <li key={`${step.index}-${step.title}`}>
-            <strong>{step.title}</strong>
-            <span>{step.description || "No description."}</span>
-          </li>
-        ))}
-      </ol>
-      {parsedPlan.command_suggestions.length > 0 && (
-        <div className="workspaceCommandList">
-          {parsedPlan.command_suggestions.map((command) => (
-            <div key={command.command_id}>
-              <strong>{command.command_id}</strong>
-              <span>{command.dangerous ? "high risk" : "approval required"}</span>
-            </div>
-          ))}
+        <div>
+          <p className="eyebrow">DecisionPlan</p>
+          <h3>{decisionPlan.goal}</h3>
         </div>
-      )}
-      {parsedPlan.parser_warnings.length > 0 && (
-        <ul className="workspacePlainList">
-          {parsedPlan.parser_warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
-          ))}
-        </ul>
-      )}
-    </div>
+        <div className="approvalBadgeRow">
+          <ResultBadge label={decisionPlan.status} ok />
+          <ResultBadge label={`${Math.round(decisionPlan.confidence * 100)}% confidence`} ok />
+        </div>
+      </div>
+
+      <DecisionPathBlock label="Primary Path" path={decisionPlan.primary_path} />
+
+      <div className="workspaceResultBlock">
+        <div className="workspaceResultHeader">
+          <h3>Alternatives</h3>
+          <ResultBadge label={`${decisionPlan.alternatives.length} options`} ok />
+        </div>
+        {decisionPlan.alternatives.length > 0 ? (
+          decisionPlan.alternatives.map((path) => (
+            <DecisionPathBlock key={`${path.title}-${path.summary}`} label={path.title} path={path} />
+          ))
+        ) : (
+          <EmptyList label="No alternatives returned." />
+        )}
+      </div>
+
+      <div className="workspaceResultBlock">
+        <h3>Rationale</h3>
+        <p>{decisionPlan.rationale}</p>
+      </div>
+
+      <div className="workspaceResultBlock">
+        <h3>Evidence</h3>
+        {decisionPlan.evidence.length > 0 ? (
+          <ul className="workspacePlainList">
+            {decisionPlan.evidence.map((item) => (
+              <li key={`${item.source}-${item.summary}`}>
+                <strong>{item.source}</strong>
+                <span>{item.summary}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyList label="No evidence returned." />
+        )}
+      </div>
+
+      <div className="workspaceResultBlock">
+        <h3>Assumptions</h3>
+        {decisionPlan.assumptions.length > 0 ? (
+          <ul className="workspacePlainList">
+            {decisionPlan.assumptions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyList label="No assumptions returned." />
+        )}
+      </div>
+
+      <div className="workspaceResultBlock">
+        <h3>Risks</h3>
+        {decisionPlan.risks.length > 0 ? (
+          <ul className="workspacePlainList">
+            {decisionPlan.risks.map((risk) => (
+              <li key={`${risk.severity}-${risk.description}`}>
+                <strong>{risk.severity}</strong>
+                <span>{risk.mitigation ? `${risk.description} Mitigation: ${risk.mitigation}` : risk.description}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyList label="No risks returned." />
+        )}
+      </div>
+
+      <div className="workspaceResultBlock">
+        <h3>Constraints</h3>
+        {decisionPlan.constraints.length > 0 ? (
+          <ul className="workspacePlainList">
+            {decisionPlan.constraints.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyList label="No constraints returned." />
+        )}
+      </div>
+
+      <div className="workspaceResultBlock">
+        <h3>Success Definition</h3>
+        <p>{decisionPlan.success_definition}</p>
+      </div>
+    </>
   );
 }
 
@@ -225,14 +232,9 @@ export function AIWorkspace() {
   const [contextText, setContextText] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isCreatingApprovals, setIsCreatingApprovals] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [plan, setPlan] = useState<AIPlanResponse | null>(null);
-  const [dryRun, setDryRun] = useState<AIPromptDryRunResponse | null>(null);
-  const [dispatch, setDispatch] = useState<AIProviderRouterDispatchResponse | null>(null);
-  const [parsedPlan, setParsedPlan] = useState<AIParsedPlan | null>(null);
-  const [parseSourceText, setParseSourceText] = useState("");
+  const [decisionPlan, setDecisionPlan] = useState<DecisionPlan | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -291,102 +293,23 @@ export function AIWorkspace() {
     setIsGenerating(true);
     setError(null);
     setSuccess(null);
-    setPlan(null);
-    setDryRun(null);
-    setDispatch(null);
-    setParsedPlan(null);
-    setParseSourceText("");
-
-    const errors: string[] = [];
+    setDecisionPlan(null);
 
     try {
-      const nextPlan = await createAIPlan(trimmedGoal, contextResult.data);
-      if (nextPlan.ok) {
-        setPlan(nextPlan.data);
-      } else {
-        errors.push(`Runtime plan failed: ${nextPlan.error}`);
-      }
-
-      const nextDryRun = await createPromptDryRun({
-        user_goal: trimmedGoal,
+      const nextDecisionPlan = await createDecisionPlan({
+        goal: trimmedGoal,
         context: contextResult.data,
-        preferred_model: selectedModel || null,
+        provider_id: selectedProvider === "auto" ? null : selectedProvider,
+        model: selectedModel || null,
       });
-      if (nextDryRun.ok) {
-        setDryRun(nextDryRun.data);
+      if (nextDecisionPlan.ok) {
+        setDecisionPlan(nextDecisionPlan.data);
+        setSuccess("DecisionPlan generated.");
       } else {
-        errors.push(`Prompt dry-run failed: ${nextDryRun.error}`);
-      }
-
-      let sourceText = "";
-      if (providerRoute?.ok && providerRoute.data.dispatch_enabled && selectedModel) {
-        const nextDispatch = await dispatchAIProvider({
-          provider_id: selectedProvider === "auto" ? null : selectedProvider,
-          user_goal: trimmedGoal,
-          context: contextResult.data,
-          model: selectedModel,
-          parse_response: false,
-          create_approval_requests: false,
-        });
-        if (nextDispatch.ok) {
-          setDispatch(nextDispatch.data);
-          sourceText = nextDispatch.data.response_text.trim();
-        } else {
-          errors.push(`Provider dispatch failed: ${nextDispatch.error}`);
-        }
-      }
-
-      if (!sourceText && nextPlan.ok) {
-        sourceText = planToParseSource(nextPlan.data);
-      }
-
-      if (sourceText) {
-        const parsed = await parseAIPlan({
-          user_goal: trimmedGoal,
-          model: selectedModel || null,
-          response_text: sourceText,
-          create_approval_requests: false,
-        });
-        if (parsed.ok) {
-          setParsedPlan(parsed.data);
-          setParseSourceText(sourceText);
-        } else {
-          errors.push(`Parse plan failed: ${parsed.error}`);
-        }
-      }
-
-      if (errors.length > 0) {
-        setError(errors.join(" "));
-      } else {
-        setSuccess("Plan generated.");
+        setError(`DecisionPlan generation failed: ${nextDecisionPlan.error}`);
       }
     } finally {
       setIsGenerating(false);
-    }
-  }
-
-  async function handleCreateApprovals() {
-    if (!parseSourceText || !parsedPlan) return;
-    setIsCreatingApprovals(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const created = await parseAIPlan({
-        user_goal: goal.trim(),
-        model: selectedModel || null,
-        response_text: parseSourceText,
-        create_approval_requests: true,
-      });
-      if (created.ok) {
-        setParsedPlan(created.data);
-        const count = created.data.approval_requests.length;
-        setSuccess(`${count} approval request${count === 1 ? "" : "s"} created.`);
-      } else {
-        setError(`Create approvals failed: ${created.error}`);
-      }
-    } finally {
-      setIsCreatingApprovals(false);
     }
   }
 
@@ -395,10 +318,10 @@ export function AIWorkspace() {
       <div className="sectionHeader">
         <div>
           <p className="eyebrow">AI Workspace</p>
-          <h2>Workspace</h2>
+          <h2>Decision Planner</h2>
         </div>
         <div className="approvalBadgeRow">
-          <ResultBadge label="no agents" ok />
+          <ResultBadge label="read-only" ok />
           <ResultBadge label="no execution" ok />
         </div>
       </div>
@@ -477,18 +400,8 @@ export function AIWorkspace() {
 
           <div className="recordActions">
             <button className="btnSmall btnSave" disabled={isGenerating} type="submit">
-              {isGenerating ? "Generating..." : "Generate plan"}
+              {isGenerating ? "Generating..." : "Generate DecisionPlan"}
             </button>
-            {parsedPlan && parsedPlan.command_suggestions.length > 0 && (
-              <button
-                className="btnSmall btnOutline"
-                disabled={isCreatingApprovals}
-                onClick={handleCreateApprovals}
-                type="button"
-              >
-                {isCreatingApprovals ? "Creating..." : "Create approval requests"}
-              </button>
-            )}
           </div>
 
           {success && <p className="successText">{success}</p>}
@@ -496,18 +409,18 @@ export function AIWorkspace() {
         </form>
 
         <div className="workspaceResults">
-          {!plan && !dryRun && !dispatch && !parsedPlan ? (
+          {isGenerating ? (
             <div className="approvalDetails approvalDetailsEmpty">
-              <p className="eyebrow">Plan</p>
-              <h3>No plan generated</h3>
+              <p className="eyebrow">DecisionPlan</p>
+              <h3>Generating DecisionPlan...</h3>
+            </div>
+          ) : !decisionPlan ? (
+            <div className="approvalDetails approvalDetailsEmpty">
+              <p className="eyebrow">DecisionPlan</p>
+              <h3>No DecisionPlan generated</h3>
             </div>
           ) : (
-            <>
-              {plan && <PlanResult plan={plan} />}
-              {dryRun && <DryRunResult dryRun={dryRun} />}
-              {dispatch && <DispatchResult dispatch={dispatch} />}
-              {parsedPlan && <ParsedPlanResult parsedPlan={parsedPlan} />}
-            </>
+            <DecisionPlanResult decisionPlan={decisionPlan} />
           )}
         </div>
       </div>

@@ -554,6 +554,88 @@ export function parseAIPlan(payload: AIParsePlanRequest) {
   return postToApi<AIParsedPlan, AIParsePlanRequest>("/api/v1/ai/parse-plan", payload);
 }
 
+export type DecisionPlanStatus = "draft" | "generating" | "validating" | "proposed";
+
+export type DecisionCapabilityRef = {
+  type: "plugin" | "command" | "connector" | "workflow";
+  id: string;
+};
+
+export type DecisionPath = {
+  title: string;
+  summary: string;
+  steps: string[];
+  capability_refs: DecisionCapabilityRef[];
+};
+
+export type DecisionEvidence = {
+  source: string;
+  summary: string;
+  reference_id?: string | null;
+};
+
+export type DecisionRisk = {
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
+  mitigation?: string | null;
+};
+
+export type DecisionProviderTrace = {
+  provider_id?: string | null;
+  model?: string | null;
+  dispatch_used: boolean;
+  fallback_used: boolean;
+  warnings: string[];
+};
+
+export type DecisionSafetyFlags = {
+  execution_enabled: false;
+  approval_mutation_performed: false;
+  approval_requests_created: false;
+  workflow_triggered: false;
+  workflow_runs_created: false;
+  connector_calls_performed: false;
+  data_mutation_performed: false;
+};
+
+export type DecisionPlan = {
+  id: string;
+  schema_version: "decision_plan.v1";
+  goal: string;
+  status: DecisionPlanStatus;
+  revision: number;
+  root_decision_id?: string | null;
+  parent_decision_plan_id?: string | null;
+  workspace_session_id?: string | null;
+  primary_path: DecisionPath;
+  alternatives: DecisionPath[];
+  rationale: string;
+  evidence: DecisionEvidence[];
+  confidence: number;
+  assumptions: string[];
+  risks: DecisionRisk[];
+  constraints: string[];
+  success_definition: string;
+  provider_trace: DecisionProviderTrace;
+  safety_flags: DecisionSafetyFlags;
+  approval_request_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DecisionPlanCreateRequest = {
+  goal: string;
+  context?: Record<string, unknown>;
+  provider_id?: string | null;
+  model?: string | null;
+  workspace_session_id?: string | null;
+  fallback_enabled?: boolean | null;
+};
+
+export function createDecisionPlan(payload: DecisionPlanCreateRequest) {
+  return postToApi<DecisionPlan, DecisionPlanCreateRequest>("/api/v1/decision-plans", payload);
+}
+
 export type ApprovalActionType =
   | "command"
   | "connector"
