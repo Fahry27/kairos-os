@@ -180,6 +180,17 @@ def test_malformed_provider_output(db_session):
     assert db_session.query(DecisionPlan).count() == 0
 
 
+def test_wrapped_provider_output(db_session):
+    payload = _provider_payload()
+    wrapped_text = f"Here is the plan:\n```json\n{json.dumps(payload)}\n```\nHope this helps!"
+    router = FakeRouter(_dispatch_response(response_text=wrapped_text))
+    engine = PlannerEngine(router=router)
+
+    response = engine.plan(db_session, {"goal": "Plan something"}, _settings())
+    assert response.decision_plan.id is not None
+    assert db_session.query(DecisionPlan).count() == 1
+
+
 def test_validator_rejection(db_session):
     router = FakeRouter(
         _dispatch_response(

@@ -170,13 +170,12 @@ class PlannerEngine:
             raise PlannerOutputError("Provider planning output exceeded configured size limit")
 
         text = response_text.strip()
-        if text.startswith("```"):
-            lines = text.splitlines()
-            if lines and lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            text = "\n".join(lines).strip()
+
+        start_idx = text.find("{")
+        end_idx = text.rfind("}")
+
+        if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
+            text = text[start_idx : end_idx + 1]
 
         try:
             parsed = json.loads(text)
