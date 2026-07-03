@@ -79,6 +79,13 @@ class Settings(BaseSettings):
     kairos_ai_response_parser_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_RESPONSE_PARSER_ENABLED")
     kairos_ai_max_parsed_steps: int = Field(default=10, validation_alias="KAIROS_AI_MAX_PARSED_STEPS")
     kairos_ai_max_parsed_commands: int = Field(default=10, validation_alias="KAIROS_AI_MAX_PARSED_COMMANDS")
+
+    # Decision Planner (v3.4.0)
+    kairos_planner_enabled: bool = Field(default=True, validation_alias="KAIROS_PLANNER_ENABLED")
+    kairos_planner_max_provider_response_chars: int = Field(
+        default=8000,
+        validation_alias="KAIROS_PLANNER_MAX_PROVIDER_RESPONSE_CHARS",
+    )
     
     # Approval Gate (v2.6.0)
     kairos_approval_gate_enabled: bool = Field(default=True, validation_alias="KAIROS_APPROVAL_GATE_ENABLED")
@@ -158,6 +165,9 @@ class Settings(BaseSettings):
         # 4. Validate controlled n8n timeout
         if self.n8n_webhook_timeout_seconds <= 0:
             raise ValueError("N8N_WEBHOOK_TIMEOUT_SECONDS must be greater than 0")
+
+        if self.kairos_planner_max_provider_response_chars <= 0:
+            raise ValueError("KAIROS_PLANNER_MAX_PROVIDER_RESPONSE_CHARS must be greater than 0")
 
         return self
 
