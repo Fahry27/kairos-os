@@ -90,10 +90,28 @@ class PlannerEngine:
             raise PlannerProviderError("AI runtime is disabled")
 
     def _dispatch(self, request: PlannerRequest, settings) -> AIProviderRouterDispatchResponse:
+        prompt_instruction = (
+            "You MUST return a JSON object containing a decision plan. "
+            "Do NOT include conversational text outside the JSON. "
+            "The JSON must have this exact structure:\n"
+            "{\n"
+            '  "primary_path": {"title": "str", "summary": "str", "steps": ["str"], "capability_refs": [{"type": "command", "id": "str"}]},\n'
+            '  "alternatives": [],\n'
+            '  "rationale": "str",\n'
+            '  "evidence": [{"source": "str", "summary": "str"}],\n'
+            '  "confidence": 0.9,\n'
+            '  "assumptions": ["str"],\n'
+            '  "risks": [{"severity": "low", "description": "str"}],\n'
+            '  "constraints": ["str"],\n'
+            '  "success_definition": "str"\n'
+            "}"
+        )
+        enriched_goal = f"{request.goal}\n\n{prompt_instruction}"
+
         dispatch_request = AIProviderRouterDispatchRequest(
             provider_id=request.provider_id,
             fallback_enabled=request.fallback_enabled,
-            user_goal=request.goal,
+            user_goal=enriched_goal,
             context=request.context,
             model=request.model or getattr(settings, "kairos_ai_model", None) or None,
             dry_run_first=True,

@@ -139,6 +139,24 @@ def test_successful_planning(db_session):
     assert db_session.query(DecisionPlan).count() == 1
 
 
+def test_prompt_includes_json_schema(db_session):
+    router = FakeRouter(_dispatch_response())
+    engine = PlannerEngine(router=router)
+
+    engine.plan(
+        db_session,
+        {"goal": "Check system status"},
+        _settings(),
+    )
+
+    assert len(router.calls) == 1
+    dispatched_goal = router.calls[0]["request"].user_goal
+    assert "Check system status" in dispatched_goal
+    assert "You MUST return a JSON object" in dispatched_goal
+    assert '"primary_path"' in dispatched_goal
+    assert '"success_definition"' in dispatched_goal
+
+
 def test_provider_unavailable(db_session):
     router = FakeRouter(
         _dispatch_response(
