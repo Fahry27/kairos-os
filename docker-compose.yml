@@ -16,7 +16,7 @@ services:
       APP_ENV: development
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
-      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost:3000","http://127.0.0.1:3000"]'}
       CREATE_TABLES_ON_STARTUP: "true"
       USE_MOCK_DATA: "false"
       N8N_WEBHOOK_TRIGGER_ENABLED: ${N8N_WEBHOOK_TRIGGER_ENABLED:-false}
