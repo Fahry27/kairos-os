@@ -325,6 +325,11 @@ class AIProviderRouter:
             if not provider.functional:
                 attempts.append(f"{provider_id}:metadata_only")
                 continue
+            from app.core.provider_session import get_session_for_provider
+            session = get_session_for_provider(provider.id, settings)
+            if session is None or not session.is_valid(settings):
+                attempts.append(f"{provider_id}:no_session")
+                continue
             selected = self._provider_with_config(provider, settings)
             attempts.append(f"{provider_id}:selected")
             reason = "auto_selected" if not requested and mode == "auto" else "provider_selected"
