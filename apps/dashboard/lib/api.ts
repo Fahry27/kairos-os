@@ -279,6 +279,18 @@ export function getAICapabilities() {
   return fetchFromApi<AICapabilities>("/api/v1/ai/capabilities");
 }
 
+export type AIProviderReadiness = {
+  provider_id: string;
+  state: "ok" | "unconfigured" | "error";
+  error_type: string | null;
+  message: string | null;
+  timestamp: string;
+};
+
+export function getProviderReadiness(providerId: string) {
+  return fetchFromApi<AIProviderReadiness>(`/api/v1/ai/providers/${providerId}/readiness`);
+}
+
 export type OllamaModelDetails = {
   parent_model?: string | null;
   format?: string | null;

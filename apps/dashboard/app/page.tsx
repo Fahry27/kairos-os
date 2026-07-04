@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { ContinueButton } from "../components/ContinueButton";
+import { ConnectedProvidersCard } from "../components/ConnectedProvidersCard";
 import { ApprovalsCard } from "../components/ApprovalsCard";
 import { ProjectsList } from "../components/ProjectsList";
 import { TasksList } from "../components/TasksList";
@@ -22,6 +23,8 @@ export default function DashboardPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
         
+        <ConnectedProvidersCard />
+
         <Suspense fallback={<p className="stateText">Loading missions...</p>}>
           <ProjectsList />
         </Suspense>
