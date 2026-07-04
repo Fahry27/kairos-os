@@ -279,16 +279,19 @@ export function getAICapabilities() {
   return fetchFromApi<AICapabilities>("/api/v1/ai/capabilities");
 }
 
-export type AIProviderReadiness = {
-  provider_id: string;
-  state: "ok" | "unconfigured" | "error";
-  error_type: string | null;
-  message: string | null;
-  timestamp: string;
+export type RuntimeProviderStatus = {
+  id: string;
+  name: string;
+  status: string;
+  message: string;
 };
 
-export function getProviderReadiness(providerId: string) {
-  return fetchFromApi<AIProviderReadiness>(`/api/v1/ai/providers/${providerId}/readiness`);
+export type RuntimeStatusResponse = {
+  runtimes: RuntimeProviderStatus[];
+};
+
+export function getRuntimeStatus() {
+  return fetchFromApi<RuntimeStatusResponse>("/api/v1/runtime-status");
 }
 
 export type OllamaModelDetails = {

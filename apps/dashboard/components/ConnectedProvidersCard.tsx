@@ -1,56 +1,57 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProviderReadiness, type AIProviderReadiness, type ApiResult } from "../lib/api";
+import { getRuntimeStatus, type RuntimeStatusResponse, type RuntimeProviderStatus, type ApiResult } from "../lib/api";
 
-function ProviderStatusBadge({ readiness, loading }: { readiness: ApiResult<AIProviderReadiness> | null, loading: boolean }) {
+function ProviderStatusBadge({ provider, loading }: { provider: RuntimeProviderStatus | undefined, loading: boolean }) {
   if (loading) {
     return <span className="pill" style={{ color: "var(--muted)", borderColor: "var(--panel-border)", background: "transparent" }}>Checking...</span>;
   }
   
-  if (!readiness) {
+  if (!provider) {
     return <span className="pill" style={{ color: "var(--muted)", borderColor: "var(--panel-border)", background: "transparent" }}>Unknown</span>;
   }
   
-  if (!readiness.ok) {
-    return <span className="pill" style={{ color: "var(--text)", borderColor: "var(--panel-border)", background: "var(--panel)" }} title={readiness.error}>Error</span>;
-  }
-  
-  const state = readiness.data.state;
-  if (state === "ok") {
-    return <span className="pill" style={{ color: "#ffffff", borderColor: "var(--accent)", background: "var(--accent)" }}>Connected</span>;
-  } else if (state === "unconfigured") {
-    return <span className="pill" style={{ color: "var(--amber)", borderColor: "var(--amber)", background: "var(--amber-soft)" }}>Not Configured</span>;
+  if (provider.status === "connected") {
+    return <span className="pill" style={{ color: "#ffffff", borderColor: "var(--accent)", background: "var(--accent)" }} title={provider.message}>Connected</span>;
+  } else if (provider.status === "offline") {
+    return <span className="pill" style={{ color: "var(--amber)", borderColor: "var(--amber)", background: "var(--amber-soft)" }} title={provider.message}>Offline</span>;
+  } else if (provider.status === "not_installed") {
+    return <span className="pill" style={{ color: "var(--amber)", borderColor: "var(--amber)", background: "var(--amber-soft)" }} title={provider.message}>Not Installed</span>;
+  } else if (provider.status === "not_authenticated") {
+    return <span className="pill" style={{ color: "var(--amber)", borderColor: "var(--amber)", background: "var(--amber-soft)" }} title={provider.message}>Not Authenticated</span>;
+  } else if (provider.status === "coming_soon") {
+    return <span className="pill" style={{ color: "var(--muted)", borderColor: "var(--panel-border)", background: "transparent" }} title={provider.message}>Coming Soon</span>;
   } else {
-    return <span className="pill" style={{ color: "#d73a49", borderColor: "#d73a49", background: "#ffeef0" }} title={readiness.data.error_type || "Unknown Error"}>Offline</span>;
+    return <span className="pill" style={{ color: "#d73a49", borderColor: "#d73a49", background: "#ffeef0" }} title={provider.message || "Unknown Error"}>Error</span>;
   }
 }
 
+function getProviderDescription(id: string): string {
+  if (id === "runtime.codex-cli") return "Official ChatGPT CLI session";
+  if (id === "runtime.ollama") return "Local, open-source execution";
+  if (id === "runtime.gemini") return "Native multimodal foundation model";
+  return "AI Runtime";
+}
+
 export function ConnectedProvidersCard() {
-  const [codex, setCodex] = useState<ApiResult<AIProviderReadiness> | null>(null);
-  const [ollama, setOllama] = useState<ApiResult<AIProviderReadiness> | null>(null);
-  const [loadingCodex, setLoadingCodex] = useState(true);
-  const [loadingOllama, setLoadingOllama] = useState(true);
+  const [status, setStatus] = useState<ApiResult<RuntimeStatusResponse> | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     
-    getProviderReadiness("ai.codex").then(res => {
+    getRuntimeStatus().then(res => {
       if (mounted) {
-        setCodex(res);
-        setLoadingCodex(false);
-      }
-    });
-    
-    getProviderReadiness("ai.ollama").then(res => {
-      if (mounted) {
-        setOllama(res);
-        setLoadingOllama(false);
+        setStatus(res);
+        setLoading(false);
       }
     });
     
     return () => { mounted = false; };
   }, []);
+
+  const runtimes = status?.ok ? status.data.runtimes : [];
 
   return (
     <div className="card">
@@ -71,23 +72,18 @@ export function ConnectedProvidersCard() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>OpenAI Codex</strong></td>
-              <td>Official ChatGPT CLI session</td>
-              <td style={{ textAlign: "right" }}><ProviderStatusBadge readiness={codex} loading={loadingCodex} /></td>
-            </tr>
-            <tr>
-              <td><strong>Ollama</strong></td>
-              <td>Local, open-source execution</td>
-              <td style={{ textAlign: "right" }}><ProviderStatusBadge readiness={ollama} loading={loadingOllama} /></td>
-            </tr>
-            <tr>
-              <td><strong style={{ color: "var(--muted)" }}>Google Gemini</strong></td>
-              <td style={{ color: "var(--muted)" }}>Native multimodal foundation model</td>
-              <td style={{ textAlign: "right" }}>
-                <span className="pill" style={{ color: "var(--muted)", borderColor: "var(--panel-border)", background: "transparent" }}>Coming Soon</span>
-              </td>
-            </tr>
+            {!loading && runtimes.map(runtime => (
+              <tr key={runtime.id}>
+                <td><strong style={runtime.status === "coming_soon" ? { color: "var(--muted)" } : undefined}>{runtime.name}</strong></td>
+                <td style={runtime.status === "coming_soon" ? { color: "var(--muted)" } : undefined}>{getProviderDescription(runtime.id)}</td>
+                <td style={{ textAlign: "right" }}><ProviderStatusBadge provider={runtime} loading={false} /></td>
+              </tr>
+            ))}
+            {loading && (
+              <tr>
+                <td colSpan={3} style={{ textAlign: "center", color: "var(--muted)" }}>Checking runtime availability...</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
