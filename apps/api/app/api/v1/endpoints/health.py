@@ -70,7 +70,7 @@ def get_runtime_status(settings: Settings = Depends(get_settings)) -> dict:
         ollama_msg = "Ollama is not configured or offline"
         
     # Check Codex
-    codex_res = CodexCliRuntime().check_readiness(settings)
+    codex_res = CodexCliRuntime().check_readiness()
     if codex_res.reachable:
         codex_status = "connected"
         codex_msg = "Codex CLI is ready"
