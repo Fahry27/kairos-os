@@ -146,6 +146,31 @@ class AIProviderRegistry:
     def _register_defaults(self) -> None:
         self.register(
             AIProviderMetadata(
+                id="ai.codex",
+                name="Codex CLI",
+                provider_type="local",
+                functional=True,
+                status="functional",
+                auth_type="cli",
+                default_model="codex-default",
+                supports_local=True,
+                supports_chat=True,
+                supports_tools=True,
+                supports_vision=False,
+                priority=5,
+                capabilities=["models", "prompt_dry_run", "dispatch", "parse_plan"],
+                notes=["Codex CLI Runtime Provider."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=5),
+                cost=ProviderCostMetadata(tier="free"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=False),
+                }
+            )
+        )
+        self.register(
+            AIProviderMetadata(
                 id="ai.ollama",
                 name="Ollama",
                 provider_type="local",
@@ -414,12 +439,29 @@ class AIProviderRouter:
                 policy=policy,
                 message="No functional provider is available.",
             )
-        if selected.id != "ai.ollama":
+        if selected.id not in ["ai.ollama", "ai.codex"]:
             return AIProviderRouterModelsResponse(
                 provider_id=selected.id,
                 provider_name=selected.name,
                 policy=policy,
                 message="Provider is metadata-only in this release.",
+            )
+
+        if selected.id == "ai.codex":
+            from app.core.codex_runtime import CodexCliRuntime
+            provider = CodexCliRuntime()
+            readiness = provider.check_readiness()
+            return AIProviderRouterModelsResponse(
+                provider_id=selected.id,
+                provider_name=selected.name,
+                policy=policy,
+                checked=readiness.checked,
+                reachable=readiness.reachable,
+                models=[],
+                model_count=1,
+                configured_model_available=True,
+                error_type=readiness.error_type,
+                message=readiness.message or "Codex CLI ready",
             )
 
         models: AIProviderModelsResponse = ai_runtime.get_ollama_models(settings)
@@ -466,7 +508,7 @@ class AIProviderRouter:
                 err_msg = f"Dispatch failed: {last_exception}" if last_exception else "No functional provider is available."
                 return self._router_error_response(request, policy, err_msg, provider_attempts=attempts)
 
-            if selected.id != "ai.ollama":
+            if selected.id not in ["ai.ollama", "ai.codex"]:
                 breaker = circuit_breakers.get(selected.id)
                 breaker.record_failure()
                 
@@ -488,12 +530,22 @@ class AIProviderRouter:
 
             for attempt in range(retry_policy.max_retries):
                 try:
-                    response = ai_runtime.dispatch_to_ollama(
-                        request=ollama_request,
-                        settings=settings,
-                        plugin_registry=plugin_registry,
-                        connector_registry=connector_registry,
-                    )
+                    if selected.id == "ai.codex":
+                        from app.core.codex_runtime import CodexCliRuntime
+                        provider = CodexCliRuntime()
+                        response = provider.dispatch(
+                            request=ollama_request,
+                            settings=settings,
+                            plugin_registry=plugin_registry,
+                            connector_registry=connector_registry,
+                        )
+                    else:
+                        response = ai_runtime.dispatch_to_ollama(
+                            request=ollama_request,
+                            settings=settings,
+                            plugin_registry=plugin_registry,
+                            connector_registry=connector_registry,
+                        )
                     breaker.record_success()
                     return AIProviderRouterDispatchResponse(
                         **response.model_dump(),
