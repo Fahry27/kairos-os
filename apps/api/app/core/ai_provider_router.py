@@ -1,3 +1,4 @@
+from __future__ import annotations
 """AI provider registry and router.
 
 The router gives dashboard clients one provider-facing interface while keeping
