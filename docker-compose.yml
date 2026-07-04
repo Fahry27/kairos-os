@@ -47,6 +47,7 @@ services:
     volumes:
       # Standard volume mapping for Zima OS / Direct Docker Compose
       - ./data:/app/data
+      - kairos_tmp:/tmp
       # Portainer Stack mapping (if using Portainer stack deploy, uncomment below and Named Volumes block at bottom)
       # - kairos_data:/app/data
     logging:
@@ -77,8 +78,24 @@ services:
         max-size: "10m"
         max-file: "3"
 
-# Portainer named volume configuration block:
-# To use named volumes in Portainer, uncomment the block below:
-# volumes:
-#   kairos_data:
-#     name: kairos_data
+  codex-runtime:
+    build:
+      context: ./infra/codex-runtime
+      dockerfile: Dockerfile
+    container_name: codex-runtime
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - kairos_tmp:/tmp
+      - codex_session:/root/.codex
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  kairos_tmp:
+    name: kairos_tmp
+  codex_session:
+    name: codex_session
