@@ -82,6 +82,12 @@ class ProviderSelection:
             if not breaker.is_available():
                 continue
 
+            # 6. Check Health Cache
+            from app.core.provider_health import health_cache
+            health = health_cache.get(p.id)
+            if health and health.status == "offline":
+                continue
+
             candidates.append(p)
 
         # Score candidates and return sorted descending

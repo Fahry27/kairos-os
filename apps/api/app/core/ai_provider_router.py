@@ -307,9 +307,11 @@ class AIProviderRouter:
         attempts: list[str] = []
 
         req_caps = required_capabilities or ["chat"]
+        # Override preferred provider if auto routing (requested_provider_id == "auto") is active
+        is_auto_routing = requested_provider_id == "auto"
         policy = RoutingPolicy(
             mode=mode,
-            preferred_provider_id=requested or (configured if mode == "manual" else None),
+            preferred_provider_id=requested or (None if is_auto_routing else (configured if mode == "manual" else None)),
             required_capabilities=req_caps,
             require_local=getattr(settings, "kairos_ai_provider_offline_mode", False),
         )
@@ -324,17 +326,28 @@ class AIProviderRouter:
                 attempts.append(f"{pref_id}:missing")
             elif not provider.enabled:
                 attempts.append(f"{pref_id}:disabled")
-            elif not provider.functional:
-                attempts.append(f"{pref_id}:metadata_only")
             else:
-                session = get_session_for_provider(provider.id, settings)
-                if session is None or not session.is_valid(settings):
-                    attempts.append(f"{pref_id}:no_session")
-                elif not CapabilityResolver.resolve(provider, policy.required_capabilities):
-                    attempts.append(f"{pref_id}:missing_capabilities")
+                from app.core.fallback import circuit_breakers
+                from app.core.provider_health import health_cache
+                
+                breaker = circuit_breakers.get(provider.id)
+                health = health_cache.get(provider.id)
+                
+                if not breaker.is_available():
+                    attempts.append(f"{pref_id}:circuit_breaker_open")
+                elif health and health.status == "offline":
+                    attempts.append(f"{pref_id}:offline")
                 else:
-                    selected_provider = provider
-                    attempts.append(f"{pref_id}:selected")
+                    session = get_session_for_provider(provider.id, settings)
+                    if session is None or not session.is_valid(settings):
+                        attempts.append(f"{pref_id}:no_session")
+                    elif not provider.functional:
+                        attempts.append(f"{pref_id}:metadata_only")
+                    elif not CapabilityResolver.resolve(provider, policy.required_capabilities):
+                        attempts.append(f"{pref_id}:missing_capabilities")
+                    else:
+                        selected_provider = provider
+                        attempts.append(f"{pref_id}:selected")
 
         # 2. If preferred failed or none was requested, and fallback or auto is active, search registry
         if selected_provider is None and (fallback or policy.mode == "auto"):
@@ -451,7 +464,7 @@ class AIProviderRouter:
 
             if selected is None:
                 err_msg = f"Dispatch failed: {last_exception}" if last_exception else "No functional provider is available."
-                return self._router_error_response(request, policy, err_msg)
+                return self._router_error_response(request, policy, err_msg, provider_attempts=attempts)
 
             if selected.id != "ai.ollama":
                 breaker = circuit_breakers.get(selected.id)
@@ -467,6 +480,7 @@ class AIProviderRouter:
                         policy,
                         "Selected provider is metadata-only in this release.",
                         selected,
+                        provider_attempts=attempts,
                     )
 
             ollama_request = AIOllamaDispatchRequest(**request.model_dump(exclude={"provider_id", "fallback_enabled"}))
@@ -505,6 +519,7 @@ class AIProviderRouter:
                     policy,
                     f"Dispatch failed: {last_exception}",
                     selected,
+                    provider_attempts=attempts,
                 )
 
     def _router_error_response(
@@ -513,6 +528,7 @@ class AIProviderRouter:
         policy: AIProviderSelectionPolicy,
         message: str,
         selected: AIProviderMetadata | None = None,
+        provider_attempts: list[str] | None = None,
     ) -> AIProviderRouterDispatchResponse:
         return AIProviderRouterDispatchResponse(
             provider_id=selected.id if selected else policy.selected_provider_id or "ai.none",
@@ -527,7 +543,7 @@ class AIProviderRouter:
             selected_provider_name=selected.name if selected else "No provider",
             policy=policy,
             fallback_used=False,
-            provider_attempts=policy.attempts,
+            provider_attempts=provider_attempts if provider_attempts is not None else policy.attempts,
             network_call_performed=False,
         )
 

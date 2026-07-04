@@ -53,7 +53,7 @@ def test_provider_router_falls_back_from_metadata_stub():
     assert data["selected_provider"]["id"] == "ai.ollama"
     assert data["policy"]["requested_provider_id"] == "ai.openai"
     assert data["policy"]["reason"] == "fallback_selected"
-    assert "ai.openai:metadata_only" in data["policy"]["attempts"]
+    assert "ai.openai:no_session" in data["policy"]["attempts"]
     assert "ai.ollama:selected" in data["policy"]["attempts"]
 
 
@@ -128,7 +128,7 @@ def test_provider_router_dispatch_falls_back_to_ollama_from_openai_stub(mock_url
         assert data["fallback_used"] is True
         assert data["response_text"] == "Here is the plan."
         assert data["network_call_performed"] is True
-        assert "ai.openai:metadata_only" in data["provider_attempts"]
+        assert "ai.openai:no_session" in data["provider_attempts"]
         assert mock_urlopen.call_count == 1
     finally:
         app.dependency_overrides.pop(get_settings, None)
