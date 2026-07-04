@@ -20,6 +20,32 @@ from app.schemas.decision_plan import DecisionPlanCreate
 
 logger = logging.getLogger(__name__)
 
+def make_openai_compliant(schema: Any) -> Any:
+    if isinstance(schema, list):
+        return [make_openai_compliant(item) for item in schema]
+    elif isinstance(schema, dict):
+        # 1. If it represents an object schema (type is object or it has properties)
+        if schema.get("type") == "object" or "properties" in schema:
+            schema["type"] = "object"
+            schema["additionalProperties"] = False
+            
+            # Ensure all properties are in required
+            properties = schema.get("properties", {})
+            if properties:
+                required = schema.setdefault("required", [])
+                for prop_name in properties:
+                    if prop_name not in required:
+                        required.append(prop_name)
+        
+        # 2. Remove "default" keys (OpenAI doesn't allow defaults in structured outputs)
+        schema.pop("default", None)
+        
+        # 3. Recursively process all children
+        return {k: make_openai_compliant(v) for k, v in schema.items()}
+    else:
+        return schema
+
+
 class CodexCliRuntime:
     """
     Production-ready Codex Runtime Provider.
@@ -126,9 +152,9 @@ class CodexCliRuntime:
                 prompt_lines.append(f"- {policy}")
             prompt_lines.append("")
             
-        if pkg.context:
+        if request.context:
             prompt_lines.append("# Context")
-            for key, val in pkg.context.items():
+            for key, val in request.context.items():
                 prompt_lines.append(f"## {key}")
                 if isinstance(val, (dict, list)):
                     prompt_lines.append(json.dumps(val, indent=2))
@@ -148,9 +174,11 @@ class CodexCliRuntime:
                 schema_path = os.path.join(temp_dir, "planner_schema.json")
                 result_path = os.path.join(temp_dir, "result.json")
                 
-                # Write the schema
+                # Write the schema, made compliant with OpenAI structured outputs
+                raw_schema = DecisionPlanCreate.model_json_schema()
+                compliant_schema = make_openai_compliant(raw_schema)
                 with open(schema_path, "w") as f:
-                    json.dump(DecisionPlanCreate.model_json_schema(), f)
+                    json.dump(compliant_schema, f)
                 
                 cmd = [
                     self.executable_path, "exec",

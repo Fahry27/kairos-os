@@ -96,6 +96,16 @@ def get_session_for_provider(provider_id: str, settings) -> Optional[ProviderSes
             state="active"
         )
 
+    # 2b. Local-only auto-session for Codex
+    if provider_id == "ai.codex":
+        return ProviderSession(
+            session_id="session.codex.local",
+            provider_id="ai.codex",
+            identity=ProviderIdentity(user_id="local_operator", username="local"),
+            credential=ProviderCredential(auth_type="none"),
+            state="active"
+        )
+
     # 3. Environment fallback sessions for OpenAI
     if provider_id == "ai.openai":
         import os

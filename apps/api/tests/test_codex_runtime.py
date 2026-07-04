@@ -155,3 +155,35 @@ def test_codex_dispatch_returns_strict_json(mock_run, mock_dry_run, mock_shutil_
     # Should not raise exception
     parsed = json.loads(response.response_text)
     assert parsed["primary_path"]["title"] == "Test Plan"
+
+def test_make_openai_compliant():
+    from app.core.codex_runtime import make_openai_compliant
+    schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string", "default": "hello"},
+            "age": {"type": "integer"}
+        },
+        "required": ["name"],
+        "$defs": {
+            "SubObj": {
+                "properties": {
+                    "foo": {"type": "string", "default": "bar"}
+                }
+            }
+        }
+    }
+    
+    compliant = make_openai_compliant(schema)
+    
+    assert compliant["type"] == "object"
+    assert compliant["additionalProperties"] is False
+    assert "default" not in compliant["properties"]["name"]
+    assert "age" in compliant["required"]
+    assert "name" in compliant["required"]
+    
+    sub = compliant["$defs"]["SubObj"]
+    assert sub["type"] == "object"
+    assert sub["additionalProperties"] is False
+    assert "default" not in sub["properties"]["foo"]
+    assert "foo" in sub["required"]

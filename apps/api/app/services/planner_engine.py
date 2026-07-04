@@ -187,10 +187,19 @@ class PlannerEngine:
         }
 
     def _parse_provider_output(self, response_text: str, settings) -> dict[str, Any]:
-        logger.debug(f"Raw provider output:\n{response_text}")
+        logger.info(f"Raw provider output:\n{response_text}")
         max_chars = getattr(settings, "kairos_planner_max_provider_response_chars", 8000)
         if len(response_text) > max_chars:
             raise PlannerOutputError("Provider planning output exceeded configured size limit")
+
+        # Save raw output to a temporary file in the workspace
+        try:
+            temp_path = "raw_provider_output.json"
+            with open(temp_path, "w") as f:
+                f.write(response_text)
+            logger.info(f"Saved raw provider output to {temp_path}")
+        except Exception as e:
+            logger.error(f"Failed to save raw provider output: {e}")
 
         text = response_text.strip()
 
@@ -209,7 +218,11 @@ class PlannerEngine:
         try:
             return self.validator(payload)
         except DecisionPlanValidationError as exc:
-            logger.error(f"Validation exception for payload: {exc}")
+            cause = exc.__cause__
+            if cause and hasattr(cause, "errors"):
+                logger.error(f"Pydantic Validation Errors: {cause.errors()}")
+            else:
+                logger.error(f"Validation exception for payload: {exc}")
             raise PlannerValidationError(str(exc)) from exc
 
     def _persist(self, db: Session, payload: DecisionPlanCreate) -> DecisionPlan:
