@@ -112,8 +112,8 @@ class PlannerEngine:
         enriched_goal = f"{request.goal}\n\n{prompt_instruction}"
 
         dispatch_request = AIProviderRouterDispatchRequest(
-            provider_id=request.provider_id,
-            fallback_enabled=request.fallback_enabled,
+            provider_id=request.provider_id or "ai.codex",
+            fallback_enabled=request.fallback_enabled if request.fallback_enabled is not None else True,
             user_goal=enriched_goal,
             context=request.context,
             model=request.model or getattr(settings, "kairos_ai_model", None) or None,
