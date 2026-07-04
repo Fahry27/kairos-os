@@ -27,6 +27,40 @@ def normalize_provider_id(provider_id: str | None) -> str | None:
     return normalized if normalized.startswith("ai.") else f"ai.{normalized}"
 
 
+class ProviderCapability(BaseModel):
+    name: str
+    description: str | None = None
+    enabled: bool = True
+
+
+class ProviderHealthMetadata(BaseModel):
+    status: str = "unknown"
+    last_check: str | None = None
+    error_count: int = 0
+    message: str | None = None
+
+
+class ProviderCostMetadata(BaseModel):
+    tier: str = "medium"
+    input_cost_per_1k: float = 0.0
+    output_cost_per_1k: float = 0.0
+
+
+class ProviderPriorityMetadata(BaseModel):
+    default_priority: int = 100
+    override_priority: int | None = None
+
+    @property
+    def effective_priority(self) -> int:
+        return self.override_priority if self.override_priority is not None else self.default_priority
+
+
+class ProviderPolicyModel(BaseModel):
+    required_capabilities: list[str] = Field(default_factory=list)
+    max_cost_tier: str | None = None
+    require_local: bool = False
+
+
 class AIProviderMetadata(BaseModel):
     id: str
     name: str
@@ -46,6 +80,18 @@ class AIProviderMetadata(BaseModel):
     priority: int = 100
     capabilities: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+    
+    # V2 Metadata
+    health: ProviderHealthMetadata = Field(default_factory=ProviderHealthMetadata)
+    priority_metadata: ProviderPriorityMetadata = Field(default_factory=ProviderPriorityMetadata)
+    cost: ProviderCostMetadata = Field(default_factory=ProviderCostMetadata)
+    capability_registry: dict[str, ProviderCapability] = Field(default_factory=dict)
+
+    def has_capability(self, name: str) -> bool:
+        if name in self.capabilities:
+            return True
+        cap = self.capability_registry.get(name)
+        return cap.enabled if cap else False
 
 
 class AIProviderSelectionPolicy(BaseModel):
@@ -114,6 +160,13 @@ class AIProviderRegistry:
                 priority=10,
                 capabilities=["models", "prompt_dry_run", "dispatch", "parse_plan"],
                 notes=["Only functional provider in v3.3.0."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=10),
+                cost=ProviderCostMetadata(tier="free"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
+                }
             )
         )
         self.register(
@@ -130,6 +183,13 @@ class AIProviderRegistry:
                 priority=50,
                 capabilities=["metadata"],
                 notes=["Provider stub only. No external API calls are implemented."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=50),
+                cost=ProviderCostMetadata(tier="high"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
+                }
             )
         )
         self.register(
@@ -146,6 +206,13 @@ class AIProviderRegistry:
                 priority=60,
                 capabilities=["metadata"],
                 notes=["Provider stub only. No external API calls are implemented."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=60),
+                cost=ProviderCostMetadata(tier="medium"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
+                }
             )
         )
         self.register(
@@ -162,6 +229,13 @@ class AIProviderRegistry:
                 priority=70,
                 capabilities=["metadata"],
                 notes=["Provider stub only. No external API calls are implemented."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=70),
+                cost=ProviderCostMetadata(tier="high"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
+                }
             )
         )
 
@@ -173,10 +247,27 @@ class AIProviderRegistry:
         return self._providers.get(normalized or "")
 
     def list(self, include_disabled: bool = True) -> list[AIProviderMetadata]:
-        providers = sorted(self._providers.values(), key=lambda provider: provider.priority)
+        providers = sorted(self._providers.values(), key=lambda p: (p.priority_metadata.effective_priority, p.priority))
         if include_disabled:
             return providers
         return [provider for provider in providers if provider.enabled]
+
+    def find_by_policy(self, policy: ProviderPolicyModel) -> list[AIProviderMetadata]:
+        results = []
+        for p in self.list(include_disabled=False):
+            if policy.require_local and not p.supports_local:
+                continue
+                
+            missing_cap = False
+            for cap in policy.required_capabilities:
+                if not p.has_capability(cap):
+                    missing_cap = True
+                    break
+            if missing_cap:
+                continue
+                
+            results.append(p)
+        return results
 
 
 class AIProviderRouter:
@@ -187,7 +278,9 @@ class AIProviderRouter:
         raw_order = getattr(settings, "kairos_ai_provider_fallback_order", "")
         order = [normalize_provider_id(item) for item in raw_order.split(",") if item.strip()]
         normalized = [provider_id for provider_id in order if provider_id]
-        return normalized or ["ai.ollama", "ai.openai", "ai.gemini", "ai.claude"]
+        if normalized:
+            return normalized
+        return [p.id for p in self.registry.list()]
 
     def _provider_with_config(self, provider: AIProviderMetadata, settings) -> AIProviderMetadata:
         configured_model = settings.kairos_ai_model if provider.id == "ai.ollama" else None
