@@ -291,7 +291,11 @@ class AIProviderRouter:
         settings,
         requested_provider_id: str | None = None,
         fallback_enabled: bool | None = None,
+        required_capabilities: list[str] | None = None,
     ) -> tuple[AIProviderMetadata | None, AIProviderSelectionPolicy]:
+        from app.core.routing_policy import RoutingPolicy, CapabilityResolver, ProviderSelection
+        from app.core.provider_session import get_session_for_provider
+
         requested = normalize_provider_id(requested_provider_id)
         configured = normalize_provider_id(settings.kairos_ai_provider)
         mode = settings.kairos_ai_provider_mode
@@ -301,41 +305,54 @@ class AIProviderRouter:
 
         fallback_order = self._fallback_order(settings)
         attempts: list[str] = []
-        candidates: list[str] = []
-        if requested:
-            candidates.append(requested)
-        elif mode == "manual" and configured:
-            candidates.append(configured)
-        else:
-            candidates.extend(fallback_order)
 
-        if fallback:
-            for provider_id in fallback_order:
-                if provider_id not in candidates:
-                    candidates.append(provider_id)
+        req_caps = required_capabilities or ["chat"]
+        policy = RoutingPolicy(
+            mode=mode,
+            preferred_provider_id=requested or (configured if mode == "manual" else None),
+            required_capabilities=req_caps,
+            require_local=getattr(settings, "kairos_ai_provider_offline_mode", False),
+        )
 
-        for provider_id in candidates:
-            provider = self.registry.get(provider_id)
+        selected_provider = None
+
+        # 1. Attempt the preferred provider if defined
+        if policy.preferred_provider_id:
+            pref_id = policy.preferred_provider_id
+            provider = self.registry.get(pref_id)
             if provider is None:
-                attempts.append(f"{provider_id}:missing")
-                continue
-            if not provider.enabled:
-                attempts.append(f"{provider_id}:disabled")
-                continue
-            if not provider.functional:
-                attempts.append(f"{provider_id}:metadata_only")
-                continue
-            from app.core.provider_session import get_session_for_provider
-            session = get_session_for_provider(provider.id, settings)
-            if session is None or not session.is_valid(settings):
-                attempts.append(f"{provider_id}:no_session")
-                continue
-            selected = self._provider_with_config(provider, settings)
-            attempts.append(f"{provider_id}:selected")
+                attempts.append(f"{pref_id}:missing")
+            elif not provider.enabled:
+                attempts.append(f"{pref_id}:disabled")
+            elif not provider.functional:
+                attempts.append(f"{pref_id}:metadata_only")
+            else:
+                session = get_session_for_provider(provider.id, settings)
+                if session is None or not session.is_valid(settings):
+                    attempts.append(f"{pref_id}:no_session")
+                elif not CapabilityResolver.resolve(provider, policy.required_capabilities):
+                    attempts.append(f"{pref_id}:missing_capabilities")
+                else:
+                    selected_provider = provider
+                    attempts.append(f"{pref_id}:selected")
+
+        # 2. If preferred failed or none was requested, and fallback or auto is active, search registry
+        if selected_provider is None and (fallback or policy.mode == "auto"):
+            candidates = ProviderSelection.select(self.registry.list(), policy, settings)
+            for c in candidates:
+                if c.id == policy.preferred_provider_id:
+                    continue  # Already attempted above
+                selected_provider = c
+                attempts.append(f"{c.id}:selected")
+                break
+
+        if selected_provider:
+            selected = self._provider_with_config(selected_provider, settings)
             reason = "auto_selected" if not requested and mode == "auto" else "provider_selected"
-            if requested and requested != provider_id:
+            if requested and requested != selected.id:
                 reason = "fallback_selected"
-            policy = AIProviderSelectionPolicy(
+            
+            sel_policy = AIProviderSelectionPolicy(
                 mode=mode,
                 requested_provider_id=requested,
                 selected_provider_id=selected.id,
@@ -344,9 +361,9 @@ class AIProviderRouter:
                 attempts=attempts,
                 reason=reason,
             )
-            return selected, policy
+            return selected, sel_policy
 
-        policy = AIProviderSelectionPolicy(
+        sel_policy = AIProviderSelectionPolicy(
             mode=mode,
             requested_provider_id=requested,
             selected_provider_id=None,
@@ -355,7 +372,7 @@ class AIProviderRouter:
             attempts=attempts,
             reason="no_functional_provider_available",
         )
-        return None, policy
+        return None, sel_policy
 
     def route(self, settings, requested_provider_id: str | None = None) -> AIProviderRouteResponse:
         selected, policy = self.select_provider(settings, requested_provider_id)
