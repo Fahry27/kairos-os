@@ -27,12 +27,7 @@ function ProviderStatusBadge({ provider, loading }: { provider: RuntimeProviderS
   }
 }
 
-function getProviderDescription(id: string): string {
-  if (id === "runtime.codex-cli") return "Official ChatGPT CLI session";
-  if (id === "runtime.ollama") return "Local, open-source execution";
-  if (id === "runtime.gemini") return "Native multimodal foundation model";
-  return "AI Runtime";
-}
+
 
 export function ConnectedProvidersCard() {
   const [status, setStatus] = useState<ApiResult<RuntimeStatusResponse> | null>(null);
@@ -54,38 +49,21 @@ export function ConnectedProvidersCard() {
   const runtimes = status?.ok ? status.data.runtimes : [];
 
   return (
-    <div className="card">
-      <div className="sectionHeader">
-        <div>
-          <p className="eyebrow">Runtimes</p>
-          <h2>Connected Providers</h2>
-        </div>
+    <div className="card" style={{ padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <h3 style={{ fontSize: "1rem", margin: 0 }}>Connected Providers</h3>
       </div>
       
-      <div className="tableWrap" style={{ marginTop: '16px' }}>
-        <table>
-          <thead>
-            <tr>
-              <th>Provider</th>
-              <th>Description</th>
-              <th style={{ textAlign: "right" }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && runtimes.map(runtime => (
-              <tr key={runtime.id}>
-                <td><strong style={runtime.status === "coming_soon" ? { color: "var(--muted)" } : undefined}>{runtime.name}</strong></td>
-                <td style={runtime.status === "coming_soon" ? { color: "var(--muted)" } : undefined}>{getProviderDescription(runtime.id)}</td>
-                <td style={{ textAlign: "right" }}><ProviderStatusBadge provider={runtime} loading={false} /></td>
-              </tr>
-            ))}
-            {loading && (
-              <tr>
-                <td colSpan={3} style={{ textAlign: "center", color: "var(--muted)" }}>Checking runtime availability...</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+        {loading && <span className="stateText" style={{ fontSize: "0.85rem" }}>Checking runtime availability...</span>}
+        {!loading && runtimes.map(runtime => (
+          <div key={runtime.id} style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--background)", padding: "4px 12px", borderRadius: "100px", border: "1px solid var(--panel-border)" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 500, color: runtime.status === "coming_soon" ? "var(--muted)" : "inherit" }}>
+              {runtime.name}
+            </span>
+            <ProviderStatusBadge provider={runtime} loading={false} />
+          </div>
+        ))}
       </div>
     </div>
   );
