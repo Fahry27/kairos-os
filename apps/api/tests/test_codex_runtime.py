@@ -98,3 +98,60 @@ def test_codex_dispatch_success(mock_run, mock_dry_run, mock_shutil_which):
     assert response.provider_id == "ai.codex"
     assert response.prompt_sent is True
     assert "Hello World" in response.response_text
+
+@patch("app.core.codex_runtime.ai_runtime.generate_prompt_dry_run")
+@patch("app.core.codex_runtime.subprocess.run")
+def test_codex_dispatch_returns_strict_json(mock_run, mock_dry_run, mock_shutil_which):
+    """
+    Regression test to ensure CodexCliRuntime returns valid DecisionPlan JSON
+    and uses the correct CLI flags.
+    """
+    mock_shutil_which.return_value = "/bin/codex"
+    
+    mock_pkg = MagicMock()
+    mock_pkg.system_instructions = []
+    mock_pkg.safety_policy = []
+    mock_pkg.context = {}
+    mock_pkg.user_goal = "Strict JSON test"
+    mock_dry_run.return_value = mock_pkg
+    
+    def side_effect(cmd, *args, **kwargs):
+        assert "exec" in cmd
+        assert "--output-schema" in cmd
+        assert "--output-last-message" in cmd
+        
+        result_path = None
+        for i, arg in enumerate(cmd):
+            if arg == "--output-last-message":
+                result_path = cmd[i + 1]
+                break
+                
+        if result_path:
+            with open(result_path, "w") as f:
+                f.write('{"primary_path": {"title": "Test Plan", "summary": "Valid JSON", "steps": [], "capability_refs": []}, "alternatives": [], "rationale": "Test", "evidence": [], "confidence": 0.99, "assumptions": [], "risks": [], "constraints": [], "success_definition": "Test pass"}')
+        
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = ""
+        mock_proc.stderr = ""
+        return mock_proc
+        
+    mock_run.side_effect = side_effect
+    
+    provider = CodexCliRuntime()
+    request = AIOllamaDispatchRequest(
+        model="gpt-4o",
+        user_goal="Strict JSON test",
+    )
+    
+    response = provider.dispatch(
+        request=request,
+        settings=MagicMock(),
+        plugin_registry=MagicMock(),
+        connector_registry=MagicMock()
+    )
+    
+    import json
+    # Should not raise exception
+    parsed = json.loads(response.response_text)
+    assert parsed["primary_path"]["title"] == "Test Plan"

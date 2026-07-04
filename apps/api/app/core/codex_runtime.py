@@ -14,9 +14,9 @@ from app.core.ai_runtime import (
     AIOllamaDispatchResponse,
     AIPromptDryRunRequest,
     AIProviderReadiness,
-    AIParsedPlan,
     ai_runtime,
 )
+from app.schemas.decision_plan import DecisionPlanCreate
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,9 @@ class CodexCliRuntime:
         )
         pkg = ai_runtime.generate_prompt_dry_run(dry_req, settings, plugin_registry, connector_registry)
         
+        # Enforce strict JSON
+        pkg.system_instructions.append("You MUST return ONLY valid JSON. Do not use markdown formatting or ```json wrappers.")
+        
         # 2. Build the Markdown string prompt
         prompt_lines = []
         
@@ -147,7 +150,7 @@ class CodexCliRuntime:
                 
                 # Write the schema
                 with open(schema_path, "w") as f:
-                    json.dump(AIParsedPlan.model_json_schema(), f)
+                    json.dump(DecisionPlanCreate.model_json_schema(), f)
                 
                 cmd = [
                     self.executable_path, "exec",

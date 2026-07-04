@@ -96,6 +96,7 @@ class PlannerEngine:
         prompt_instruction = (
             "You MUST return a JSON object containing a decision plan. "
             "Do NOT include conversational text outside the JSON. "
+            "Do NOT use markdown code blocks (```json) or any formatting. Return ONLY the raw JSON string. "
             "The JSON must have this exact structure:\n"
             "{\n"
             '  "primary_path": {"title": "str", "summary": "str", "steps": ["str"], "capability_refs": [{"type": "command", "id": "str"}]},\n'
@@ -192,13 +193,6 @@ class PlannerEngine:
             raise PlannerOutputError("Provider planning output exceeded configured size limit")
 
         text = response_text.strip()
-
-        start_idx = text.find("{")
-        end_idx = text.rfind("}")
-
-        if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
-            text = text[start_idx : end_idx + 1]
-            logger.debug(f"Extracted JSON string:\n{text}")
 
         try:
             parsed = json.loads(text)

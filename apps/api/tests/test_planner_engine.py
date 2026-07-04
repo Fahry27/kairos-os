@@ -204,9 +204,8 @@ def test_wrapped_provider_output(db_session):
     router = FakeRouter(_dispatch_response(response_text=wrapped_text))
     engine = PlannerEngine(router=router)
 
-    response = engine.plan(db_session, {"goal": "Plan something"}, _settings())
-    assert response.decision_plan.id is not None
-    assert db_session.query(DecisionPlan).count() == 1
+    with pytest.raises(PlannerOutputError):
+        engine.plan(db_session, {"goal": "Plan something"}, _settings())
 
 
 def test_validator_rejection(db_session):

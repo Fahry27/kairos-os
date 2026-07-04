@@ -404,35 +404,37 @@ export function AIWorkspace() {
             </select>
           </label>
 
-          <label>
-            <span>Model</span>
-            {modelOptions.length > 0 ? (
-              <select
-                onChange={(event) => setSelectedModel(event.target.value)}
-                value={selectedModel}
-              >
-                {modelOptions.map((modelName) => {
-                  const manifest = models?.ok
-                    ? models.data.models.find(
-                        (model) => model.model === modelName || model.name === modelName,
-                      )
-                    : undefined;
-                  const size = formatModelSize(manifest?.size);
-                  return (
-                    <option key={modelName} value={modelName}>
-                      {size ? `${modelName} (${size})` : modelName}
-                    </option>
-                  );
-                })}
-              </select>
-            ) : (
-              <input
-                onChange={(event) => setSelectedModel(event.target.value)}
-                placeholder="No model discovered"
-                value={selectedModel}
-              />
-            )}
-          </label>
+          {selectedProvider !== "ai.codex" && (
+            <label>
+              <span>Model</span>
+              {modelOptions.length > 0 ? (
+                <select
+                  onChange={(event) => setSelectedModel(event.target.value)}
+                  value={selectedModel}
+                >
+                  {modelOptions.map((modelName) => {
+                    const manifest = models?.ok
+                      ? models.data.models.find(
+                          (model) => model.model === modelName || model.name === modelName,
+                        )
+                      : undefined;
+                    const size = formatModelSize(manifest?.size);
+                    return (
+                      <option key={modelName} value={modelName}>
+                        {size ? `${modelName} (${size})` : modelName}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <input
+                  onChange={(event) => setSelectedModel(event.target.value)}
+                  placeholder="No model discovered"
+                  value={selectedModel}
+                />
+              )}
+            </label>
+          )}
 
           <div className="recordActions">
             <button className="btnSmall btnSave" disabled={isGenerating} type="submit">
