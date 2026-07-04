@@ -138,8 +138,8 @@ function ProjectItem({
       </div>
       <div className="recordActions">
         {!isFocused && (
-          <button className="btnSmall btnOutline" onClick={onFocus} type="button" aria-label={`View project ${project.name}`}>
-            View
+          <button className="btnSmall btnSave" onClick={onFocus} type="button" aria-label={`Continue project ${project.name}`}>
+            Continue Mission
           </button>
         )}
         <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit project ${project.name}`}>
@@ -250,8 +250,8 @@ export function ProjectsList() {
     <section className="card">
       <div className="sectionHeader">
         <div>
-          <p className="eyebrow">Projects</p>
-          <h2>Active Work</h2>
+          <p className="eyebrow">Active Mission</p>
+          <h2>Mission Control</h2>
         </div>
       </div>
 

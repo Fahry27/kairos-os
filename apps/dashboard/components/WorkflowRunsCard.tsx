@@ -190,7 +190,7 @@ export function WorkflowRunsCard() {
   if (!result) {
     return (
       <section className="card cardWide">
-        <p className="eyebrow">Workflow Runs</p>
+        <p className="eyebrow">Recent Outcomes</p>
         <h2>Loading audit trail...</h2>
       </section>
     );
@@ -201,7 +201,7 @@ export function WorkflowRunsCard() {
       <section className="card cardWide">
         <div className="sectionHeader">
           <div>
-            <p className="eyebrow">Workflow Runs</p>
+            <p className="eyebrow">Recent Outcomes</p>
             <h2>Unavailable</h2>
           </div>
           <button className="btnSmall btnOutline" onClick={handleRefresh} type="button">
@@ -217,7 +217,7 @@ export function WorkflowRunsCard() {
     <section className="card cardWide">
       <div className="sectionHeader">
         <div>
-          <p className="eyebrow">Workflow Runs</p>
+          <p className="eyebrow">Recent Outcomes</p>
           <h2>Audit Trail</h2>
         </div>
         <button

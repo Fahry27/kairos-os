@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AIWorkspace } from "../../components/AIWorkspace";
 import { KAIROS_API_URL } from "../../lib/api";
@@ -16,7 +17,9 @@ export default function WorkspacePage() {
         </Link>
       </header>
 
-      <AIWorkspace />
+      <Suspense fallback={<p className="stateText">Loading Workspace...</p>}>
+        <AIWorkspace />
+      </Suspense>
     </main>
   );
 }

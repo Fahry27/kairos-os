@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import {
   createTask,
@@ -146,6 +147,14 @@ function TaskRow({
       <td>{formatDate(task.due_date)}</td>
       <td>
         <div className="recordActions" style={{ marginTop: 0 }}>
+          <Link 
+            href={`/workspace?goal=${encodeURIComponent(task.title)}`}
+            className="btnSmall btnSave" 
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+            aria-label={`Plan task ${task.title}`}
+          >
+            Plan Decision
+          </Link>
           <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit task ${task.title}`}>
             Edit
           </button>
@@ -243,8 +252,8 @@ export function TasksList() {
     <section className="card">
       <div className="sectionHeader">
         <div>
-          <p className="eyebrow">Tasks</p>
-          <h2>Queue</h2>
+          <p className="eyebrow">Current Decision</p>
+          <h2>Decisions Queue</h2>
         </div>
       </div>
       <form className="resourceForm" onSubmit={handleSubmit}>

@@ -594,7 +594,7 @@ export function ApprovalsCard() {
   if (!result) {
     return (
       <section className="card cardWide">
-        <p className="eyebrow">Approval Management</p>
+        <p className="eyebrow">Pending Approval</p>
         <h2>Loading approval requests...</h2>
       </section>
     );
@@ -605,7 +605,7 @@ export function ApprovalsCard() {
       <section className="card cardWide">
         <div className="sectionHeader">
           <div>
-            <p className="eyebrow">Approval Management</p>
+            <p className="eyebrow">Pending Approval</p>
             <h2>Safety-Gated</h2>
           </div>
           <button className="btnSmall btnOutline" onClick={handleRefresh} type="button">
@@ -625,7 +625,7 @@ export function ApprovalsCard() {
       <section className="card cardWide">
         <div className="sectionHeader">
           <div>
-            <p className="eyebrow">Approval Management</p>
+            <p className="eyebrow">Pending Approval</p>
             <h2>Unavailable</h2>
           </div>
           <button className="btnSmall btnOutline" onClick={handleRefresh} type="button">
@@ -641,7 +641,7 @@ export function ApprovalsCard() {
     <section className="card cardWide">
       <div className="sectionHeader">
         <div>
-          <p className="eyebrow">Approval Management</p>
+          <p className="eyebrow">Pending Approval</p>
           <h2>Approval Requests</h2>
           <p className="stateText">
             Review pending requests, decide them, and trigger approved n8n workflows.

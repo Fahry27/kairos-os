@@ -224,11 +224,16 @@ function DecisionPlanResult({ decisionPlan }: { decisionPlan: DecisionPlan }) {
   );
 }
 
+import { useSearchParams } from "next/navigation";
+
 export function AIWorkspace() {
+  const searchParams = useSearchParams();
+  const initialGoal = searchParams.get("goal") || "";
+
   const [providerRoute, setProviderRoute] = useState<ApiResult<AIProviderRouteResponse> | null>(null);
   const [models, setModels] = useState<ApiResult<AIProviderRouterModelsResponse> | null>(null);
   const [selectedProvider, setSelectedProvider] = useState("auto");
-  const [goal, setGoal] = useState("");
+  const [goal, setGoal] = useState(initialGoal);
   const [contextText, setContextText] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
