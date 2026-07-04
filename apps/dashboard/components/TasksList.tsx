@@ -148,7 +148,7 @@ function TaskRow({
       <td>
         <div className="recordActions" style={{ marginTop: 0 }}>
           <Link 
-            href={`/workspace?goal=${encodeURIComponent(task.title)}`}
+            href={`/workspace?goal=${encodeURIComponent(task.title)}&mission_id=${encodeURIComponent(task.project_id || '')}`}
             className="btnSmall btnSave" 
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             aria-label={`Plan task ${task.title}`}

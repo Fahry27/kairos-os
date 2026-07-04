@@ -228,18 +228,49 @@ import { useSearchParams } from "next/navigation";
 
 export function AIWorkspace() {
   const searchParams = useSearchParams();
-  const initialGoal = searchParams.get("goal") || "";
-
+  
   const [providerRoute, setProviderRoute] = useState<ApiResult<AIProviderRouteResponse> | null>(null);
   const [models, setModels] = useState<ApiResult<AIProviderRouterModelsResponse> | null>(null);
   const [selectedProvider, setSelectedProvider] = useState("auto");
-  const [goal, setGoal] = useState(initialGoal);
+  const [goal, setGoal] = useState("");
   const [contextText, setContextText] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [decisionPlan, setDecisionPlan] = useState<DecisionPlan | null>(null);
+
+  // Initialize and persist workspace context
+  useEffect(() => {
+    const queryGoal = searchParams.get("goal");
+    const queryContext = searchParams.get("context");
+    const queryMissionId = searchParams.get("mission_id");
+    
+    let initialGoal = goal;
+    let initialContext = contextText;
+
+    if (queryGoal !== null) {
+      initialGoal = queryGoal;
+    } else if (!goal) {
+      initialGoal = localStorage.getItem("kairos:workspace:goal") || "";
+    }
+    
+    if (queryContext !== null) {
+      initialContext = queryContext;
+    } else if (queryMissionId !== null) {
+      initialContext = JSON.stringify({ mission_id: queryMissionId }, null, 2);
+    } else if (!contextText) {
+      initialContext = localStorage.getItem("kairos:workspace:context") || "";
+    }
+
+    setGoal(initialGoal);
+    setContextText(initialContext);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (goal || goal === "") localStorage.setItem("kairos:workspace:goal", goal);
+    if (contextText || contextText === "") localStorage.setItem("kairos:workspace:context", contextText);
+  }, [goal, contextText]);
 
   useEffect(() => {
     let mounted = true;

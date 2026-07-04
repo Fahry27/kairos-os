@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { ContinueButton } from "../components/ContinueButton";
 import { ApprovalsCard } from "../components/ApprovalsCard";
 import { ProjectsList } from "../components/ProjectsList";
 import { TasksList } from "../components/TasksList";
@@ -16,9 +16,7 @@ export default function DashboardPage() {
           <p className="subtitle">Daily Operator Console • connected to {KAIROS_API_URL}</p>
         </div>
         <div className="topBarActions">
-          <Link className="btnSmall btnSave" href="/workspace" style={{ padding: '12px 24px', fontSize: '16px' }}>
-            Continue Mission
-          </Link>
+          <ContinueButton />
         </div>
       </header>
 
