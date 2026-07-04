@@ -54,7 +54,7 @@ export function ContinueHero() {
   }
 
   const title = mission ? mission.name : "System Initialization";
-  const decisionText = decision ? decision.title : "Ready for new directives";
+  const decisionText = decision ? decision.title : "No active decision";
   const status = mission ? (mission.status === "running" ? "In Progress" : "Standing By") : "Online";
   const estimatedStep = decision ? "Awaiting human authorization" : "Select a mission to begin";
   
