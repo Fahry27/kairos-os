@@ -7,6 +7,12 @@ from app.core.routing_policy import (
     ProviderScoring,
     ProviderSelection
 )
+from app.core.fallback import circuit_breakers
+
+
+@pytest.fixture(autouse=True)
+def clean_breakers():
+    circuit_breakers.clear()
 
 
 def test_routing_policy_defaults():

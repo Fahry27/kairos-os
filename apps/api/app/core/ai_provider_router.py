@@ -430,37 +430,82 @@ class AIProviderRouter:
         plugin_registry,
         connector_registry,
     ) -> AIProviderRouterDispatchResponse:
-        selected, policy = self.select_provider(
-            settings,
-            request.provider_id,
-            request.fallback_enabled,
-        )
-        if selected is None:
-            return self._router_error_response(request, policy, "No functional provider is available.")
+        from app.core.fallback import circuit_breakers, RetryPolicy
+        import time
 
-        if selected.id != "ai.ollama":
-            return self._router_error_response(
-                request,
-                policy,
-                "Selected provider is metadata-only in this release.",
-                selected,
+        attempts: list[str] = []
+        retry_policy = RetryPolicy()
+        current_requested_id = request.provider_id
+
+        last_exception = None
+        while True:
+            selected, policy = self.select_provider(
+                settings,
+                current_requested_id,
+                request.fallback_enabled,
             )
+            # Merge attempts
+            for a in policy.attempts:
+                if a not in attempts:
+                    attempts.append(a)
 
-        ollama_request = AIOllamaDispatchRequest(**request.model_dump(exclude={"provider_id", "fallback_enabled"}))
-        response = ai_runtime.dispatch_to_ollama(
-            request=ollama_request,
-            settings=settings,
-            plugin_registry=plugin_registry,
-            connector_registry=connector_registry,
-        )
-        return AIProviderRouterDispatchResponse(
-            **response.model_dump(),
-            selected_provider_id=selected.id,
-            selected_provider_name=selected.name,
-            policy=policy,
-            fallback_used=bool(policy.requested_provider_id and policy.requested_provider_id != selected.id),
-            provider_attempts=policy.attempts,
-        )
+            if selected is None:
+                err_msg = f"Dispatch failed: {last_exception}" if last_exception else "No functional provider is available."
+                return self._router_error_response(request, policy, err_msg)
+
+            if selected.id != "ai.ollama":
+                breaker = circuit_breakers.get(selected.id)
+                breaker.record_failure()
+                
+                fallback_active = request.fallback_enabled if request.fallback_enabled is not None else settings.kairos_ai_provider_fallback_enabled
+                if fallback_active:
+                    current_requested_id = "auto"
+                    continue
+                else:
+                    return self._router_error_response(
+                        request,
+                        policy,
+                        "Selected provider is metadata-only in this release.",
+                        selected,
+                    )
+
+            ollama_request = AIOllamaDispatchRequest(**request.model_dump(exclude={"provider_id", "fallback_enabled"}))
+            breaker = circuit_breakers.get(selected.id)
+
+            for attempt in range(retry_policy.max_retries):
+                try:
+                    response = ai_runtime.dispatch_to_ollama(
+                        request=ollama_request,
+                        settings=settings,
+                        plugin_registry=plugin_registry,
+                        connector_registry=connector_registry,
+                    )
+                    breaker.record_success()
+                    return AIProviderRouterDispatchResponse(
+                        **response.model_dump(),
+                        selected_provider_id=selected.id,
+                        selected_provider_name=selected.name,
+                        policy=policy,
+                        fallback_used=bool(policy.requested_provider_id and policy.requested_provider_id != selected.id),
+                        provider_attempts=attempts,
+                    )
+                except Exception as e:
+                    last_exception = e
+                    breaker.record_failure()
+                    time.sleep(min(retry_policy.backoff_max_seconds, retry_policy.backoff_factor ** attempt))
+
+            # If we exhausted retries for Ollama, failover if fallback is active
+            fallback_active = request.fallback_enabled if request.fallback_enabled is not None else settings.kairos_ai_provider_fallback_enabled
+            if fallback_active:
+                current_requested_id = "auto"
+                continue
+            else:
+                return self._router_error_response(
+                    request,
+                    policy,
+                    f"Dispatch failed: {last_exception}",
+                    selected,
+                )
 
     def _router_error_response(
         self,

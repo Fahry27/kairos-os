@@ -76,6 +76,12 @@ class ProviderSelection:
             if not p.functional:
                 continue
 
+            # 5. Check Fallback Circuit Breaker
+            from app.core.fallback import circuit_breakers
+            breaker = circuit_breakers.get(p.id)
+            if not breaker.is_available():
+                continue
+
             candidates.append(p)
 
         # Score candidates and return sorted descending
