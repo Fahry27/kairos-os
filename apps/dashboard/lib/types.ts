@@ -655,6 +655,92 @@ export interface KnowledgeContext {
 }
 
 // ---------------------------------------------------------------------------
+// AI Router
+// ---------------------------------------------------------------------------
+
+export type AIProviderType = "ollama" | "openai_compatible" | "9router" | "gemini" | "deepseek";
+export type AIProviderStatus = "healthy" | "degraded" | "unavailable" | "unchecked";
+export type AIStreamState = "idle" | "connecting" | "streaming" | "complete" | "error" | "aborted";
+
+export interface AIModelCapability {
+  supportsChat: boolean;
+  supportsTools: boolean;
+  supportsVision: boolean;
+  supportsLocal: boolean;
+  maxContextTokens: number | null;
+}
+
+export interface AIModel {
+  name: string;
+  providerId: string;
+  capabilities: AIModelCapability;
+  available: boolean;
+}
+
+export interface AIRoutePolicy {
+  mode: "auto" | "manual";
+  preferredProviderId: string | null;
+  preferredModel: string | null;
+  fallbackEnabled: boolean;
+  fallbackOrder: string[];
+  budgetTier: "free" | "cheap" | "quality";
+  offlineOnly: boolean;
+}
+
+export interface AIUsageEstimate {
+  providerId: string;
+  model: string;
+  estimatedTokens: number;
+  estimatedCost: number;
+  currency: string;
+  isAvailable: boolean;
+}
+
+export interface AIRequest {
+  prompt: string;
+  systemInstructions: string[];
+  knowledgeContext: KnowledgeContext | null;
+  memoryRefs: string[];
+  missionId: string | null;
+  workspaceId: string | null;
+  policy: AIRoutePolicy;
+  maxResponseTokens: number;
+}
+
+export interface AIResponse {
+  providerId: string;
+  model: string;
+  content: string;
+  fallbackUsed: boolean;
+  providerAttempts: string[];
+  safetyNotes: string[];
+  latencyMs: number;
+  tokensUsed: number | null;
+  streamState: AIStreamState;
+  error: string | null;
+}
+
+export interface AIProvider {
+  id: string;
+  name: string;
+  type: AIProviderType;
+  status: AIProviderStatus;
+  models: AIModel[];
+  supportsLocal: boolean;
+  enabled: boolean;
+  lastChecked: string | null;
+  healthMessage: string | null;
+}
+
+export interface AIExecutionContext {
+  request: AIRequest;
+  providers: AIProvider[];
+  selectedProviderId: string | null;
+  estimate: AIUsageEstimate | null;
+  assembledAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Timeline + Brief
 // ---------------------------------------------------------------------------
 

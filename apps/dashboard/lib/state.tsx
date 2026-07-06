@@ -39,6 +39,12 @@ import type {
   KnowledgeCollection,
   KnowledgeContext,
   KnowledgeQuery,
+  AIProvider,
+  AIRequest,
+  AIResponse,
+  AIExecutionContext,
+  AIRoutePolicy,
+  AIUsageEstimate,
   Decision,
   Workspace,
   Memory,
@@ -77,6 +83,20 @@ export interface KairosState {
   knowledgeQuery: KnowledgeQuery;
   /** Last assembled knowledge context. */
   knowledgeContext: KnowledgeContext | null;
+  /** Configured AI providers. */
+  aiProviders: AIProvider[];
+  /** Active route policy. */
+  aiRoutePolicy: AIRoutePolicy;
+  /** Active AI request. */
+  aiRequest: AIRequest | null;
+  /** Last AI response. */
+  aiResponse: AIResponse | null;
+  /** AI execution context. */
+  aiExecutionContext: AIExecutionContext | null;
+  /** Whether an AI request is in flight. */
+  aiRequestPending: boolean;
+  /** Abort controller reference for in-flight requests (not serialized). */
+  aiAbortControllerId: string | null;
   decisions: Decision[];
   workspaces: Workspace[];
   memories: Memory[];
@@ -122,6 +142,13 @@ export type KairosAction =
   | { type: "SELECT_KNOWLEDGE"; payload: string | null }
   | { type: "SET_KNOWLEDGE_QUERY"; payload: Partial<KnowledgeQuery> }
   | { type: "SET_KNOWLEDGE_CONTEXT"; payload: KnowledgeContext | null }
+  | { type: "SET_AI_PROVIDERS"; payload: AIProvider[] }
+  | { type: "SET_AI_ROUTE_POLICY"; payload: Partial<AIRoutePolicy> }
+  | { type: "SET_AI_REQUEST"; payload: AIRequest | null }
+  | { type: "SET_AI_RESPONSE"; payload: AIResponse | null }
+  | { type: "SET_AI_EXECUTION_CONTEXT"; payload: AIExecutionContext }
+  | { type: "SET_AI_REQUEST_PENDING"; payload: boolean }
+  | { type: "SET_AI_ABORT_CONTROLLER_ID"; payload: string | null }
   | { type: "ADD_TIMELINE_ITEM"; payload: TimelineItem }
   | { type: "SET_ACTIVE_SURFACE"; payload: ShellSurface }
   | { type: "TOGGLE_SIDEBAR" }
@@ -156,6 +183,13 @@ const initialState: KairosState = {
   selectedKnowledgeId: null,
   knowledgeQuery: { query: "", types: [], minConfidence: null, missionId: null, workspaceId: null, limit: 25 },
   knowledgeContext: null,
+  aiProviders: [],
+  aiRoutePolicy: { mode: "auto", preferredProviderId: null, preferredModel: null, fallbackEnabled: true, fallbackOrder: ["ollama"], budgetTier: "free", offlineOnly: false },
+  aiRequest: null,
+  aiResponse: null,
+  aiExecutionContext: null,
+  aiRequestPending: false,
+  aiAbortControllerId: null,
   decisions: [],
   workspaces: [],
   memories: [],
@@ -317,6 +351,29 @@ function kairosReducer(state: KairosState, action: KairosAction): KairosState {
 
     case "SET_KNOWLEDGE_CONTEXT":
       return { ...state, knowledgeContext: action.payload };
+
+    // ------ AI Router ------
+
+    case "SET_AI_PROVIDERS":
+      return { ...state, aiProviders: action.payload };
+
+    case "SET_AI_ROUTE_POLICY":
+      return { ...state, aiRoutePolicy: { ...state.aiRoutePolicy, ...action.payload } };
+
+    case "SET_AI_REQUEST":
+      return { ...state, aiRequest: action.payload };
+
+    case "SET_AI_RESPONSE":
+      return { ...state, aiResponse: action.payload };
+
+    case "SET_AI_EXECUTION_CONTEXT":
+      return { ...state, aiExecutionContext: action.payload };
+
+    case "SET_AI_REQUEST_PENDING":
+      return { ...state, aiRequestPending: action.payload };
+
+    case "SET_AI_ABORT_CONTROLLER_ID":
+      return { ...state, aiAbortControllerId: action.payload };
 
     case "SET_DECISIONS":
       return { ...state, decisions: action.payload };

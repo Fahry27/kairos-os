@@ -38,6 +38,12 @@ import type {
   KnowledgeQuery,
   KnowledgeType,
   KnowledgeConfidence,
+  AIProvider,
+  AIRequest,
+  AIResponse,
+  AIExecutionContext,
+  AIRoutePolicy,
+  AIUsageEstimate,
   Memory,
   MemoryCollection,
   MemoryReference,
@@ -1007,4 +1013,155 @@ export function useRecentTimeline(limit = 20) {
 export function useTodayTimeline() {
   const state = useKairosState();
   return state.timelineEvents.filter((e) => e.timestamp.startsWith(state.todayDate));
+}
+
+
+// ---------------------------------------------------------------------------
+// AI Router runtime
+// ---------------------------------------------------------------------------
+
+/**
+ * useAIRouter — full AI Router runtime.
+ *
+ * Centralizes provider selection, routing policy, request lifecycle,
+ * and execution context assembly. All AI requests flow through this.
+ */
+export function useAIRouter() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const setProviders = useCallback(
+    (providers: AIProvider[]) => {
+      dispatch({ type: "SET_AI_PROVIDERS", payload: providers });
+    },
+    [dispatch],
+  );
+
+  const setRoutePolicy = useCallback(
+    (policy: Partial<AIRoutePolicy>) => {
+      dispatch({ type: "SET_AI_ROUTE_POLICY", payload: policy });
+    },
+    [dispatch],
+  );
+
+  const assembleExecutionContext = useCallback(
+    (opts: {
+      prompt: string;
+      systemInstructions?: string[];
+      missionId?: string | null;
+      workspaceId?: string | null;
+      memoryRefs?: string[];
+      maxResponseTokens?: number;
+    }): AIExecutionContext => {
+      const request: AIRequest = {
+        prompt: opts.prompt,
+        systemInstructions: opts.systemInstructions ?? [],
+        knowledgeContext: state.knowledgeContext,
+        memoryRefs: opts.memoryRefs ?? [],
+        missionId: opts.missionId ?? null,
+        workspaceId: opts.workspaceId ?? null,
+        policy: state.aiRoutePolicy,
+        maxResponseTokens: opts.maxResponseTokens ?? 2048,
+      };
+
+      // Select cheapest available provider
+      const localProvider = state.aiProviders.find((p) => p.supportsLocal && p.enabled && p.status === "healthy");
+      const selectedProviderId = state.aiRoutePolicy.mode === "manual"
+        ? state.aiRoutePolicy.preferredProviderId
+        : localProvider?.id ?? state.aiRoutePolicy.fallbackOrder[0] ?? null;
+
+      const context: AIExecutionContext = {
+        request,
+        providers: state.aiProviders,
+        selectedProviderId,
+        estimate: null, // computed at dispatch time by the actual API call
+        assembledAt: new Date().toISOString(),
+      };
+
+      dispatch({ type: "SET_AI_REQUEST", payload: request });
+      dispatch({ type: "SET_AI_EXECUTION_CONTEXT", payload: context });
+
+      return context;
+    },
+    [state.knowledgeContext, state.aiProviders, state.aiRoutePolicy, dispatch],
+  );
+
+  // ARCHITECTURE READY:
+  // When the API is available, wire dispatchAIProvider() or dispatchOllama() here.
+  // The execution context is fully assembled and ready for the provider call.
+
+  const cancelRequest = useCallback(() => {
+    dispatch({ type: "SET_AI_REQUEST_PENDING", payload: false });
+    dispatch({ type: "SET_AI_ABORT_CONTROLLER_ID", payload: null });
+  }, [dispatch]);
+
+  return {
+    providers: state.aiProviders,
+    routePolicy: state.aiRoutePolicy,
+    setProviders,
+    setRoutePolicy,
+    request: state.aiRequest,
+    response: state.aiResponse,
+    executionContext: state.aiExecutionContext,
+    requestPending: state.aiRequestPending,
+    assembleExecutionContext,
+    cancelRequest,
+  };
+}
+
+/**
+ * useAIProviderHealth — provider health aggregation.
+ */
+export function useAIProviderHealth() {
+  const state = useKairosState();
+  const healthy = state.aiProviders.filter((p) => p.status === "healthy").length;
+  const total = state.aiProviders.length;
+  const unavailable = state.aiProviders.filter((p) => p.status === "unavailable").length;
+
+  return {
+    providers: state.aiProviders,
+    healthy,
+    total,
+    unavailable,
+    allHealthy: healthy === total && total > 0,
+  };
+}
+
+/**
+ * useAIModelSelection — returns available models for provider selection.
+ */
+export function useAIModelSelection() {
+  const state = useKairosState();
+  const selectedProvider = state.aiRoutePolicy.preferredProviderId
+    ? state.aiProviders.find((p) => p.id === state.aiRoutePolicy.preferredProviderId)
+    : null;
+
+  return {
+    selectedProvider,
+    availableModels: selectedProvider?.models.filter((m) => m.available) ?? [],
+    preferredModel: state.aiRoutePolicy.preferredModel,
+  };
+}
+
+/**
+ * useAIRequestLifecycle — request lifecycle (pending, streaming, complete).
+ */
+export function useAIRequestLifecycle() {
+  const state = useKairosState();
+
+  return {
+    request: state.aiRequest,
+    response: state.aiResponse,
+    pending: state.aiRequestPending,
+    streamState: state.aiResponse?.streamState ?? "idle",
+    error: state.aiResponse?.error ?? null,
+  };
+}
+
+/**
+ * useAIExecutionContext — returns the current execution context.
+ */
+export function useAIExecutionContext() {
+  const state = useKairosState();
+  return state.aiExecutionContext;
 }

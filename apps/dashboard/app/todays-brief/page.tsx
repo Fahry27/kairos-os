@@ -5,7 +5,7 @@ import SurfaceCard from "../../components/shell/SurfaceCard";
 import SurfaceSection from "../../components/shell/SurfaceSection";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
-import { useBriefRuntime, useTodayTimeline } from "../../lib/runtime";
+import { useBriefRuntime, useTodayTimeline, useAIProviderHealth } from "../../lib/runtime";
 
 /**
  * Today's Brief — production daily digest with runtime refresh.
@@ -24,6 +24,7 @@ export default function TodaysBriefPage() {
   const state = useKairosState();
   const brief = useBriefRuntime();
   const todayEvents = useTodayTimeline();
+  const health = useAIProviderHealth();
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>

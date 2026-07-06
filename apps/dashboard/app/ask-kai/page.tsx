@@ -4,7 +4,7 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
-import { useConversation, useKnowledgeForMission } from "../../lib/runtime";
+import { useConversation, useKnowledgeForMission, useAIRouter, useAIProviderHealth } from "../../lib/runtime";
 
 const SUGGESTION_CHIPS = [
   "What's on my schedule today?",
@@ -44,6 +44,8 @@ export default function AskKaiPage() {
   } = useConversation();
 
   const missionKnowledge = useKnowledgeForMission(state.assistant.activeMissionId);
+  const router = useAIRouter();
+  const health = useAIProviderHealth();
 
   const handleSend = () => {
     sendMessage(draft);
@@ -66,8 +68,8 @@ export default function AskKaiPage() {
       />
 
       {/* Context bar */}
-      {(activeMission || activeWorkspace) && (
-        <SurfaceCard eyebrow="Active Context" badge="Session">
+      {(activeMission || activeWorkspace || health.total > 0) && (
+        <SurfaceCard eyebrow="Active Context" badge={health.total > 0 ? `${health.healthy}/${health.total} healthy` : undefined}>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {activeMission && (
               <div>
@@ -75,6 +77,17 @@ export default function AskKaiPage() {
                   Mission
                 </span>
                 <p style={{ margin: "4px 0 0", fontWeight: 600 }}>{activeMission.name}</p>
+              </div>
+            )}
+            {health.total > 0 && (
+              <div>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                  Providers
+                </span>
+                <p style={{ margin: "4px 0 0", fontWeight: 600 }}>
+                  {health.healthy} healthy · {router.routePolicy.budgetTier} tier
+                  {router.routePolicy.offlineOnly && " · offline"}
+                </p>
               </div>
             )}
             {activeWorkspace && (
