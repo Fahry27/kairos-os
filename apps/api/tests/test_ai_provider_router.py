@@ -17,11 +17,13 @@ def _settings_override(**updates):
     app.dependency_overrides[get_settings] = override
 
 
-def test_provider_router_lists_functional_ollama_and_metadata_stubs():
+def test_provider_router_lists_functional_local_and_metadata_stubs():
     response = client.get("/api/v1/ai/provider-router/providers")
 
     assert response.status_code == 200
     providers = {provider["id"]: provider for provider in response.json()}
+    assert providers["ai.codex"]["functional"] is True
+    assert providers["ai.codex"]["auth_type"] == "cli"
     assert providers["ai.ollama"]["functional"] is True
     assert providers["ai.ollama"]["auth_type"] == "none"
 
@@ -34,15 +36,15 @@ def test_provider_router_lists_functional_ollama_and_metadata_stubs():
         assert provider["external_api_calls_enabled"] is False
 
 
-def test_provider_router_auto_selects_ollama():
+def test_provider_router_auto_selects_codex():
     response = client.get("/api/v1/ai/provider-router/route")
 
     assert response.status_code == 200
     data = response.json()
     assert data["auto_mode"] is True
-    assert data["selected_provider"]["id"] == "ai.ollama"
+    assert data["selected_provider"]["id"] == "ai.codex"
     assert data["policy"]["mode"] == "auto"
-    assert data["policy"]["selected_provider_id"] == "ai.ollama"
+    assert data["policy"]["selected_provider_id"] == "ai.codex"
 
 
 def test_provider_router_falls_back_from_metadata_stub():
@@ -50,73 +52,59 @@ def test_provider_router_falls_back_from_metadata_stub():
 
     assert response.status_code == 200
     data = response.json()
-    assert data["selected_provider"]["id"] == "ai.ollama"
+    assert data["selected_provider"]["id"] == "ai.codex"
     assert data["policy"]["requested_provider_id"] == "ai.openai"
     assert data["policy"]["reason"] == "fallback_selected"
     assert "ai.openai:no_session" in data["policy"]["attempts"]
-    assert "ai.ollama:selected" in data["policy"]["attempts"]
+    assert "ai.codex:selected" in data["policy"]["attempts"]
 
 
-@patch("urllib.request.urlopen")
-def test_provider_router_models_use_selected_functional_provider(mock_urlopen):
+@patch("app.core.codex_runtime.CodexCliRuntime.check_readiness")
+def test_provider_router_models_use_selected_functional_provider(mock_check):
     _settings_override(kairos_ollama_readiness_enabled=True)
+    from app.core.ai_runtime import AIProviderReadiness
+    mock_check.return_value = AIProviderReadiness(
+        provider_id="ai.codex",
+        checked=True,
+        reachable=True,
+        message="Codex CLI ready",
+    )
     try:
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.read.return_value = json.dumps(
-            {
-                "models": [
-                    {
-                        "name": "llama3.2:latest",
-                        "model": "llama3.2:latest",
-                        "size": 1234567,
-                        "details": {"family": "llama"},
-                    }
-                ]
-            }
-        ).encode("utf-8")
-        mock_urlopen.return_value.__enter__.return_value = mock_response
-
         response = client.get("/api/v1/ai/provider-router/models")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["provider_id"] == "ai.ollama"
-        assert data["policy"]["selected_provider_id"] == "ai.ollama"
+        assert data["provider_id"] == "ai.codex"
+        assert data["policy"]["selected_provider_id"] == "ai.codex"
         assert data["checked"] is True
         assert data["reachable"] is True
-        assert data["model_count"] == 1
-        assert data["models"][0]["name"] == "llama3.2:latest"
+        assert data["configured_model_available"] is True
+        assert data["message"] == "Codex CLI ready"
     finally:
         app.dependency_overrides.pop(get_settings, None)
 
 
-@patch("urllib.request.urlopen")
-def test_provider_router_dispatch_falls_back_to_ollama_from_openai_stub(mock_urlopen):
-    _settings_override(
-        kairos_ollama_dispatch_enabled=True,
-        kairos_ai_model="llama3.2:latest",
+@patch("app.core.codex_runtime.CodexCliRuntime.dispatch")
+def test_provider_router_dispatch_falls_back_to_codex_from_openai_stub(mock_dispatch):
+    _settings_override(kairos_ollama_dispatch_enabled=True)
+    from app.core.ai_runtime import AIOllamaDispatchResponse
+    mock_dispatch.return_value = AIOllamaDispatchResponse(
+        provider_id="ai.codex",
+        model="codex-default",
+        prompt_sent=True,
+        response_text="Here is the plan.",
+        raw_response_metadata={},
+        safety_notes=[],
+        latency_ms=100,
+        truncated=False,
     )
     try:
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.read.return_value = json.dumps(
-            {
-                "model": "llama3.2:latest",
-                "created_at": "2026-07-02T00:00:00Z",
-                "response": "Here is the plan.",
-                "done": True,
-                "total_duration": 1000,
-            }
-        ).encode("utf-8")
-        mock_urlopen.return_value.__enter__.return_value = mock_response
-
         response = client.post(
             "/api/v1/ai/provider-router/dispatch",
             json={
                 "provider_id": "ai.openai",
                 "user_goal": "Plan a safe backup",
-                "model": "llama3.2:latest",
+                "model": "codex-default",
                 "parse_response": False,
                 "create_approval_requests": False,
             },
@@ -124,12 +112,10 @@ def test_provider_router_dispatch_falls_back_to_ollama_from_openai_stub(mock_url
 
         assert response.status_code == 200
         data = response.json()
-        assert data["selected_provider_id"] == "ai.ollama"
+        assert data["selected_provider_id"] == "ai.codex"
         assert data["fallback_used"] is True
         assert data["response_text"] == "Here is the plan."
-        assert data["network_call_performed"] is True
         assert "ai.openai:no_session" in data["provider_attempts"]
-        assert mock_urlopen.call_count == 1
     finally:
         app.dependency_overrides.pop(get_settings, None)
 

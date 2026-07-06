@@ -264,6 +264,54 @@ class AIProviderRegistry:
                 }
             )
         )
+        self.register(
+            AIProviderMetadata(
+                id="ai.deepseek",
+                name="DeepSeek",
+                provider_type="cloud",
+                status="metadata_only",
+                auth_type="api_key",
+                default_model="deepseek-chat",
+                supports_chat=True,
+                supports_tools=True,
+                supports_vision=True,
+                priority=55,
+                capabilities=["metadata", "openai_compatible"],
+                notes=["OpenAI-compatible endpoint. Set DEEPSEEK_API_KEY to enable."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=55),
+                cost=ProviderCostMetadata(tier="low"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
+                },
+                external_api_calls_enabled=False,
+            )
+        )
+        self.register(
+            AIProviderMetadata(
+                id="ai.9router",
+                name="9Router",
+                provider_type="cloud",
+                status="metadata_only",
+                auth_type="api_key",
+                default_model="gpt-4o",
+                supports_chat=True,
+                supports_tools=True,
+                supports_vision=True,
+                priority=45,
+                capabilities=["metadata", "openai_compatible"],
+                notes=["OpenAI-compatible router endpoint. Set 9ROUTER_API_KEY and KAIROS_AI_BASE_URL to enable."],
+                priority_metadata=ProviderPriorityMetadata(default_priority=45),
+                cost=ProviderCostMetadata(tier="medium"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
+                },
+                external_api_calls_enabled=False,
+            )
+        )
 
     def register(self, provider: AIProviderMetadata) -> None:
         self._providers[provider.id] = provider
@@ -417,7 +465,7 @@ class AIProviderRouter:
         selected, policy = self.select_provider(settings, requested_provider_id)
         providers = [self._provider_with_config(provider, settings) for provider in self.registry.list()]
         dispatch_enabled = bool(
-            selected and selected.id == "ai.ollama" and settings.kairos_ollama_dispatch_enabled
+            selected and selected.functional and settings.kairos_ollama_dispatch_enabled
         )
         return AIProviderRouteResponse(
             providers=providers,
@@ -479,6 +527,89 @@ class AIProviderRouter:
             message=models.message,
         )
 
+    def _can_dispatch(self, provider: AIProviderMetadata, settings) -> bool:
+        """Check if a provider can actually dispatch requests."""
+        if provider.id in ("ai.ollama", "ai.codex"):
+            return True
+        if provider.id in ("ai.openai", "ai.deepseek", "ai.9router"):
+            import os
+            if provider.id == "ai.deepseek":
+                key = (
+                    getattr(settings, "deepseek_api_key", None) or
+                    getattr(settings, "kairos_deepseek_api_key", None) or
+                    os.environ.get("DEEPSEEK_API_KEY") or
+                    os.environ.get("KAIROS_DEEPSEEK_API_KEY")
+                )
+                return bool(key)
+            if provider.id == "ai.9router":
+                key = (
+                    getattr(settings, "router9_api_key", None) or
+                    getattr(settings, "kairos_9router_api_key", None) or
+                    os.environ.get("9ROUTER_API_KEY") or
+                    os.environ.get("KAIROS_9ROUTER_API_KEY")
+                )
+                return bool(key)
+            if provider.id == "ai.openai":
+                key = (
+                    getattr(settings, "openai_api_key", None) or
+                    os.environ.get("OPENAI_API_KEY")
+                )
+                return bool(key)
+        return False
+
+    def _dispatch_to_provider(
+        self,
+        provider: AIProviderMetadata,
+        ollama_request: AIOllamaDispatchRequest,
+        settings,
+        plugin_registry,
+        connector_registry,
+    ) -> AIOllamaDispatchResponse:
+        if provider.id == "ai.codex":
+            from app.core.codex_runtime import CodexCliRuntime
+            codex = CodexCliRuntime()
+            return codex.dispatch(
+                request=ollama_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+            )
+        if provider.id == "ai.ollama":
+            return ai_runtime.dispatch_to_ollama(
+                request=ollama_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+            )
+        if provider.id == "ai.openai":
+            return ai_runtime.dispatch_to_openai_compatible(
+                request=ollama_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+                provider_id="ai.openai",
+            )
+        if provider.id == "ai.deepseek":
+            return ai_runtime.dispatch_to_openai_compatible(
+                request=ollama_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+                provider_id="ai.deepseek",
+                base_url="https://api.deepseek.com",
+            )
+        if provider.id == "ai.9router":
+            base = getattr(settings, "kairos_ai_base_url", "") or ""
+            return ai_runtime.dispatch_to_openai_compatible(
+                request=ollama_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+                provider_id="ai.9router",
+                base_url=base or None,
+            )
+        raise ValueError(f"Unknown dispatch provider: {provider.id}")
+
     def dispatch(
         self,
         request: AIProviderRouterDispatchRequest,
@@ -500,7 +631,6 @@ class AIProviderRouter:
                 current_requested_id,
                 request.fallback_enabled,
             )
-            # Merge attempts
             for a in policy.attempts:
                 if a not in attempts:
                     attempts.append(a)
@@ -509,10 +639,10 @@ class AIProviderRouter:
                 err_msg = f"Dispatch failed: {last_exception}" if last_exception else "No functional provider is available."
                 return self._router_error_response(request, policy, err_msg, provider_attempts=attempts)
 
-            if selected.id not in ["ai.ollama", "ai.codex"]:
+            if not self._can_dispatch(selected, settings):
                 breaker = circuit_breakers.get(selected.id)
                 breaker.record_failure()
-                
+
                 fallback_active = request.fallback_enabled if request.fallback_enabled is not None else settings.kairos_ai_provider_fallback_enabled
                 if fallback_active:
                     current_requested_id = "auto"
@@ -521,7 +651,7 @@ class AIProviderRouter:
                     return self._router_error_response(
                         request,
                         policy,
-                        "Selected provider is metadata-only in this release.",
+                        f"Provider {selected.id} is not configured for dispatch. Check API keys and environment variables.",
                         selected,
                         provider_attempts=attempts,
                     )
@@ -531,22 +661,9 @@ class AIProviderRouter:
 
             for attempt in range(retry_policy.max_retries):
                 try:
-                    if selected.id == "ai.codex":
-                        from app.core.codex_runtime import CodexCliRuntime
-                        provider = CodexCliRuntime()
-                        response = provider.dispatch(
-                            request=ollama_request,
-                            settings=settings,
-                            plugin_registry=plugin_registry,
-                            connector_registry=connector_registry,
-                        )
-                    else:
-                        response = ai_runtime.dispatch_to_ollama(
-                            request=ollama_request,
-                            settings=settings,
-                            plugin_registry=plugin_registry,
-                            connector_registry=connector_registry,
-                        )
+                    response = self._dispatch_to_provider(
+                        selected, ollama_request, settings, plugin_registry, connector_registry
+                    )
                     breaker.record_success()
                     return AIProviderRouterDispatchResponse(
                         **response.model_dump(),
@@ -561,7 +678,6 @@ class AIProviderRouter:
                     breaker.record_failure()
                     time.sleep(min(retry_policy.backoff_max_seconds, retry_policy.backoff_factor ** attempt))
 
-            # If we exhausted retries for Ollama, failover if fallback is active
             fallback_active = request.fallback_enabled if request.fallback_enabled is not None else settings.kairos_ai_provider_fallback_enabled
             if fallback_active:
                 current_requested_id = "auto"

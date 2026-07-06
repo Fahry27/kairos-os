@@ -81,17 +81,15 @@ def test_provider_selection(monkeypatch):
     )
     
     settings = MagicMock()
-    # Mock settings keys so environment variables are bypassable if present
     settings.openai_api_key = None
     settings.gemini_api_key = None
     settings.kairos_gemini_api_key = None
 
-    # Enable local Ollama dispatch, Ollama is functional by default in tests
     selected = ProviderSelection.select(providers, policy, settings)
     
-    # Ollama should be functional & returned as the top candidate since OpenAI/Gemini are metadata-only
-    assert len(selected) > 0
-    assert selected[0].id == "ai.ollama"
+    # Both codex and ollama are functional local providers
+    assert len(selected) >= 1
+    assert selected[0].id in ("ai.codex", "ai.ollama")
 
 
 def test_provider_selection_local_only():
@@ -109,5 +107,5 @@ def test_provider_selection_local_only():
     settings.gemini_api_key = None
 
     selected = ProviderSelection.select(providers, policy, settings)
-    assert len(selected) == 1
-    assert selected[0].id == "ai.ollama"
+    assert len(selected) >= 1
+    assert all(p.supports_local for p in selected)

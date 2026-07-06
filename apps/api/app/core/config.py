@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = Field(default="kairos-api", validation_alias="APP_NAME")
-    app_version: str = Field(default="3.3.0", validation_alias="APP_VERSION")
+    app_version: str = Field(default="3.4.0", validation_alias="APP_VERSION")
     app_env: str = Field(default="development", validation_alias="APP_ENV")
     api_v1_prefix: str = Field(default="/api/v1", validation_alias="API_V1_PREFIX")
     root_path: str = Field(default="", validation_alias="ROOT_PATH")
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         validation_alias="KAIROS_AI_PROVIDER_FALLBACK_ENABLED",
     )
     kairos_ai_provider_fallback_order: str = Field(
-        default="ai.ollama,ai.openai,ai.gemini,ai.claude",
+        default="ai.ollama,ai.codex,ai.openai,ai.deepseek,ai.9router,ai.gemini,ai.claude",
         validation_alias="KAIROS_AI_PROVIDER_FALLBACK_ORDER",
     )
     kairos_ai_model: str = Field(default="", validation_alias="KAIROS_AI_MODEL")

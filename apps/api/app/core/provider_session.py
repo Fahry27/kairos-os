@@ -138,4 +138,38 @@ def get_session_for_provider(provider_id: str, settings) -> Optional[ProviderSes
                 state="active"
             )
 
+    # 5. Environment fallback sessions for DeepSeek
+    if provider_id == "ai.deepseek":
+        import os
+        api_key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("KAIROS_DEEPSEEK_API_KEY")
+        if api_key:
+            key_name = "DEEPSEEK_API_KEY" if os.environ.get("DEEPSEEK_API_KEY") else "KAIROS_DEEPSEEK_API_KEY"
+            return ProviderSession(
+                session_id="session.deepseek.auto",
+                provider_id="ai.deepseek",
+                identity=ProviderIdentity(user_id="auto_operator", username="auto"),
+                credential=ProviderCredential(
+                    auth_type="api_key",
+                    secret_ref=SecretReference(secret_key=key_name)
+                ),
+                state="active"
+            )
+
+    # 6. Environment fallback sessions for 9Router
+    if provider_id == "ai.9router":
+        import os
+        api_key = os.environ.get("9ROUTER_API_KEY") or os.environ.get("KAIROS_9ROUTER_API_KEY")
+        if api_key:
+            key_name = "9ROUTER_API_KEY" if os.environ.get("9ROUTER_API_KEY") else "KAIROS_9ROUTER_API_KEY"
+            return ProviderSession(
+                session_id="session.9router.auto",
+                provider_id="ai.9router",
+                identity=ProviderIdentity(user_id="auto_operator", username="auto"),
+                credential=ProviderCredential(
+                    auth_type="api_key",
+                    secret_ref=SecretReference(secret_key=key_name)
+                ),
+                state="active"
+            )
+
     return None

@@ -1109,6 +1109,166 @@ class AIRuntime:
             # Catch-all to prevent unhandled exceptions, return sanitized string
             return _build_err(f"Unexpected execution error: {type(e).__name__}")
 
+    def dispatch_to_openai_compatible(
+        self,
+        request: AIOllamaDispatchRequest,
+        settings,
+        plugin_registry,
+        connector_registry,
+        provider_id: str = "ai.openai",
+        api_key: str | None = None,
+        base_url: str | None = None,
+    ) -> AIOllamaDispatchResponse:
+        """Dispatch to any OpenAI-compatible endpoint (OpenAI, DeepSeek, 9Router, etc.).
+
+        Uses the /v1/chat/completions API with a messages array.
+        Supports setting OPENAI_API_KEY (or provider-specific key) and base URL overrides.
+        """
+        import urllib.request
+        import urllib.error
+        import urllib.parse
+
+        dry_req = AIPromptDryRunRequest(
+            user_goal=request.user_goal,
+            context=request.context,
+            preferred_model=request.model,
+            include_commands=request.include_commands,
+            include_plugins=request.include_plugins,
+            include_connectors=request.include_connectors,
+        )
+        pkg = self.generate_prompt_dry_run(dry_req, settings, plugin_registry, connector_registry)
+        model = pkg.model or request.model or settings.kairos_ai_model or "gpt-4o"
+
+        prompt_lines = []
+        if pkg.system_instructions:
+            prompt_lines.append("# System Instructions")
+            for inst in pkg.system_instructions:
+                prompt_lines.append(f"- {inst}")
+            prompt_lines.append("")
+        if pkg.safety_policy:
+            prompt_lines.append("# Safety Policy")
+            for policy in pkg.safety_policy:
+                prompt_lines.append(f"- {policy}")
+            prompt_lines.append("")
+        prompt_lines.append("# User Goal")
+        prompt_lines.append(pkg.user_goal)
+        if pkg.context_summary:
+            prompt_lines.append("")
+            prompt_lines.append("# Context Summary")
+            prompt_lines.append(pkg.context_summary)
+
+        system_prompt = "\n".join(pkg.system_instructions + pkg.safety_policy) if pkg.system_instructions or pkg.safety_policy else "You are Kairos AI, a helpful assistant."
+        user_prompt = "\n".join(prompt_lines)
+
+        resolved_url = base_url or settings.kairos_ai_base_url or "https://api.openai.com"
+        resolved_url = resolved_url.rstrip("/") + "/v1/chat/completions"
+
+        resolved_key = api_key or (
+            provider_id == "ai.deepseek" and (settings.deepseek_api_key or getattr(settings, "kairos_deepseek_api_key", None))
+        ) or (
+            provider_id == "ai.9router" and (settings.router9_api_key or getattr(settings, "kairos_9router_api_key", None))
+        ) or (
+            settings.openai_api_key
+        )
+
+        if not resolved_key:
+            return AIOllamaDispatchResponse(
+                provider_id=provider_id,
+                model=model,
+                prompt_sent=False,
+                response_text="",
+                raw_response_metadata={"error": "No API key configured. Set OPENAI_API_KEY or provider-specific key."},
+                safety_notes=pkg.safety_policy + ["Cannot dispatch: no API key configured."],
+                latency_ms=0,
+                truncated=False,
+            )
+
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.7,
+        }
+
+        start_time = time.time()
+
+        try:
+            req_data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(resolved_url, data=req_data, method="POST")
+            req.add_header("Content-Type", "application/json")
+            req.add_header("Authorization", f"Bearer {resolved_key}")
+
+            with urllib.request.urlopen(req, timeout=settings.kairos_ollama_request_timeout_seconds) as response:
+                latency_ms = int((time.time() - start_time) * 1000)
+
+                if response.status != 200:
+                    return AIOllamaDispatchResponse(
+                        provider_id=provider_id,
+                        model=model,
+                        prompt_sent=True,
+                        response_text="",
+                        raw_response_metadata={"error": f"HTTP {response.status}"},
+                        safety_notes=pkg.safety_policy,
+                        latency_ms=latency_ms,
+                        truncated=False,
+                    )
+
+                resp_body = response.read().decode("utf-8")
+                resp_json = json.loads(resp_body)
+
+                choices = resp_json.get("choices", [])
+                response_text = ""
+                if choices and len(choices) > 0:
+                    response_text = choices[0].get("message", {}).get("content", "")
+
+                max_resp = settings.kairos_ollama_max_response_chars
+                truncated = False
+                if len(response_text) > max_resp:
+                    response_text = response_text[:max_resp]
+                    truncated = True
+
+                raw_meta = {
+                    "model": resp_json.get("model", ""),
+                    "usage": resp_json.get("usage", {}),
+                }
+
+                return AIOllamaDispatchResponse(
+                    provider_id=provider_id,
+                    model=model,
+                    prompt_sent=True,
+                    response_text=response_text,
+                    raw_response_metadata=raw_meta,
+                    safety_notes=pkg.safety_policy,
+                    latency_ms=latency_ms,
+                    truncated=truncated,
+                )
+
+        except urllib.error.URLError as e:
+            reason = str(e.reason) if hasattr(e, "reason") else str(e)
+            return AIOllamaDispatchResponse(
+                provider_id=provider_id,
+                model=model,
+                prompt_sent=True,
+                response_text="",
+                raw_response_metadata={"error": f"Connection error: {reason}"},
+                safety_notes=pkg.safety_policy,
+                latency_ms=int((time.time() - start_time) * 1000),
+                truncated=False,
+            )
+        except Exception as e:
+            return AIOllamaDispatchResponse(
+                provider_id=provider_id,
+                model=model,
+                prompt_sent=False,
+                response_text="",
+                raw_response_metadata={"error": f"{type(e).__name__}: {str(e)}"},
+                safety_notes=pkg.safety_policy,
+                latency_ms=int((time.time() - start_time) * 1000),
+                truncated=False,
+            )
+
     # -------------------------------------------------------------------
     # Response Parser (v2.5.0)
     # -------------------------------------------------------------------

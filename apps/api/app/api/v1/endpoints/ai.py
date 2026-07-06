@@ -260,8 +260,8 @@ def provider_router_dispatch(
 ):
     """Dispatch through the provider router.
 
-    Only Ollama can dispatch in v3.3.0. Metadata-only provider stubs are never
-    called externally and are skipped by fallback.
+    Supports Ollama, Codex CLI, and OpenAI-compatible providers.
+    Metadata-only provider stubs are never called externally and are skipped by fallback.
     """
     if body.create_approval_requests:
         raise HTTPException(
@@ -275,7 +275,7 @@ def provider_router_dispatch(
     if not settings.kairos_ollama_dispatch_enabled:
         raise HTTPException(
             status_code=403,
-            detail="Provider router dispatch is disabled. Enable KAIROS_OLLAMA_DISPATCH_ENABLED.",
+            detail="AI dispatch is disabled. Enable KAIROS_OLLAMA_DISPATCH_ENABLED.",
         )
     if not body.model:
         body.model = settings.kairos_ai_model
