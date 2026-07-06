@@ -3,7 +3,7 @@ const configuredApiUrl = process.env.NEXT_PUBLIC_KAIROS_API_URL?.trim();
 
 export const KAIROS_API_URL =
   (configuredApiUrl ||
-    (process.env.NODE_ENV === "development" ? LOCAL_DEV_API_URL : "")
+    (typeof window !== "undefined" ? window.location.origin : "http://localhost:8000")
   ).replace(/\/$/, "");
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
