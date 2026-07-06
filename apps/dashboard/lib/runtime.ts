@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useKairosDispatch } from "./state";
+import { useKairosState, useKairosDispatch } from "./state";
 import {
   getProjects,
   getTasks,
@@ -28,6 +28,8 @@ import {
 } from "./api";
 import type {
   Mission,
+  MissionStatus,
+  MissionTimelineEvent,
   Decision,
   MemoryReference,
 } from "./types";
@@ -133,12 +135,30 @@ function projectToMission(p: Project): Mission {
     id: p.id,
     name: p.name,
     description: p.description ?? null,
-    status: (p.status as Mission["status"]) || "active",
+    status: mapApiStatus(p.status),
     priority: (p.priority as Mission["priority"]) || "medium",
-    targetDate: null,
+    trigger: { kind: "user", sourceId: null, description: "Created via API" },
+    context: { relatedMissionIds: [], userNotes: "", constraints: [], tags: [] },
+    plans: [],
+    activePlanVersion: null,
+    approvals: [],
+    stepExecutions: [],
+    artifacts: [],
+    outcome: null,
+    triggeredAt: p.created_at,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
+}
+
+function mapApiStatus(apiStatus: string): MissionStatus {
+  const statusMap: Record<string, MissionStatus> = {
+    active: "executing",
+    completed: "completed",
+    paused: "cancelled",
+    archived: "archived",
+  };
+  return statusMap[apiStatus] || "draft";
 }
 
 function taskToDecision(t: Task): Decision {
@@ -439,25 +459,147 @@ export function useWorkspaceRuntime(): WorkspaceRuntime {
 }
 
 // ---------------------------------------------------------------------------
-// Mission runtime
+// ---------------------------------------------------------------------------
+// Mission Engine runtime
 // ---------------------------------------------------------------------------
 
-export interface MissionRuntime {
-  selectedMissionId: string | null;
+export interface MissionEngineRuntime {
+  /** The currently selected mission, or null. */
+  selectedMission: Mission | null;
+  /** Select a mission by ID. Pass null to deselect. */
   selectMission: (id: string | null) => void;
+  /** Filter value for the mission list. */
+  filter: string;
+  /** Set the mission filter. */
+  setFilter: (filter: string) => void;
+  /** Approve a pending approval by ID. */
+  approveApproval: (approvalId: string, reason?: string) => void;
+  /** Reject a pending approval by ID. */
+  rejectApproval: (approvalId: string, reason?: string) => void;
+  /** Timeline events for the selected mission. */
+  timeline: MissionTimelineEvent[];
 }
 
 /**
- * useMissionRuntime — mission selection and lifecycle.
+ * useMissionEngine — full Mission Engine runtime.
+ *
+ * Delegates to shared Kairos state via dispatch.
+ * Provides mission selection, approval management, and timeline access.
  */
-export function useMissionRuntime(): MissionRuntime {
-  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
+export function useMissionEngine(): MissionEngineRuntime {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+  const selectMission = useCallback(
+    (id: string | null) => {
+      dispatch({ type: "SELECT_MISSION", payload: id });
+    },
+    [dispatch],
+  );
 
-  const selectMission = useCallback((id: string | null) => {
-    setSelectedMissionId(id);
-  }, []);
+  const setFilter = useCallback(
+    (filter: string) => {
+      dispatch({ type: "SET_MISSION_FILTER", payload: filter as MissionStatus });
+    },
+    [dispatch],
+  );
 
-  return { selectedMissionId, selectMission };
+  const approveApproval = useCallback(
+    (approvalId: string, reason?: string) => {
+      dispatch({ type: "UPDATE_MISSION_APPROVAL", payload: { approvalId, status: "approved", reason } });
+    },
+    [dispatch],
+  );
+
+  const rejectApproval = useCallback(
+    (approvalId: string, reason?: string) => {
+      dispatch({ type: "UPDATE_MISSION_APPROVAL", payload: { approvalId, status: "rejected", reason } });
+    },
+    [dispatch],
+  );
+
+  const selectedMission =
+    state.missions.find((m) => m.id === state.selectedMissionId) ?? null;
+
+  return {
+    selectedMission,
+    selectMission,
+    filter: state.missionFilter,
+    setFilter,
+    approveApproval,
+    rejectApproval,
+    timeline: state.missionTimeline,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Planning runtime
+// ---------------------------------------------------------------------------
+
+export interface PlanningRuntime {
+  /** The active plan for the selected mission. */
+  activePlan: Mission["plans"][0] | null;
+  /** Generate a placeholder for a new plan version (architecture only). */
+  revisionReady: boolean;
+}
+
+/**
+ * usePlanningRuntime — planning layer for the selected mission.
+ *
+ * Returns the active plan and signals whether a plan revision can
+ * be triggered. No plan generation logic.
+ */
+export function usePlanningRuntime(): PlanningRuntime {
+  const state = useKairosState();
+  const mission = state.missions.find((m) => m.id === state.selectedMissionId) ?? null;
+
+  const plans = mission?.plans ?? [];
+  const activePlan =
+    mission && mission.activePlanVersion !== null
+      ? plans.find((p) => p.version === mission.activePlanVersion) ?? null
+      : null;
+
+  return {
+    activePlan,
+    revisionReady: (mission?.status === "draft" || mission?.status === "planning") ?? false,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Execution runtime
+// ---------------------------------------------------------------------------
+
+export interface ExecutionRuntime {
+  /** Queued steps for the selected mission. */
+  queuedCount: number;
+  /** Currently running steps. */
+  runningCount: number;
+  /** Steps ready for retry. */
+  retryReadyCount: number;
+  /** Whether the mission is currently executing. */
+  isExecuting: boolean;
+  /** Whether execution is paused. */
+  isPaused: boolean;
+}
+
+/**
+ * useExecutionRuntime — execution status for the selected mission.
+ *
+ * No provider execution. Provides counts and status flags
+ * for the execution panel.
+ */
+export function useExecutionRuntime(): ExecutionRuntime {
+  const state = useKairosState();
+  const mission = state.missions.find((m) => m.id === state.selectedMissionId) ?? null;
+
+  const executions = mission?.stepExecutions ?? [];
+
+  return {
+    queuedCount: executions.filter((e) => e.status === "queued").length,
+    runningCount: executions.filter((e) => e.status === "running").length,
+    retryReadyCount: executions.filter((e) => e.status === "retry_ready").length,
+    isExecuting: mission?.status === "executing",
+    isPaused: mission?.status !== "executing" && mission?.status === "approved",
+  };
 }
 
 // ---------------------------------------------------------------------------

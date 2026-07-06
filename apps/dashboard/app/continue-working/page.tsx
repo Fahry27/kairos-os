@@ -4,26 +4,19 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
-import { useMissions, useDecisions } from "../../lib/runtime";
-import { useMissionRuntime } from "../../lib/runtime";
+import { useMissions, useDecisions, useMissionEngine } from "../../lib/runtime";
 
 /**
  * Continue Working — resume where you left off.
  *
- * Sections:
- *   - Recent missions
- *   - Recently opened workspace
- *   - Pending approvals
- *   - Recent AI sessions
- *
  * Connected to runtime via useMissions(), useDecisions(),
- * and useMissionRuntime() for selection.
+ * and useMissionEngine() for selection.
  */
 export default function ContinueWorkingPage() {
   const state = useKairosState();
   const missions = useMissions();
   const decisions = useDecisions();
-  const { selectedMissionId, selectMission } = useMissionRuntime();
+  const { selectedMission, selectMission } = useMissionEngine();
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -50,7 +43,7 @@ export default function ContinueWorkingPage() {
                 className="record"
                 style={{
                   cursor: "pointer",
-                  borderLeft: selectedMissionId === m.id ? "3px solid var(--accent)" : "3px solid transparent",
+                  borderLeft: selectedMission?.id === m.id ? "3px solid var(--accent)" : "3px solid transparent",
                 }}
                 onClick={() => selectMission(m.id)}
                 role="button"
@@ -58,7 +51,7 @@ export default function ContinueWorkingPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") selectMission(m.id);
                 }}
-                aria-pressed={selectedMissionId === m.id}
+                aria-pressed={selectedMission?.id === m.id}
               >
                 <div className="recordHeader">
                   <h3 style={{ fontSize: 16 }}>{m.name}</h3>

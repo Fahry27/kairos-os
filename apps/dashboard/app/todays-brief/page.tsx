@@ -78,16 +78,16 @@ export default function TodaysBriefPage() {
           {state.missions.length > 0 ? (
             <div className="statGrid" style={{ marginBottom: 12 }}>
               <div>
-                <dt>Active Missions</dt>
-                <dd>{state.missions.filter((m) => m.status === "active").length}</dd>
+                <dt>Active</dt>
+                <dd>{state.missions.filter((m) => m.status === "executing" || m.status === "approved").length}</dd>
               </div>
               <div>
                 <dt>Completed</dt>
                 <dd>{state.missions.filter((m) => m.status === "completed").length}</dd>
               </div>
               <div>
-                <dt>Paused</dt>
-                <dd>{state.missions.filter((m) => m.status === "paused").length}</dd>
+                <dt>Pending</dt>
+                <dd>{state.missions.filter((m) => m.status === "awaiting_approval" || m.status === "planning").length}</dd>
               </div>
             </div>
           ) : (

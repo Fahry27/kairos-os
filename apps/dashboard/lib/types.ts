@@ -10,27 +10,265 @@
 // Enums
 // ---------------------------------------------------------------------------
 
+/** Generic entity status. */
 export type Status = "active" | "completed" | "paused" | "archived";
 
+/** Priority levels used across Mission, Decision, and Step. */
 export type Priority = "low" | "medium" | "high" | "critical";
 
+/** Approval state for steps and mission-level gates. */
 export type ApprovalState = "pending" | "approved" | "rejected" | "expired";
 
 // ---------------------------------------------------------------------------
-// Core domain entities
+// Mission Engine — Lifecycle
 // ---------------------------------------------------------------------------
 
+/**
+ * MissionStatus — the full Mission lifecycle.
+ *
+ *   draft → planning → awaiting_approval → approved → executing
+ *              ↑              ↓                  ↓
+ *              └── cancelled  └── rejected       ├── completed
+ *                                                 └── failed
+ *   Any terminal state → archived
+ */
+export type MissionStatus =
+  | "draft"
+  | "planning"
+  | "awaiting_approval"
+  | "approved"
+  | "executing"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "archived";
+
+/** Execution status for individual steps. */
+export type ExecutionStatus =
+  | "queued"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "retry_ready";
+
+// ---------------------------------------------------------------------------
+// Mission domain entities
+// ---------------------------------------------------------------------------
+
+/**
+ * MissionTrigger — what initiated this mission.
+ * A mission can be triggered by a user, a schedule, another mission,
+ * or an event from the system.
+ */
+export interface MissionTrigger {
+  kind: "user" | "schedule" | "mission" | "event";
+  /** Optional reference to the source entity. */
+  sourceId: string | null;
+  /** Human-readable description of the trigger. */
+  description: string;
+}
+
+/**
+ * MissionContext — the context in which the mission operates.
+ * Used by the planner to understand constraints and available resources.
+ */
+export interface MissionContext {
+  /** Related mission IDs that provide context. */
+  relatedMissionIds: string[];
+  /** Freeform notes from the user when creating the mission. */
+  userNotes: string;
+  /** Environment / capability constraints. */
+  constraints: string[];
+  /** Tags for organization and filtering. */
+  tags: string[];
+}
+
+/**
+ * MissionStep — a single actionable step within a mission plan.
+ */
+export interface MissionStep {
+  id: string;
+  /** Display order in the plan. */
+  order: number;
+  title: string;
+  description: string;
+  /** Whether this step requires manual approval before execution. */
+  requiresApproval: boolean;
+  /** Whether this step is flagged as dangerous. */
+  dangerous: boolean;
+  /** The commands, plugins, or connectors this step depends on. */
+  capabilityRefs: string[];
+  /** Execution status of this step. */
+  executionStatus: ExecutionStatus;
+  /** Optional estimated duration for display. */
+  estimatedDuration: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * MissionPlan — the planning output for a mission.
+ * Versioned so plans can be revised without losing history.
+ */
+export interface MissionPlan {
+  /** Plan version (starts at 1, increments on revision). */
+  version: number;
+  /** Summary of the plan in plain language. */
+  summary: string;
+  /** Ordered list of steps. */
+  steps: MissionStep[];
+  /** Safety notes and warnings from the planner. */
+  safetyNotes: string[];
+  /** What defines success for this mission. */
+  successDefinition: string;
+  /** AI provider and model that generated this plan. */
+  generatedBy: string | null;
+  createdAt: string;
+}
+
+/**
+ * MissionApproval — an approval gate within a mission.
+ * Covers both step-level and mission-level approvals.
+ */
+export interface MissionApproval {
+  id: string;
+  missionId: string;
+  /** Optional step this approval gates (null = mission-level gate). */
+  stepId: string | null;
+  title: string;
+  description: string;
+  status: ApprovalState;
+  /** Who or what requested the approval. */
+  requestedBy: string;
+  /** Reason for the decision. */
+  decisionReason: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
+}
+
+/**
+ * MissionStepExecution — the execution record for a single step.
+ */
+export interface MissionStepExecution {
+  id: string;
+  missionId: string;
+  stepId: string;
+  status: ExecutionStatus;
+  startedAt: string | null;
+  completedAt: string | null;
+  /** Number of retries attempted. */
+  retryCount: number;
+  /** Sanitized error message (no secrets). */
+  error: string | null;
+  /** Summary of the execution result. */
+  resultSummary: string | null;
+}
+
+/**
+ * MissionArtifact — an output or artifact produced during mission execution.
+ */
+export interface MissionArtifact {
+  id: string;
+  missionId: string;
+  stepId: string | null;
+  kind: "text" | "decision" | "memory" | "file" | "approval" | "workflow";
+  title: string;
+  /** Reference to the artifact content (may be an ID or URL). */
+  contentRef: string;
+  createdAt: string;
+}
+
+/**
+ * MissionOutcome — the final outcome once a mission reaches a terminal state.
+ */
+export interface MissionOutcome {
+  status: "completed" | "failed" | "cancelled";
+  summary: string;
+  /** Key lessons or reflections. */
+  learnings: string[];
+  /** Artifacts produced. */
+  artifacts: MissionArtifact[];
+  /** Timestamp when the outcome was recorded. */
+  recordedAt: string;
+}
+
+/**
+ * Mission — the core domain entity for the Mission Engine.
+ *
+ * A Mission is the primary unit of work in Kairos. It flows through:
+ *   Trigger → Plan → Approve → Execute → Outcome → Archive
+ */
 export interface Mission {
   id: string;
   name: string;
   description: string | null;
-  status: Status;
+  status: MissionStatus;
   priority: Priority;
-  /** Optional target date for the mission. */
-  targetDate: string | null;
+  /** Who or what triggered this mission. */
+  trigger: MissionTrigger;
+  /** Context for planning and execution. */
+  context: MissionContext;
+  /** The plan (multiple versions supported). */
+  plans: MissionPlan[];
+  /** Active plan version. */
+  activePlanVersion: number | null;
+  /** Pending approvals for this mission. */
+  approvals: MissionApproval[];
+  /** Execution records for each step. */
+  stepExecutions: MissionStepExecution[];
+  /** Artifacts produced during execution. */
+  artifacts: MissionArtifact[];
+  /** Final outcome (set when mission reaches a terminal status). */
+  outcome: MissionOutcome | null;
+  /** When the mission was triggered. */
+  triggeredAt: string;
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Mission timeline events
+// ---------------------------------------------------------------------------
+
+/**
+ * MissionTimelineEvent — a single event in the mission's history.
+ * Every status transition, approval decision, and execution state change
+ * produces an event.
+ */
+export interface MissionTimelineEvent {
+  id: string;
+  missionId: string;
+  /** Time the event occurred. */
+  timestamp: string;
+  kind:
+    | "created"
+    | "status_change"
+    | "plan_generated"
+    | "plan_revised"
+    | "approval_requested"
+    | "approval_granted"
+    | "approval_rejected"
+    | "step_queued"
+    | "step_started"
+    | "step_completed"
+    | "step_failed"
+    | "step_retried"
+    | "artifact_created"
+    | "outcome_recorded"
+    | "archived";
+  title: string;
+  description: string;
+  /** The status after this event, if applicable. */
+  resultingStatus: MissionStatus | null;
+  /** Related entity reference. */
+  relatedId: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Decision (unchanged)
+// ---------------------------------------------------------------------------
 
 export interface Decision {
   id: string;
@@ -38,26 +276,31 @@ export interface Decision {
   description: string | null;
   status: Status;
   priority: Priority;
-  /** The mission this decision belongs to, if any. */
   missionId: string | null;
   dueDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Workspace (unchanged)
+// ---------------------------------------------------------------------------
+
 export interface Workspace {
   id: string;
-  /** The goal the user set for this workspace session. */
   goal: string;
   status: "active" | "completed" | "paused";
   createdAt: string;
   updatedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// MemoryReference (unchanged)
+// ---------------------------------------------------------------------------
+
 export interface MemoryReference {
   id: string;
   type: string;
-  /** Preview snippet — first ~120 chars. */
   snippet: string;
   tags: string[];
   importance: Priority;
@@ -65,7 +308,7 @@ export interface MemoryReference {
 }
 
 // ---------------------------------------------------------------------------
-// Timeline
+// Timeline + Brief
 // ---------------------------------------------------------------------------
 
 export interface TimelineItem {
@@ -74,26 +317,20 @@ export interface TimelineItem {
   title: string;
   summary: string;
   timestamp: string;
-  /** Optional link to the related entity. */
   relatedId: string | null;
 }
-
-// ---------------------------------------------------------------------------
-// Brief / Feed cards
-// ---------------------------------------------------------------------------
 
 export interface BriefCard {
   id: string;
   kind: "decision" | "mission" | "memory" | "system" | "approval";
   title: string;
   description: string;
-  /** Optional metadata: priority badge, count, etc. */
   meta: string | null;
   timestamp: string | null;
 }
 
 // ---------------------------------------------------------------------------
-// Assistant context
+// Assistant context + Navigation (unchanged)
 // ---------------------------------------------------------------------------
 
 export interface AssistantContext {
@@ -101,7 +338,6 @@ export interface AssistantContext {
   activeWorkspaceId: string | null;
   recentDecisions: string[];
   recentMemories: string[];
-  /** Freeform context the user attaches to an Ask Kai prompt. */
   userNotes: string;
 }
 
@@ -110,10 +346,6 @@ export interface UserIntent {
   context: AssistantContext;
   preferredAction: "plan" | "ask" | "review" | "execute";
 }
-
-// ---------------------------------------------------------------------------
-// Navigation
-// ---------------------------------------------------------------------------
 
 export type ShellSurface = "good-morning" | "continue-working" | "ask-kai" | "todays-brief" | "workspace";
 
