@@ -9,12 +9,12 @@ import { KAIROS_API_URL } from "../lib/api";
 
 export default function DashboardPage() {
   return (
-    <main className="page" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
       <header className="topBar" style={{ borderBottom: 'none', paddingBottom: '0' }}>
         <div>
-          <p className="eyebrow">Kairos OS</p>
-          <h1>Mission Home</h1>
-          <p className="subtitle">Daily Operator Console • connected to {KAIROS_API_URL}</p>
+          <p className="eyebrow">Kairos</p>
+          <h1>Home</h1>
+          <p className="subtitle">Your AI Operating System • connected to {KAIROS_API_URL}</p>
         </div>
       </header>
 
@@ -44,6 +44,6 @@ export default function DashboardPage() {
         </div>
         
       </div>
-    </main>
+    </div>
   );
 }

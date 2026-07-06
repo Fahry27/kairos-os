@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import ShellLayout from "../components/shell/ShellLayout";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kairos Dashboard",
-  description: "Local dashboard for Kairos Core API.",
+  title: "Kairos",
+  description: "Kairos — Your AI Operating System.",
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ShellLayout>{children}</ShellLayout>
+      </body>
     </html>
   );
 }
