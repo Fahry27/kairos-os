@@ -42,6 +42,12 @@
   }
 }
 
+@keyframes kairos-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 * {
   box-sizing: border-box;
 }

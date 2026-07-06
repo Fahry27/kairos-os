@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * LoadingShell — Suspense fallback for route segments.
  * Displays a minimal spinner while Next.js loads a route.
