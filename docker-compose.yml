@@ -12,7 +12,7 @@ services:
     #   - .env
     environment:
       APP_NAME: Kairos API
-      APP_VERSION: 3.3.0
+      APP_VERSION: 3.4.0
       APP_ENV: development
       API_V1_PREFIX: /api/v1
       DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
@@ -31,6 +31,12 @@ services:
       KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS: ${KAIROS_OLLAMA_REQUEST_TIMEOUT_SECONDS:-30}
       KAIROS_OLLAMA_MAX_PROMPT_CHARS: ${KAIROS_OLLAMA_MAX_PROMPT_CHARS:-12000}
       KAIROS_OLLAMA_MAX_RESPONSE_CHARS: ${KAIROS_OLLAMA_MAX_RESPONSE_CHARS:-8000}
+      # AI Provider Credentials (optional — providers appear as Not Configured when unset)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      KAIROS_DEEPSEEK_API_KEY: ${KAIROS_DEEPSEEK_API_KEY:-}
+      KAIROS_9ROUTER_API_KEY: ${KAIROS_9ROUTER_API_KEY:-}
+      KAIROS_AI_BASE_URL: ${KAIROS_AI_BASE_URL:-}
       KAIROS_AI_MODEL: ${KAIROS_AI_MODEL:-}
       # KAIROS_API_KEY: "your-secure-api-key-here" # Enable local API key auth (unset/empty for local dev)
       UVICORN_PROXY_HEADERS: "true"

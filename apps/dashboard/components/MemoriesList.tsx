@@ -24,15 +24,17 @@ function MemoryItem({
 
   const [editType, setEditType] = useState(memory.type);
   const [editContent, setEditContent] = useState(memory.content);
-  const [editSource, setEditSource] = useState(memory.source ?? "");
-  const [editTags, setEditTags] = useState(memory.tags?.join(", ") ?? "");
+  const [editSource, setEditSource] = useState(memory.source_label ?? (memory.source && typeof memory.source === "object" ? (memory.source as Record<string,unknown>).label as string : typeof memory.source === "string" ? memory.source : "") ?? "");
+  const [editTags, setEditTags] = useState(
+    (memory.tags ?? []).map(t => typeof t === "string" ? t : t.name).join(", ")
+  );
   const [editImportance, setEditImportance] = useState(memory.importance);
 
   function startEditing() {
     setEditType(memory.type);
     setEditContent(memory.content);
-    setEditSource(memory.source ?? "");
-    setEditTags(memory.tags?.join(", ") ?? "");
+    setEditSource(memory.source_label ?? (memory.source && typeof memory.source === "object" ? (memory.source as Record<string,unknown>).label as string : typeof memory.source === "string" ? memory.source : "") ?? "");
+    setEditTags((memory.tags ?? []).map(t => typeof t === "string" ? t : t.name).join(", "));
     setEditImportance(memory.importance);
     setActionError(null);
     setEditing(true);
@@ -56,13 +58,14 @@ function MemoryItem({
       .filter(Boolean);
 
     setIsSaving(true);
+    const sourceLabel = editSource.trim() || null;
     const result = await updateMemory(memory.id, {
       type: editType,
       content: trimmed,
-      source: editSource.trim() || null,
-      tags: parsedTags.length ? parsedTags : null,
+      source: sourceLabel ? { kind: "user", label: sourceLabel } : null,
+      tags: parsedTags.length ? parsedTags.map(t => ({ id: t, name: t })) : null,
       importance: editImportance,
-    });
+    } as Record<string, unknown>);
 
     if (result.ok) {
       setEditing(false);
@@ -154,8 +157,8 @@ function MemoryItem({
       </div>
       <p>{memory.content}</p>
       <div className="metaRow">
-        <span>Source: {memory.source ?? "-"}</span>
-        <span>Tags: {memory.tags?.length ? memory.tags.join(", ") : "-"}</span>
+        <span>Source: {memory.source_label ?? (memory.source && typeof memory.source === "object" ? (memory.source as Record<string,unknown>).label as string : typeof memory.source === "string" ? memory.source : "-") ?? "-"}</span>
+        <span>Tags: {memory.tags?.length ? memory.tags.map(t => typeof t === "string" ? t : t.name).join(", ") : "-"}</span>
       </div>
       <div className="recordActions">
         <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit memory ${memory.type}`}>
@@ -228,11 +231,11 @@ export function MemoriesList() {
     const created = await createMemory({
       type,
       content: trimmedContent,
-      source: source.trim() || undefined,
-      tags: parsedTags.length ? parsedTags : undefined,
+      source: source.trim() ? { kind: "user", label: source.trim() } : undefined,
+      tags: parsedTags.length ? parsedTags.map(t => ({ id: t, name: t })) : undefined,
       importance,
       project_id: focusedProjectId || undefined,
-    });
+    } as unknown as Parameters<typeof createMemory>[0]);
 
     if (created.ok) {
       setType("note");
@@ -254,8 +257,8 @@ export function MemoriesList() {
         const q = searchQuery.toLowerCase();
         const matchesSearch =
           m.content.toLowerCase().includes(q) ||
-          (m.source?.toLowerCase() || "").includes(q) ||
-          (m.tags?.join(" ").toLowerCase() || "").includes(q) ||
+          ((typeof m.source === "string" ? m.source : (m.source_label ?? "")).toLowerCase() || "").includes(q) ||
+          ((m.tags?.map(t => typeof t === "string" ? t : t.name).join(" ").toLowerCase()) || "").includes(q) ||
           m.type.toLowerCase().includes(q);
         const matchesType = filterType === "all" || m.type === filterType;
         const matchesImportance = filterImportance === "all" || m.importance === filterImportance;

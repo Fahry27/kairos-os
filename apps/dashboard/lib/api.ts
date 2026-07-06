@@ -26,6 +26,17 @@ export type Project = {
   description?: string | null;
   status: string;
   priority: string;
+  triggered_at?: string | null;
+  trigger_kind?: string | null;
+  trigger_source_id?: string | null;
+  trigger_description?: string | null;
+  context?: Record<string, unknown> | null;
+  plans?: Record<string, unknown>[] | null;
+  active_plan_version?: number | null;
+  approvals?: Record<string, unknown>[] | null;
+  step_executions?: Record<string, unknown>[] | null;
+  artifacts?: Record<string, unknown>[] | null;
+  outcome?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };
@@ -58,11 +69,51 @@ export type TaskCreate = {
 export type Memory = {
   id: string;
   project_id?: string | null;
+  title?: string | null;
   type: string;
   content: string;
-  source?: string | null;
-  tags?: string[] | null;
+  source?: Record<string, unknown> | null;
+  source_kind?: string | null;
+  source_id?: string | null;
+  source_label?: string | null;
+  tags?: Array<{ id: string; name: string; category?: string | null }> | null;
   importance: string;
+  visibility?: string | null;
+  status?: string | null;
+  is_pinned?: boolean | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TimelineEvent = {
+  id: string;
+  type: string;
+  title: string;
+  description?: string | null;
+  timestamp: string;
+  actor_kind?: string | null;
+  actor_id?: string | null;
+  actor_label?: string | null;
+  source_kind?: string | null;
+  source_reference?: string | null;
+  scope?: string | null;
+  severity?: string | null;
+  mission_id?: string | null;
+  workspace_id?: string | null;
+  memory_id?: string | null;
+  decision_id?: string | null;
+  attachments?: Record<string, unknown>[] | null;
+  created_at: string;
+};
+
+export type Workspace = {
+  id: string;
+  goal: string;
+  status: string;
+  context?: Record<string, unknown> | null;
+  plan_json?: Record<string, unknown>[] | null;
+  decisions?: Record<string, unknown>[] | null;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -71,9 +122,24 @@ export type MemoryCreate = {
   project_id?: string;
   type?: string;
   content: string;
-  source?: string;
-  tags?: string[];
+  title?: string;
+  source?: { kind?: string; label?: string };
+  tags?: Array<{ id: string; name: string; category?: string | null }>;
   importance?: string;
+  visibility?: string;
+  is_pinned?: boolean;
+};
+
+export type TimelineEventCreate = {
+  type: string;
+  title: string;
+  description?: string;
+  mission_id?: string | null;
+  workspace_id?: string | null;
+  memory_id?: string | null;
+  decision_id?: string | null;
+  scope?: string;
+  severity?: string;
 };
 
 function getHeaders(
@@ -881,4 +947,27 @@ export function updateMemory(id: string, payload: MemoryUpdate) {
 
 export function deleteMemory(id: string) {
   return deleteFromApi(`/api/v1/memories/${id}`);
+}
+
+export function getTimelineEvents(missionId?: string) {
+  const params = new URLSearchParams();
+  if (missionId) params.set("mission_id", missionId);
+  const query = params.toString();
+  return fetchFromApi<TimelineEvent[]>(`/api/v1/timeline${query ? `?${query}` : ""}`);
+}
+
+export function createTimelineEvent(payload: TimelineEventCreate) {
+  return postToApi<TimelineEvent, TimelineEventCreate>("/api/v1/timeline", payload);
+}
+
+export function getWorkspaces() {
+  return fetchFromApi<Workspace[]>("/api/v1/workspaces");
+}
+
+export function createWorkspace(payload: { goal: string; status?: string }) {
+  return postToApi<Workspace, { goal: string; status?: string }>("/api/v1/workspaces", payload);
+}
+
+export function updateWorkspace(id: string, payload: Record<string, unknown>) {
+  return patchToApi<Workspace, Record<string, unknown>>(`/api/v1/workspaces/${id}`, payload);
 }

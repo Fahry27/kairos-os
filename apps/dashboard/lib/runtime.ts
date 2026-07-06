@@ -19,12 +19,25 @@ import {
   getMemories,
   getHealth,
   getAICapabilities,
+  getTimelineEvents,
+  createTimelineEvent,
+  getWorkspaces,
+  createWorkspace,
+  updateWorkspace,
+  getAIProviderRoute,
+  dispatchAIProvider,
   type ApiResult,
   type Project,
   type Task,
   type Memory as ApiMemory,
+  type TimelineEvent as ApiTimelineEvent,
+  type TimelineEventCreate,
+  type Workspace as ApiWorkspace,
   type Health,
   type AICapabilities,
+  type AIProviderRouteResponse,
+  type AIProviderRouterDispatchRequest,
+  type AIProviderRouterDispatchResponse,
 } from "./api";
 import type {
   Mission,
@@ -33,6 +46,11 @@ import type {
   TimelineEvent,
   TimelineEventType,
   TimelineFilter,
+  TimelineActor,
+  TimelineSource,
+  TimelineScope,
+  TimelineSeverity,
+  TimelineAttachment,
   KnowledgeItem,
   KnowledgeContext,
   KnowledgeQuery,
@@ -45,9 +63,12 @@ import type {
   AIRoutePolicy,
   AIUsageEstimate,
   Memory,
+  MemoryType,
+  MemoryVisibility,
+  MemoryStatus,
+  MemorySource,
   MemoryCollection,
   MemoryReference,
-  MemoryType,
   Decision,
 } from "./types";
 
@@ -143,6 +164,15 @@ export function useApi<T>(
   return { ...state, refresh, abort };
 }
 
+function resolveMemorySource(m: ApiMemory): MemorySource {
+  const sourceObj = typeof m.source === "object" && m.source !== null ? m.source as Record<string, unknown> : null;
+  return {
+    kind: (m.source_kind || sourceObj?.kind || "user") as MemorySource["kind"],
+    sourceId: (m.source_id || sourceObj?.source_id || null) as string | null,
+    label: (m.source_label || sourceObj?.label || (typeof m.source === "string" ? m.source : null) || "API") as string,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // API → Domain mappers
 // ---------------------------------------------------------------------------
@@ -154,15 +184,24 @@ function projectToMission(p: Project): Mission {
     description: p.description ?? null,
     status: mapApiStatus(p.status),
     priority: (p.priority as Mission["priority"]) || "medium",
-    trigger: { kind: "user", sourceId: null, description: "Created via API" },
-    context: { relatedMissionIds: [], userNotes: "", constraints: [], tags: [] },
-    plans: [],
-    activePlanVersion: null,
-    approvals: [],
-    stepExecutions: [],
-    artifacts: [],
-    outcome: null,
-    triggeredAt: p.created_at,
+    trigger: {
+      kind: (p.trigger_kind as Mission["trigger"]["kind"]) || "user",
+      sourceId: p.trigger_source_id ?? null,
+      description: p.trigger_description ?? "Created via API",
+    },
+    context: {
+      relatedMissionIds: (p.context as Record<string, unknown>)?.related_mission_ids as string[] || [],
+      userNotes: (p.context as Record<string, unknown>)?.user_notes as string || "",
+      constraints: (p.context as Record<string, unknown>)?.constraints as string[] || [],
+      tags: (p.context as Record<string, unknown>)?.tags as string[] || [],
+    },
+    plans: (p.plans as unknown as Mission["plans"]) || [],
+    activePlanVersion: p.active_plan_version ?? null,
+    approvals: (p.approvals as unknown as Mission["approvals"]) || [],
+    stepExecutions: (p.step_executions as unknown as Mission["stepExecutions"]) || [],
+    artifacts: (p.artifacts as unknown as Mission["artifacts"]) || [],
+    outcome: (p.outcome as unknown as Mission["outcome"]) || null,
+    triggeredAt: p.triggered_at ?? p.created_at,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
   };
@@ -170,8 +209,15 @@ function projectToMission(p: Project): Mission {
 
 function mapApiStatus(apiStatus: string): MissionStatus {
   const statusMap: Record<string, MissionStatus> = {
+    draft: "draft",
+    planning: "planning",
+    awaiting_approval: "awaiting_approval",
+    approved: "approved",
+    executing: "executing",
     active: "executing",
     completed: "completed",
+    failed: "failed",
+    cancelled: "cancelled",
     paused: "cancelled",
     archived: "archived",
   };
@@ -207,17 +253,20 @@ function memoryToReference(m: Memory): MemoryReference {
 function apiMemoryToDomain(m: ApiMemory): Memory {
   return {
     id: m.id,
-    title: m.content.slice(0, 80),
+    title: m.title || m.content.slice(0, 80),
     content: m.content,
     type: (m.type as MemoryType) || "note",
     importance: (m.importance as Memory["importance"]) || "medium",
-    visibility: "mission",
-    status: "active",
-    source: { kind: "user", sourceId: null, label: m.source ?? "API" },
-    relationships: m.project_id ? [{ targetKind: "mission", targetId: m.project_id, label: "belongs_to" }] : [],
-    tags: (m.tags ?? []).map((name) => ({ id: name, name, category: null })),
+    visibility: (m.visibility || "mission") as MemoryVisibility,
+    status: (m.status || "active") as MemoryStatus,
+    source: resolveMemorySource(m),
+    relationships: m.project_id ? [{ targetKind: "mission" as const, targetId: m.project_id, label: "belongs_to" }] : [],
+    tags: (m.tags ?? []).map((tag) => {
+      if (typeof tag === "string") return { id: tag, name: tag, category: null };
+      return { id: tag.id || tag.name, name: tag.name, category: tag.category ?? null };
+    }),
     collectionId: null,
-    isPinned: false,
+    isPinned: m.is_pinned ?? false,
     createdAt: m.created_at,
     updatedAt: m.updated_at,
   };
@@ -328,7 +377,8 @@ export interface ConversationMessage {
   role: "user" | "kairos";
   content: string;
   timestamp: string;
-  status: "sent" | "pending" | "error";
+  status: "sent" | "pending" | "error" | "delivered" | "failed";
+  provider?: { id: string; name: string };
 }
 
 export interface Conversation {
@@ -425,18 +475,67 @@ export function useConversation() {
       );
       setDraft("");
 
-      // ARCHITECTURE READY: when the AI API is available, uncomment the block below.
-      // const controller = new AbortController();
-      // abortRef.current = controller;
-      // setIsSending(true);
-      // try {
-      //   const result = await postToApi("/api/v1/ai/ask", { message: content.trim(), conversationId: convId });
-      //   if (!controller.signal.aborted && result.ok) {
-      //     const kairosMsg: ConversationMessage = { ... result.data ... };
-      //     setConversations((prev) => ... add kairosMsg ...);
-      //   }
-      // } catch (err) { ... }
-      // setIsSending(false);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setIsSending(true);
+      setSendError(null);
+
+      try {
+        const result = await dispatchAIProvider({
+          user_goal: content.trim(),
+          provider_id: null,
+          fallback_enabled: true,
+        });
+
+        if (controller.signal.aborted) return;
+
+        if (result.ok) {
+          const kairosMsg: ConversationMessage = {
+            id: nextMessageId(),
+            role: "kairos",
+            content: result.data.response_text || "No response received.",
+            timestamp: new Date().toISOString(),
+            status: "delivered",
+            provider: {
+              id: result.data.selected_provider_id,
+              name: result.data.selected_provider_name,
+            },
+          };
+
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === convId
+                ? {
+                    ...c,
+                    messages: [...c.messages, kairosMsg],
+                    updatedAt: new Date().toISOString(),
+                  }
+                : c,
+            ),
+          );
+        } else {
+          const errMsg: ConversationMessage = {
+            id: nextMessageId(),
+            role: "kairos",
+            content: `Error: ${result.error}`,
+            timestamp: new Date().toISOString(),
+            status: "failed",
+          };
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === convId
+                ? { ...c, messages: [...c.messages, errMsg], updatedAt: new Date().toISOString() }
+                : c,
+            ),
+          );
+        }
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setSendError(message);
+      }
+
+      setIsSending(false);
     },
     [activeConversationId],
   );
@@ -928,13 +1027,56 @@ export function useTimelineEngine() {
   );
 
   const recordEvent = useCallback(
-    (event: Omit<TimelineEvent, "id">) => {
+    async (event: Omit<TimelineEvent, "id">) => {
+      // Persist to API
+      await createTimelineEvent({
+        type: event.type,
+        title: event.title,
+        description: event.description,
+        mission_id: event.missionId,
+        workspace_id: event.workspaceId,
+        memory_id: event.memoryId,
+        decision_id: event.decisionId,
+        scope: event.scope,
+        severity: event.severity,
+      }).catch(() => {});
+
       const full: TimelineEvent = { ...event, id: nextTimelineId() };
       dispatch({ type: "ADD_TIMELINE_EVENT", payload: full });
       return full;
     },
     [dispatch],
   );
+
+  // Fetch timeline from API
+  const { refresh: fetchTimeline } = useApi<ApiTimelineEvent[]>(
+    useCallback(async () => {
+      const result = await getTimelineEvents();
+      if (result.ok) {
+        const domainEvents: TimelineEvent[] = result.data.map((e) => ({
+          id: e.id,
+          type: e.type as TimelineEventType,
+          title: e.title,
+          description: e.description ?? "",
+          timestamp: e.timestamp,
+          actor: { kind: (e.actor_kind ?? "system") as TimelineActor["kind"], id: e.actor_id ?? null, label: e.actor_label ?? "" },
+          source: { kind: (e.source_kind ?? "api") as TimelineSource["kind"], reference: e.source_reference ?? null },
+          scope: (e.scope ?? "global") as TimelineScope,
+          severity: (e.severity ?? "info") as TimelineSeverity,
+          missionId: e.mission_id ?? null,
+          workspaceId: e.workspace_id ?? null,
+          memoryId: e.memory_id ?? null,
+          decisionId: e.decision_id ?? null,
+          attachments: (e.attachments ?? []) as unknown as TimelineAttachment[],
+        }));
+        dispatch({ type: "SET_TIMELINE_EVENTS", payload: domainEvents });
+      }
+      return result;
+    }, [dispatch]),
+  );
+
+  // Auto-fetch timeline
+  useEffect(() => { fetchTimeline(); }, [fetchTimeline]);
 
   const { timelineEvents: all, timelineFilter: filter, selectedTimelineEventId } = state;
 

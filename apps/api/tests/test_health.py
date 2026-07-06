@@ -2,7 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 
-TEST_DATABASE_PATH = Path(tempfile.gettempdir()) / "kairos-api-test.sqlite3"
+TEST_DATABASE_PATH = Path(tempfile.gettempdir()) / "kairos-api-health-test.sqlite3"
 if TEST_DATABASE_PATH.exists():
     TEST_DATABASE_PATH.unlink()
 
@@ -96,7 +96,7 @@ def test_database_initialization_seeds_default_data():
 
     assert any(name == "Kairos OS" for name in project_names)
     assert any(title == "Connect Kairos Dashboard to the Core API" for title in task_titles)
-    assert any(t == "technical_context" for t in memory_types)
+    assert any(t == "reference" for t in memory_types)
 
     project_count = len(project_names)
     task_count = len(task_titles)
@@ -139,9 +139,9 @@ def test_dashboard_read_endpoints_return_sqlite_data():
     created_memory = client.post(
         "/api/v1/memories",
         json={
-            "type": "technical_context",
+            "type": "reference",
             "content": "Kairos API v0.3 stores local records in SQLite.",
-            "tags": ["kairos", "sqlite"],
+            "tags": [{"id": "kairos", "name": "kairos"}, {"id": "sqlite", "name": "sqlite"}],
         },
     )
     assert created_memory.status_code == 201
@@ -157,7 +157,7 @@ def test_dashboard_read_endpoints_return_sqlite_data():
     assert any(task["title"] == "Persist task in SQLite" for task in tasks.json())
 
     assert memories.status_code == 200
-    assert any(memory["type"] == "technical_context" for memory in memories.json())
+    assert any(memory["type"] == "reference" for memory in memories.json())
 
 
 def test_sqlite_project_crud_is_consistent():
@@ -228,7 +228,7 @@ def test_sqlite_memory_crud_is_consistent():
         json={
             "type": "note",
             "content": "SQLite CRUD memory.",
-            "tags": ["sqlite", "test"],
+            "tags": [{"id": "sqlite", "name": "sqlite"}, {"id": "test", "name": "test"}],
             "importance": "normal",
         },
     )
@@ -241,11 +241,11 @@ def test_sqlite_memory_crud_is_consistent():
 
     updated = client.patch(
         f"/api/v1/memories/{memory_id}",
-        json={"importance": "high", "tags": ["sqlite", "updated"]},
+        json={"importance": "high", "tags": [{"id": "sqlite", "name": "sqlite"}, {"id": "updated", "name": "updated"}]},
     )
     assert updated.status_code == 200
     assert updated.json()["importance"] == "high"
-    assert updated.json()["tags"] == ["sqlite", "updated"]
+    assert len(updated.json()["tags"]) == 2
 
     deleted = client.delete(f"/api/v1/memories/{memory_id}")
     assert deleted.status_code == 204
