@@ -287,7 +287,18 @@ export type TimelineEventType =
   | "automation.run_completed"
   | "automation.run_failed"
   | "automation.paused"
-  | "automation.disabled";
+  | "automation.disabled"
+  // Plugin & Connector
+  | "plugin.installed"
+  | "plugin.updated"
+  | "plugin.disabled"
+  | "plugin.enabled"
+  | "plugin.uninstalled"
+  | "connector.connected"
+  | "connector.disconnected"
+  | "connector.synced"
+  | "connector.sync_failed"
+  | "connector.health_degraded";
 
 /**
  * TimelineActor — who or what initiated the event.
@@ -911,6 +922,189 @@ export interface AutomationRun {
   error: string | null;
   /** The trigger event that started this run. */
   triggerEvent: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Plugin & Connector Foundation
+// ---------------------------------------------------------------------------
+
+/**
+ * Plugins and Connectors extend Kairos by registering capabilities
+ * into the Command Engine. Nothing runs outside the governed pipeline:
+ *   Register → Command → Approval → Execution → Timeline
+ */
+
+// ---------------------------------------------------------------------------
+// Plugin
+// ---------------------------------------------------------------------------
+
+export type PluginType = "command" | "ui" | "provider" | "automation" | "memory" | "knowledge";
+
+export type PluginStatus = "installing" | "active" | "disabled" | "error" | "uninstalling";
+
+export type PluginInstallState = "not_installed" | "installing" | "installed" | "updating" | "failed";
+
+export type PluginPermission = "read" | "write" | "execute" | "network" | "filesystem";
+
+export type PluginRiskLevel = "verified" | "reviewed" | "community" | "untrusted";
+
+export interface PluginExecutionBoundary {
+  /** Whether this plugin can make network calls. */
+  networkAllowed: boolean;
+  /** Whether this plugin can access the filesystem. */
+  filesystemAllowed: boolean;
+  /** Maximum memory in MB. */
+  maxMemoryMB: number;
+  /** Timeout in seconds. */
+  timeoutSeconds: number;
+  /** Whether this plugin runs in isolation. */
+  sandboxed: boolean;
+}
+
+export interface PluginCapability {
+  /** Capability identifier registered into the Command Engine. */
+  id: string;
+  name: string;
+  description: string;
+  /** The command type this capability maps to. */
+  commandType: CommandType;
+  /** Whether approval is required to execute. */
+  requiresApproval: boolean;
+  /** Whether the capability is dangerous. */
+  dangerous: boolean;
+  /** Permissions needed. */
+  permissions: PluginPermission[];
+}
+
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  type: PluginType;
+  /** Author or organization. */
+  author: string | null;
+  /** The capabilities this plugin registers. */
+  capabilities: PluginCapability[];
+  /** Execution isolation boundary. */
+  boundary: PluginExecutionBoundary;
+  /** Minimum Kairos version required. */
+  minKairosVersion: string | null;
+}
+
+export interface Plugin {
+  id: string;
+  manifest: PluginManifest;
+  status: PluginStatus;
+  installState: PluginInstallState;
+  riskLevel: PluginRiskLevel;
+  /** Error message if status is "error". */
+  error: string | null;
+  installedAt: string | null;
+  updatedAt: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Connector
+// ---------------------------------------------------------------------------
+
+export type ConnectorType = "n8n" | "webhook" | "api" | "database" | "filesystem" | "message_queue";
+
+export type ConnectorStatus = "connected" | "disconnected" | "degraded" | "unconfigured";
+
+export type ConnectorAuthType = "none" | "api_key" | "oauth2" | "basic" | "token";
+
+export type ConnectorSyncState = "synced" | "syncing" | "stale" | "failed" | "never_synced";
+
+export type ConnectorScope = "global" | "mission" | "workspace";
+
+export interface ConnectorPermission {
+  type: "read" | "write" | "execute" | "admin";
+  target: string;
+}
+
+export interface ConnectorCapability {
+  id: string;
+  name: string;
+  description: string;
+  commandType: CommandType;
+  requiresApproval: boolean;
+  dangerous: boolean;
+}
+
+export interface ConnectorHealth {
+  /** Last successful health check. */
+  lastCheck: string | null;
+  /** Whether the connector responded. */
+  reachable: boolean | null;
+  /** Health check message. */
+  message: string | null;
+  /** Latency in milliseconds. */
+  latencyMs: number | null;
+}
+
+export interface Connector {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  type: ConnectorType;
+  status: ConnectorStatus;
+  authType: ConnectorAuthType;
+  /** Whether authentication is configured. */
+  authConfigured: boolean;
+  /** The capabilities this connector registers. */
+  capabilities: ConnectorCapability[];
+  /** Sync state for connectors that maintain local state. */
+  syncState: ConnectorSyncState;
+  /** Health state. */
+  health: ConnectorHealth;
+  scope: ConnectorScope;
+  tags: string[];
+  baseUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Capability Registry
+// ---------------------------------------------------------------------------
+
+export type CapabilitySource = "plugin" | "connector" | "builtin";
+
+export type CapabilityStatus = "available" | "disabled" | "error";
+
+export interface CapabilityPolicy {
+  /** Whether this capability requires approval by default. */
+  defaultApproval: boolean;
+  /** Maximum allowed risk level for auto-approval. */
+  autoApproveBelow: CommandRiskLevel;
+  /** Whether capabilities from this source need health verification. */
+  requireHealthCheck: boolean;
+}
+
+export interface CapabilityRiskAssessment {
+  capabilityId: string;
+  riskLevel: CommandRiskLevel;
+  /** Why this risk level was assigned. */
+  rationale: string;
+  /** Whether this capability is safe for unattended execution. */
+  safeForAutomation: boolean;
+  assessedAt: string;
+}
+
+export interface RegisteredCapability {
+  id: string;
+  source: CapabilitySource;
+  /** The plugin or connector that registered this. */
+  ownerId: string;
+  /** The capability definition. */
+  definition: PluginCapability | ConnectorCapability;
+  status: CapabilityStatus;
+  policy: CapabilityPolicy;
+  riskAssessment: CapabilityRiskAssessment | null;
+  /** When this capability was registered. */
+  registeredAt: string;
 }
 
 // ---------------------------------------------------------------------------

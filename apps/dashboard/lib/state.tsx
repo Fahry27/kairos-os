@@ -50,6 +50,10 @@ import type {
   Automation,
   AutomationRun,
   AutomationPolicy,
+  Plugin,
+  Connector,
+  RegisteredCapability,
+  CapabilityPolicy,
   Decision,
   Workspace,
   Memory,
@@ -114,6 +118,18 @@ export interface KairosState {
   selectedAutomationId: string | null;
   /** Automation runs. */
   automationRuns: AutomationRun[];
+  /** Installed plugins. */
+  plugins: Plugin[];
+  /** Configured connectors. */
+  connectors: Connector[];
+  /** Registered capabilities from all sources. */
+  registeredCapabilities: RegisteredCapability[];
+  /** Selected plugin ID. */
+  selectedPluginId: string | null;
+  /** Selected connector ID. */
+  selectedConnectorId: string | null;
+  /** Default capability policy for new registrations. */
+  capabilityPolicy: CapabilityPolicy;
   decisions: Decision[];
   workspaces: Workspace[];
   memories: Memory[];
@@ -174,6 +190,12 @@ export type KairosAction =
   | { type: "SELECT_AUTOMATION"; payload: string | null }
   | { type: "ADD_AUTOMATION_RUN"; payload: AutomationRun }
   | { type: "SET_AUTOMATION_RUNS"; payload: AutomationRun[] }
+  | { type: "SET_PLUGINS"; payload: Plugin[] }
+  | { type: "SELECT_PLUGIN"; payload: string | null }
+  | { type: "SET_CONNECTORS"; payload: Connector[] }
+  | { type: "SELECT_CONNECTOR"; payload: string | null }
+  | { type: "SET_REGISTERED_CAPABILITIES"; payload: RegisteredCapability[] }
+  | { type: "SET_CAPABILITY_POLICY"; payload: Partial<CapabilityPolicy> }
   | { type: "ADD_TIMELINE_ITEM"; payload: TimelineItem }
   | { type: "SET_ACTIVE_SURFACE"; payload: ShellSurface }
   | { type: "TOGGLE_SIDEBAR" }
@@ -221,6 +243,12 @@ const initialState: KairosState = {
   automations: [],
   selectedAutomationId: null,
   automationRuns: [],
+  plugins: [],
+  connectors: [],
+  registeredCapabilities: [],
+  selectedPluginId: null,
+  selectedConnectorId: null,
+  capabilityPolicy: { defaultApproval: true, autoApproveBelow: "none", requireHealthCheck: true },
   decisions: [],
   workspaces: [],
   memories: [],
@@ -433,6 +461,26 @@ function kairosReducer(state: KairosState, action: KairosAction): KairosState {
 
     case "SET_AUTOMATION_RUNS":
       return { ...state, automationRuns: action.payload };
+
+    // ------ Plugin & Connector ------
+
+    case "SET_PLUGINS":
+      return { ...state, plugins: action.payload };
+
+    case "SELECT_PLUGIN":
+      return { ...state, selectedPluginId: action.payload };
+
+    case "SET_CONNECTORS":
+      return { ...state, connectors: action.payload };
+
+    case "SELECT_CONNECTOR":
+      return { ...state, selectedConnectorId: action.payload };
+
+    case "SET_REGISTERED_CAPABILITIES":
+      return { ...state, registeredCapabilities: action.payload };
+
+    case "SET_CAPABILITY_POLICY":
+      return { ...state, capabilityPolicy: { ...state.capabilityPolicy, ...action.payload } };
 
     case "SET_DECISIONS":
       return { ...state, decisions: action.payload };

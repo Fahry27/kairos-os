@@ -1239,3 +1239,75 @@ export function useAutomationPolicy() {
   );
   return automaton?.policy ?? null;
 }
+
+// ---------------------------------------------------------------------------
+// Plugin & Connector Foundation runtime
+// ---------------------------------------------------------------------------
+
+export function usePluginRegistry() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const selectedPlugin =
+    state.plugins.find((p) => p.id === state.selectedPluginId) ?? null;
+
+  return {
+    plugins: state.plugins,
+    selectedPlugin,
+    selectPlugin: (id: string | null) =>
+      dispatch({ type: "SELECT_PLUGIN", payload: id }),
+  };
+}
+
+export function usePluginCapabilities() {
+  const state = useKairosState();
+
+  return state.plugins
+    .filter((p) => p.status === "active")
+    .flatMap((p) => p.manifest.capabilities.map((c) => ({ ...c, source: "plugin" as const, ownerId: p.id })));
+}
+
+export function useConnectorRegistry() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const selectedConnector =
+    state.connectors.find((c) => c.id === state.selectedConnectorId) ?? null;
+
+  return {
+    connectors: state.connectors,
+    selectedConnector,
+    selectConnector: (id: string | null) =>
+      dispatch({ type: "SELECT_CONNECTOR", payload: id }),
+  };
+}
+
+export function useConnectorHealth() {
+  const state = useKairosState();
+  const healthy = state.connectors.filter((c) => c.health.reachable === true).length;
+  const total = state.connectors.length;
+
+  return {
+    connectors: state.connectors,
+    healthy,
+    total,
+    degraded: state.connectors.filter((c) => c.health.reachable === false).length,
+  };
+}
+
+export function useCapabilityRegistry() {
+  const state = useKairosState();
+
+  return {
+    capabilities: state.registeredCapabilities,
+    available: state.registeredCapabilities.filter((c) => c.status === "available"),
+    dangerous: state.registeredCapabilities.filter(
+      (c) => c.definition.dangerous,
+    ),
+  };
+}
+
+export function useCapabilityPolicy() {
+  const state = useKairosState();
+  return state.capabilityPolicy;
+}
