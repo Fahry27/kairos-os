@@ -295,15 +295,113 @@ export interface Workspace {
 }
 
 // ---------------------------------------------------------------------------
-// MemoryReference (unchanged)
+// Memory Engine
 // ---------------------------------------------------------------------------
 
+/**
+ * A memory is a durable unit of knowledge in Kairos.
+ * Unlike chat history or transient context, memories persist across sessions
+ * and are available to every future Mission and AI provider.
+ */
+
+export type MemoryType =
+  | "note"
+  | "decision"
+  | "reflection"
+  | "insight"
+  | "reference"
+  | "procedure"
+  | "fact";
+
+export type MemoryVisibility = "private" | "mission" | "workspace" | "global";
+
+export type MemoryStatus = "active" | "archived" | "superseded";
+
+/**
+ * MemorySource — tracks where a memory originated.
+ */
+export interface MemorySource {
+  kind: "user" | "mission" | "workspace" | "provider" | "system";
+  /** ID of the originating entity, if applicable. */
+  sourceId: string | null;
+  /** Human-readable label for the source. */
+  label: string;
+}
+
+/**
+ * MemoryRelationship — links a memory to another entity.
+ */
+export interface MemoryRelationship {
+  /** What kind of entity this links to. */
+  targetKind: "mission" | "decision" | "workspace" | "memory" | "artifact";
+  /** ID of the linked entity. */
+  targetId: string;
+  /** Optional label for the relationship (e.g., "informs", "contradicts"). */
+  label: string | null;
+}
+
+/**
+ * MemoryTag — structured tag with optional category grouping.
+ */
+export interface MemoryTag {
+  id: string;
+  name: string;
+  category: string | null;
+}
+
+/**
+ * MemoryCollection — a named, filterable group of memories.
+ */
+export interface MemoryCollection {
+  id: string;
+  name: string;
+  description: string | null;
+  /** IDs of memories in this collection. */
+  memoryIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Memory — the core domain entity for the Memory Engine.
+ */
+export interface Memory {
+  id: string;
+  /** Short title / summary. */
+  title: string;
+  /** Full content. */
+  content: string;
+  type: MemoryType;
+  importance: Priority;
+  visibility: MemoryVisibility;
+  status: MemoryStatus;
+  /** Where this memory came from. */
+  source: MemorySource;
+  /** Links to related entities. */
+  relationships: MemoryRelationship[];
+  /** Tags for organization. */
+  tags: MemoryTag[];
+  /** Optional collection membership. */
+  collectionId: string | null;
+  /** Whether this memory is pinned for quick access. */
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * MemoryReference — a lightweight pointer to a Memory.
+ * Used in mission context, workspace panels, and brief cards
+ * where the full Memory payload is unnecessary.
+ */
 export interface MemoryReference {
   id: string;
-  type: string;
+  type: MemoryType;
+  /** Preview snippet — first ~120 chars. */
   snippet: string;
-  tags: string[];
   importance: Priority;
+  isPinned: boolean;
+  tags: string[];
   createdAt: string;
 }
 

@@ -126,13 +126,13 @@ export default function TodaysBriefPage() {
         </SurfaceSection>
 
         <SurfaceSection title="Memory">
-          {state.memories.length > 0 ? (
+          {state.memoryRefs.length > 0 ? (
             <div className="stack">
-              {state.memories.slice(0, 3).map((m) => (
-                <div key={m.id} className="record">
-                  <p className="stateText">{m.snippet}</p>
+              {state.memoryRefs.slice(0, 3).map((ref) => (
+                <div key={ref.id} className="record">
+                  <p className="stateText">{ref.snippet}</p>
                   <div className="metaRow" style={{ marginTop: 6 }}>
-                    {m.tags.map((tag) => (
+                    {ref.tags.map((tag) => (
                       <span key={tag} className="pill" style={{ fontSize: 11 }}>{tag}</span>
                     ))}
                   </div>

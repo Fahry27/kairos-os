@@ -5,16 +5,21 @@
  * No external state library. Every surface reads from this single source.
  *
  * State slices:
- *   missions         — active missions (full Mission Engine domain model)
- *   decisions        — open decisions
- *   workspaces       — workspace sessions
- *   memories         — memory references
- *   missionTimeline  — per-mission timeline events
- *   navigation       — sidebar + active surface
- *   assistant        — Ask Kai conversation context
+ *   missions          — active missions (full Mission Engine domain model)
+ *   decisions         — open decisions
+ *   workspaces        — workspace sessions
+ *   memories          — full Memory entities (Memory Engine)
+ *   memoryRefs        — lightweight MemoryReference list for cards/surfaces
+ *   memoryCollections — named groups of memories
+ *   pinnedMemoryIds   — IDs of pinned memories for quick access
+ *   selectedMemoryId  — currently focused memory
+ *   memorySearchQuery — active search query
+ *   missionTimeline   — per-mission timeline events
+ *   navigation        — sidebar + active surface
+ *   assistant         — Ask Kai conversation context
  *   selectedMissionId — currently focused mission
- *   todayDate        — today's date context
- *   missionFilter   — active filter for the mission list
+ *   todayDate         — today's date context
+ *   missionFilter     — active filter for the mission list
  */
 
 import React, { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
@@ -27,6 +32,8 @@ import type {
   MissionTimelineEvent,
   Decision,
   Workspace,
+  Memory,
+  MemoryCollection,
   MemoryReference,
   TimelineItem,
   AssistantContext,
@@ -42,15 +49,23 @@ export type MissionFilter = "all" | MissionStatus;
 
 export interface KairosState {
   missions: Mission[];
-  /** Currently selected mission ID for detail view. */
   selectedMissionId: string | null;
-  /** Active filter for the mission list. */
   missionFilter: MissionFilter;
-  /** Timeline events for the selected mission. */
   missionTimeline: MissionTimelineEvent[];
   decisions: Decision[];
   workspaces: Workspace[];
-  memories: MemoryReference[];
+  /** Full Memory entities (Memory Engine). */
+  memories: Memory[];
+  /** Lightweight references for cards and surfaces. */
+  memoryRefs: MemoryReference[];
+  /** Named collections of memories. */
+  memoryCollections: MemoryCollection[];
+  /** IDs of pinned memories for quick access. */
+  pinnedMemoryIds: string[];
+  /** Currently selected memory ID for detail view. */
+  selectedMemoryId: string | null;
+  /** Active search query across memories. */
+  memorySearchQuery: string;
   timeline: TimelineItem[];
   navigation: NavigationState;
   assistant: AssistantContext;
@@ -72,7 +87,13 @@ export type KairosAction =
   | { type: "ADD_MISSION_TIMELINE_EVENT"; payload: MissionTimelineEvent }
   | { type: "SET_DECISIONS"; payload: Decision[] }
   | { type: "SET_WORKSPACES"; payload: Workspace[] }
-  | { type: "SET_MEMORIES"; payload: MemoryReference[] }
+  | { type: "SET_MEMORIES"; payload: Memory[] }
+  | { type: "SET_MEMORY_REFS"; payload: MemoryReference[] }
+  | { type: "SET_MEMORY_COLLECTIONS"; payload: MemoryCollection[] }
+  | { type: "SELECT_MEMORY"; payload: string | null }
+  | { type: "SET_MEMORY_SEARCH_QUERY"; payload: string }
+  | { type: "PIN_MEMORY"; payload: string }
+  | { type: "UNPIN_MEMORY"; payload: string }
   | { type: "ADD_TIMELINE_ITEM"; payload: TimelineItem }
   | { type: "SET_ACTIVE_SURFACE"; payload: ShellSurface }
   | { type: "TOGGLE_SIDEBAR" }
@@ -102,6 +123,11 @@ const initialState: KairosState = {
   decisions: [],
   workspaces: [],
   memories: [],
+  memoryRefs: [],
+  memoryCollections: [],
+  pinnedMemoryIds: [],
+  selectedMemoryId: null,
+  memorySearchQuery: "",
   timeline: [],
   navigation: {
     activeSurface: null,
@@ -188,15 +214,47 @@ function kairosReducer(state: KairosState, action: KairosAction): KairosState {
         missionTimeline: [action.payload, ...state.missionTimeline].slice(0, 200),
       };
 
-    // ------ Existing actions ------
+    // ------ Memory Engine ------
+    case "SET_MEMORIES":
+      return { ...state, memories: action.payload };
+
+    case "SET_MEMORY_REFS":
+      return { ...state, memoryRefs: action.payload };
+
+    case "SET_MEMORY_COLLECTIONS":
+      return { ...state, memoryCollections: action.payload };
+
+    case "SELECT_MEMORY":
+      return { ...state, selectedMemoryId: action.payload };
+
+    case "SET_MEMORY_SEARCH_QUERY":
+      return { ...state, memorySearchQuery: action.payload };
+
+    case "PIN_MEMORY":
+      return {
+        ...state,
+        pinnedMemoryIds: [...state.pinnedMemoryIds, action.payload].filter((id, i, arr) => arr.indexOf(id) === i),
+        memories: state.memories.map((m) =>
+          m.id === action.payload ? { ...m, isPinned: true } : m,
+        ),
+      };
+
+    case "UNPIN_MEMORY":
+      return {
+        ...state,
+        pinnedMemoryIds: state.pinnedMemoryIds.filter((id) => id !== action.payload),
+        memories: state.memories.map((m) =>
+          m.id === action.payload ? { ...m, isPinned: false } : m,
+        ),
+      };
+
     case "SET_DECISIONS":
       return { ...state, decisions: action.payload };
 
     case "SET_WORKSPACES":
       return { ...state, workspaces: action.payload };
 
-    case "SET_MEMORIES":
-      return { ...state, memories: action.payload };
+    // ------ Existing actions ------
 
     case "ADD_TIMELINE_ITEM":
       return { ...state, timeline: [action.payload, ...state.timeline] };

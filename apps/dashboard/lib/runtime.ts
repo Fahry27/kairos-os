@@ -22,7 +22,7 @@ import {
   type ApiResult,
   type Project,
   type Task,
-  type Memory,
+  type Memory as ApiMemory,
   type Health,
   type AICapabilities,
 } from "./api";
@@ -30,8 +30,11 @@ import type {
   Mission,
   MissionStatus,
   MissionTimelineEvent,
-  Decision,
+  Memory,
+  MemoryCollection,
   MemoryReference,
+  MemoryType,
+  Decision,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -180,9 +183,29 @@ function memoryToReference(m: Memory): MemoryReference {
     id: m.id,
     type: m.type,
     snippet: m.content.slice(0, 120),
-    tags: m.tags ?? [],
-    importance: (m.importance as MemoryReference["importance"]) || "medium",
+    importance: m.importance,
+    isPinned: m.isPinned,
+    tags: m.tags.map((t) => t.name),
+    createdAt: m.createdAt,
+  };
+}
+
+function apiMemoryToDomain(m: ApiMemory): Memory {
+  return {
+    id: m.id,
+    title: m.content.slice(0, 80),
+    content: m.content,
+    type: (m.type as MemoryType) || "note",
+    importance: (m.importance as Memory["importance"]) || "medium",
+    visibility: "mission",
+    status: "active",
+    source: { kind: "user", sourceId: null, label: m.source ?? "API" },
+    relationships: m.project_id ? [{ targetKind: "mission", targetId: m.project_id, label: "belongs_to" }] : [],
+    tags: (m.tags ?? []).map((name) => ({ id: name, name, category: null })),
+    collectionId: null,
+    isPinned: false,
     createdAt: m.created_at,
+    updatedAt: m.updated_at,
   };
 }
 
@@ -235,19 +258,21 @@ export function useDecisions() {
 }
 
 /**
- * useMemories — fetches memories from the API, maps to MemoryReference,
- * and dispatches into shared state.
+ * useMemories — fetches memories from the API, maps to domain Memory,
+ * dispatching full Memory entities + memory refs into shared state.
  */
 export function useMemories() {
   const dispatch = useKairosDispatch();
 
-  return useApi<Memory[]>(
+  return useApi<ApiMemory[]>(
     useCallback(
       async (signal) => {
         void signal;
         const result = await getMemories();
         if (result.ok) {
-          dispatch({ type: "SET_MEMORIES", payload: result.data.map(memoryToReference) });
+          const domainMemories = result.data.map(apiMemoryToDomain);
+          dispatch({ type: "SET_MEMORIES", payload: domainMemories });
+          dispatch({ type: "SET_MEMORY_REFS", payload: domainMemories.map(memoryToReference) });
         }
         return result;
       },
@@ -626,4 +651,132 @@ export function useBriefRuntime(): BriefRuntime {
   }, []);
 
   return { loading: false, lastRefreshed, refresh };
+}
+
+// ---------------------------------------------------------------------------
+// Memory Engine runtime
+// ---------------------------------------------------------------------------
+
+/**
+ * useMemoryEngine — full Memory Engine runtime.
+ *
+ * Provides search, pinning, and collection access via shared state.
+ */
+export function useMemoryEngine() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const search = useCallback(
+    (query: string) => {
+      dispatch({ type: "SET_MEMORY_SEARCH_QUERY", payload: query });
+    },
+    [dispatch],
+  );
+
+  const pinMemory = useCallback(
+    (id: string) => {
+      dispatch({ type: "PIN_MEMORY", payload: id });
+    },
+    [dispatch],
+  );
+
+  const unpinMemory = useCallback(
+    (id: string) => {
+      dispatch({ type: "UNPIN_MEMORY", payload: id });
+    },
+    [dispatch],
+  );
+
+  const selectMemory = useCallback(
+    (id: string | null) => {
+      dispatch({ type: "SELECT_MEMORY", payload: id });
+    },
+    [dispatch],
+  );
+
+  const filteredMemories = state.memorySearchQuery
+    ? state.memories.filter(
+        (m) =>
+          m.title.toLowerCase().includes(state.memorySearchQuery.toLowerCase()) ||
+          m.content.toLowerCase().includes(state.memorySearchQuery.toLowerCase()),
+      )
+    : state.memories;
+
+  const pinnedMemories = state.memories.filter((m) => state.pinnedMemoryIds.includes(m.id));
+  const selectedMemory = state.memories.find((m) => m.id === state.selectedMemoryId) ?? null;
+  const collections = state.memoryCollections;
+
+  return {
+    memories: filteredMemories,
+    pinnedMemories,
+    selectedMemory,
+    selectMemory,
+    collections,
+    searchQuery: state.memorySearchQuery,
+    search,
+    pinMemory,
+    unpinMemory,
+  };
+}
+
+/**
+ * useMemoryForMission — returns memories related to the given mission ID.
+ */
+export function useMemoryForMission(missionId: string | null) {
+  const state = useKairosState();
+
+  if (!missionId) return [];
+
+  return state.memories.filter((m) =>
+    m.relationships.some((r) => r.targetKind === "mission" && r.targetId === missionId),
+  );
+}
+
+/**
+ * useMemoryForWorkspace — returns memories related to the given workspace ID.
+ */
+export function useMemoryForWorkspace(workspaceId: string | null) {
+  const state = useKairosState();
+
+  if (!workspaceId) return [];
+
+  return state.memories.filter((m) =>
+    m.relationships.some((r) => r.targetKind === "workspace" && r.targetId === workspaceId),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge Engine preparation (future interface)
+// ---------------------------------------------------------------------------
+
+/**
+ * KnowledgeEngine — placeholder interface for the future Knowledge Engine.
+ *
+ * The Knowledge Engine will:
+ *   - Index memories for retrieval
+ *   - Build a semantic knowledge graph
+ *   - Provide context to AI providers without exposing raw memory data
+ *
+ * This interface exists as a clean architecture boundary. No implementation yet.
+ */
+export interface KnowledgeEngine {
+  /** Query memories relevant to a context. */
+  query: (context: string, limit?: number) => Memory[];
+  /** Get all knowledge relevant to a mission. */
+  forMission: (missionId: string) => Memory[];
+  /** Get all knowledge relevant to a workspace. */
+  forWorkspace: (workspaceId: string) => Memory[];
+  /** Re-index all memories (future: trigger embedding update). */
+  reindex: () => void;
+}
+
+/**
+ * useKnowledgeEngine — placeholder hook returning null.
+ *
+ * Architecture boundary for future Knowledge Engine integration.
+ * No implementation. No embeddings. No AI calls.
+ */
+export function useKnowledgeEngine(): KnowledgeEngine | null {
+  // Future: wire to actual knowledge index
+  return null;
 }
