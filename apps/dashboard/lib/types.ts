@@ -274,7 +274,20 @@ export type TimelineEventType =
   // System
   | "system.health_check"
   | "system.provider_status_change"
-  | "system.connector_event";
+  | "system.connector_event"
+  // Command & Automation
+  | "command.created"
+  | "command.approved"
+  | "command.rejected"
+  | "command.started"
+  | "command.completed"
+  | "command.failed"
+  | "automation.triggered"
+  | "automation.run_started"
+  | "automation.run_completed"
+  | "automation.run_failed"
+  | "automation.paused"
+  | "automation.disabled";
 
 /**
  * TimelineActor — who or what initiated the event.
@@ -738,6 +751,166 @@ export interface AIExecutionContext {
   selectedProviderId: string | null;
   estimate: AIUsageEstimate | null;
   assembledAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Command & Automation Engine
+// ---------------------------------------------------------------------------
+
+/**
+ * Commands are the governed execution primitive in Kairos.
+ *
+ * Every action — whether triggered by a user, a mission, an automation,
+ * or an AI provider — is represented as a Command with explicit
+ * approval, execution, and audit requirements.
+ */
+
+export type CommandType = "shell" | "api_call" | "connector" | "plugin" | "workflow" | "ai_dispatch" | "system";
+
+export type CommandStatus = "draft" | "pending_approval" | "approved" | "rejected" | "queued" | "executing" | "completed" | "failed" | "cancelled";
+
+export type CommandRiskLevel = "none" | "low" | "medium" | "high" | "critical";
+
+export type CommandApprovalRequirement = "none" | "single" | "multi" | "codex";
+
+export type CommandExecutionMode = "sync" | "async" | "scheduled";
+
+export interface CommandInput {
+  /** Structured parameters for the command. */
+  params: Record<string, unknown>;
+  /** Memory references consumed by this command. */
+  memoryRefs: string[];
+  /** Knowledge context ID, if applicable. */
+  knowledgeId: string | null;
+  /** Optional mission context. */
+  missionId: string | null;
+}
+
+export interface CommandOutput {
+  /** Raw output from the command (sanitized). */
+  result: string | null;
+  /** Structured summary for the timeline. */
+  summary: string;
+  /** Artifacts produced by this command. */
+  artifactRefs: string[];
+  /** Exit code or status. */
+  status: "success" | "failure" | "timeout" | "cancelled";
+}
+
+export interface CommandCapability {
+  /** Capability identifier (e.g., "file.read", "api.post", "connector.n8n.trigger"). */
+  id: string;
+  /** Human-readable name. */
+  name: string;
+  /** The type of command this capability maps to. */
+  type: CommandType;
+  /** Whether this capability is dangerous and requires elevated approval. */
+  dangerous: boolean;
+  /** Whether this capability is currently available. */
+  available: boolean;
+}
+
+export interface Command {
+  id: string;
+  /** Short display name. */
+  title: string;
+  /** What this command does. */
+  description: string;
+  type: CommandType;
+  status: CommandStatus;
+  riskLevel: CommandRiskLevel;
+  approval: CommandApprovalRequirement;
+  executionMode: CommandExecutionMode;
+  /** What capability does this command use. */
+  capability: CommandCapability;
+  /** Input parameters. */
+  input: CommandInput;
+  /** Output (set after execution). */
+  output: CommandOutput | null;
+  /** Who or what triggered this command. */
+  triggeredBy: "user" | "mission" | "automation" | "provider" | "schedule";
+  /** When execution was requested. */
+  requestedAt: string;
+  /** When execution started. */
+  startedAt: string | null;
+  /** When execution finished. */
+  completedAt: string | null;
+  /** Optional retry count. */
+  retryCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Automation
+// ---------------------------------------------------------------------------
+
+export type AutomationStatus = "active" | "paused" | "disabled" | "error";
+export type AutomationTrigger = "schedule" | "event" | "mission_status_change" | "decision_change" | "memory_created" | "manual";
+export type AutomationScope = "global" | "mission" | "workspace" | "personal";
+
+export interface AutomationCondition {
+  /** Field to evaluate (e.g., "mission.status"). */
+  field: string;
+  /** Operator (e.g., "eq", "neq", "contains"). */
+  operator: string;
+  /** Expected value. */
+  value: string;
+}
+
+export interface AutomationAction {
+  /** Type of command to execute. */
+  commandType: CommandType;
+  /** The command capability ID. */
+  capabilityId: string;
+  /** Parameters passed to the command. */
+  params: Record<string, unknown>;
+}
+
+export interface AutomationPolicy {
+  /** Maximum runs per day. */
+  maxRunsPerDay: number;
+  /** Cooldown between runs in seconds. */
+  cooldownSeconds: number;
+  /** Whether failures should stop the automation. */
+  haltOnFailure: boolean;
+  /** Whether to retry on failure. */
+  retryOnFailure: boolean;
+  /** Maximum retries. */
+  maxRetries: number;
+}
+
+export interface Automation {
+  id: string;
+  name: string;
+  description: string | null;
+  status: AutomationStatus;
+  trigger: AutomationTrigger;
+  scope: AutomationScope;
+  /** When this automation triggers. */
+  triggerConfig: Record<string, unknown>;
+  /** Conditions that must be met. */
+  conditions: AutomationCondition[];
+  /** Actions to execute. */
+  actions: AutomationAction[];
+  /** Safety policy. */
+  policy: AutomationPolicy;
+  /** Optional related mission. */
+  missionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AutomationRun {
+  id: string;
+  automationId: string;
+  status: "running" | "completed" | "failed" | "cancelled";
+  startedAt: string;
+  completedAt: string | null;
+  /** Commands created by this automation. */
+  commandIds: string[];
+  /** Error message if failed. */
+  error: string | null;
+  /** The trigger event that started this run. */
+  triggerEvent: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

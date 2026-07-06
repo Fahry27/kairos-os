@@ -45,6 +45,11 @@ import type {
   AIExecutionContext,
   AIRoutePolicy,
   AIUsageEstimate,
+  Command,
+  CommandCapability,
+  Automation,
+  AutomationRun,
+  AutomationPolicy,
   Decision,
   Workspace,
   Memory,
@@ -97,6 +102,18 @@ export interface KairosState {
   aiRequestPending: boolean;
   /** Abort controller reference for in-flight requests (not serialized). */
   aiAbortControllerId: string | null;
+  /** Available command capabilities. */
+  commandCapabilities: CommandCapability[];
+  /** Command entities (history and pending). */
+  commands: Command[];
+  /** Currently selected command ID. */
+  selectedCommandId: string | null;
+  /** Automations. */
+  automations: Automation[];
+  /** Selected automation ID. */
+  selectedAutomationId: string | null;
+  /** Automation runs. */
+  automationRuns: AutomationRun[];
   decisions: Decision[];
   workspaces: Workspace[];
   memories: Memory[];
@@ -149,6 +166,14 @@ export type KairosAction =
   | { type: "SET_AI_EXECUTION_CONTEXT"; payload: AIExecutionContext }
   | { type: "SET_AI_REQUEST_PENDING"; payload: boolean }
   | { type: "SET_AI_ABORT_CONTROLLER_ID"; payload: string | null }
+  | { type: "SET_COMMAND_CAPABILITIES"; payload: CommandCapability[] }
+  | { type: "SET_COMMANDS"; payload: Command[] }
+  | { type: "ADD_COMMAND"; payload: Command }
+  | { type: "SELECT_COMMAND"; payload: string | null }
+  | { type: "SET_AUTOMATIONS"; payload: Automation[] }
+  | { type: "SELECT_AUTOMATION"; payload: string | null }
+  | { type: "ADD_AUTOMATION_RUN"; payload: AutomationRun }
+  | { type: "SET_AUTOMATION_RUNS"; payload: AutomationRun[] }
   | { type: "ADD_TIMELINE_ITEM"; payload: TimelineItem }
   | { type: "SET_ACTIVE_SURFACE"; payload: ShellSurface }
   | { type: "TOGGLE_SIDEBAR" }
@@ -190,6 +215,12 @@ const initialState: KairosState = {
   aiExecutionContext: null,
   aiRequestPending: false,
   aiAbortControllerId: null,
+  commandCapabilities: [],
+  commands: [],
+  selectedCommandId: null,
+  automations: [],
+  selectedAutomationId: null,
+  automationRuns: [],
   decisions: [],
   workspaces: [],
   memories: [],
@@ -374,6 +405,34 @@ function kairosReducer(state: KairosState, action: KairosAction): KairosState {
 
     case "SET_AI_ABORT_CONTROLLER_ID":
       return { ...state, aiAbortControllerId: action.payload };
+
+    // ------ Command Engine ------
+
+    case "SET_COMMAND_CAPABILITIES":
+      return { ...state, commandCapabilities: action.payload };
+
+    case "SET_COMMANDS":
+      return { ...state, commands: action.payload };
+
+    case "ADD_COMMAND":
+      return { ...state, commands: [action.payload, ...state.commands] };
+
+    case "SELECT_COMMAND":
+      return { ...state, selectedCommandId: action.payload };
+
+    // ------ Automation Engine ------
+
+    case "SET_AUTOMATIONS":
+      return { ...state, automations: action.payload };
+
+    case "SELECT_AUTOMATION":
+      return { ...state, selectedAutomationId: action.payload };
+
+    case "ADD_AUTOMATION_RUN":
+      return { ...state, automationRuns: [action.payload, ...state.automationRuns].slice(0, 200) };
+
+    case "SET_AUTOMATION_RUNS":
+      return { ...state, automationRuns: action.payload };
 
     case "SET_DECISIONS":
       return { ...state, decisions: action.payload };

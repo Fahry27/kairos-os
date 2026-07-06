@@ -1165,3 +1165,77 @@ export function useAIExecutionContext() {
   const state = useKairosState();
   return state.aiExecutionContext;
 }
+
+// ---------------------------------------------------------------------------
+// Command Engine runtime
+// ---------------------------------------------------------------------------
+
+export function useCommandEngine() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const selectedCommand =
+    state.commands.find((c) => c.id === state.selectedCommandId) ?? null;
+
+  return {
+    capabilities: state.commandCapabilities,
+    commands: state.commands,
+    selectedCommand,
+    selectCommand: (id: string | null) =>
+      dispatch({ type: "SELECT_COMMAND", payload: id }),
+  };
+}
+
+export function useCommandHistory() {
+  const state = useKairosState();
+  const completed = state.commands.filter((c) => c.status === "completed" || c.status === "failed");
+  return completed;
+}
+
+export function useCommandApproval() {
+  const state = useKairosState();
+  const pending = state.commands.filter((c) => c.status === "pending_approval");
+  return { pending, count: pending.length };
+}
+
+export function useCommandExecution() {
+  const state = useKairosState();
+  const active = state.commands.filter(
+    (c) => c.status === "queued" || c.status === "executing",
+  );
+  return { active, count: active.length };
+}
+
+// ---------------------------------------------------------------------------
+// Automation Engine runtime
+// ---------------------------------------------------------------------------
+
+export function useAutomationEngine() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const selectedAutomation =
+    state.automations.find((a) => a.id === state.selectedAutomationId) ?? null;
+
+  return {
+    automations: state.automations,
+    runs: state.automationRuns,
+    selectedAutomation,
+    selectAutomation: (id: string | null) =>
+      dispatch({ type: "SELECT_AUTOMATION", payload: id }),
+  };
+}
+
+export function useAutomationRuns(automationId: string | null) {
+  const state = useKairosState();
+  if (!automationId) return [];
+  return state.automationRuns.filter((r) => r.automationId === automationId);
+}
+
+export function useAutomationPolicy() {
+  const state = useKairosState();
+  const automaton = state.automations.find(
+    (a) => a.id === state.selectedAutomationId,
+  );
+  return automaton?.policy ?? null;
+}
