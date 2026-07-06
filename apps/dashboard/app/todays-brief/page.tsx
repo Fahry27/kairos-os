@@ -31,8 +31,6 @@ export default function TodaysBriefPage() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <FoundationNotice label="Today's Brief" />
-
       <SurfacePageHeader
         title="Today's Brief"
         description={`${new Date(state.todayDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`}

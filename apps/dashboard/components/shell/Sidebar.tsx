@@ -8,7 +8,7 @@ const SHELL_SURFACES: NavItemDef[] = [
   { label: "Workspace", href: "/workspace" },
 ];
 
-const LEGACY_ROUTES: NavItemDef[] = [
+const ADMIN_ROUTES: NavItemDef[] = [
   { label: "Decisions", href: "/decisions" },
   { label: "Missions", href: "/missions" },
   { label: "Settings", href: "/settings" },
@@ -19,7 +19,7 @@ const LEGACY_ROUTES: NavItemDef[] = [
  * Sidebar — permanent Kairos Shell navigation.
  *
  * Group 1 (top):   Shell surfaces — the primary Kairos interface.
- * Group 2 (bottom): Legacy dashboard routes, preserved during Shell rollout.
+ * Group 2 (bottom): Administration routes, preserved during Shell rollout.
  */
 export default function Sidebar() {
   return (
@@ -63,10 +63,10 @@ export default function Sidebar() {
             marginBottom: 4,
           }}
         >
-          Legacy
+          Administration
         </span>
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-          {LEGACY_ROUTES.map((item) => (
+          {ADMIN_ROUTES.map((item) => (
             <NavItem key={item.href} {...item} />
           ))}
         </ul>

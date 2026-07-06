@@ -60,8 +60,6 @@ export default function AskKaiPage() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
-      <FoundationNotice label="Ask Kai" />
-
       <SurfacePageHeader
         title="Ask Kai"
         description="Your conversational interface to the AI Operating System."

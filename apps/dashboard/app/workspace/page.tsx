@@ -42,8 +42,6 @@ export default function WorkspacePage() {
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto" }}>
-      <FoundationNotice label="Workspace" />
-
       <SurfacePageHeader
         title="Workspace"
         description={

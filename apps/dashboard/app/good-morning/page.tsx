@@ -2,7 +2,6 @@
 
 import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
-import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
 import { useMissions, useDecisions, useTodayTimeline } from "../../lib/runtime";
 
@@ -23,19 +22,19 @@ export default function GoodMorningPage() {
   const state = useKairosState();
 
   // Runtime hooks — fetch API data and populate state on mount
-  useMissions();
-  useDecisions();
+  const missions = useMissions();
+  const decisions = useDecisions();
 
   const todayEvents = useTodayTimeline();
 
   const missionCount = state.missions.length;
   const decisionCount = state.decisions.length;
   const hasData = missionCount > 0 || decisionCount > 0;
+  const loading = missions.loading || decisions.loading;
+  const apiError = missions.error || decisions.error;
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <FoundationNotice label="Good Morning" />
-
       <SurfacePageHeader
         title="Good Morning"
         description={`${new Date(state.todayDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`}
@@ -43,7 +42,11 @@ export default function GoodMorningPage() {
 
       <div className="dashboardGrid" style={{ marginBottom: 24 }}>
         <SurfaceCard eyebrow="Focus" title="Top Priorities">
-          {hasData ? (
+          {loading ? (
+            <p className="stateText">Loading priorities…</p>
+          ) : apiError ? (
+            <p className="errorText">API unavailable — {apiError}</p>
+          ) : hasData ? (
             <div className="stack">
               {state.missions.slice(0, 2).map((m) => (
                 <div key={m.id} className="record" style={{ borderLeft: "3px solid var(--accent)" }}>

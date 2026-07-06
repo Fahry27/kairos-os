@@ -20,8 +20,6 @@ export default function ContinueWorkingPage() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <FoundationNotice label="Continue Working" />
-
       <SurfacePageHeader
         title="Continue Working"
         description="Resume active missions, decisions, and workspace sessions."
