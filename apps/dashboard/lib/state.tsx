@@ -14,7 +14,10 @@
  *   pinnedMemoryIds   — IDs of pinned memories for quick access
  *   selectedMemoryId  — currently focused memory
  *   memorySearchQuery — active search query
- *   missionTimeline   — per-mission timeline events
+ *   missionTimeline    — per-mission timeline events (legacy, retained for Mission Engine)
+ *   timelineEvents     — unified Timeline Engine events
+ *   timelineFilter     — active filter state for the timeline view
+ *   selectedTimelineEventId — currently focused timeline event
  *   navigation        — sidebar + active surface
  *   assistant         — Ask Kai conversation context
  *   selectedMissionId — currently focused mission
@@ -30,6 +33,8 @@ import type {
   MissionApproval,
   MissionArtifact,
   MissionTimelineEvent,
+  TimelineEvent,
+  TimelineFilter,
   Decision,
   Workspace,
   Memory,
@@ -52,19 +57,19 @@ export interface KairosState {
   selectedMissionId: string | null;
   missionFilter: MissionFilter;
   missionTimeline: MissionTimelineEvent[];
+  /** Unified Timeline Engine events. */
+  timelineEvents: TimelineEvent[];
+  /** Active timeline filter. */
+  timelineFilter: TimelineFilter;
+  /** Selected timeline event ID for detail view. */
+  selectedTimelineEventId: string | null;
   decisions: Decision[];
   workspaces: Workspace[];
-  /** Full Memory entities (Memory Engine). */
   memories: Memory[];
-  /** Lightweight references for cards and surfaces. */
   memoryRefs: MemoryReference[];
-  /** Named collections of memories. */
   memoryCollections: MemoryCollection[];
-  /** IDs of pinned memories for quick access. */
   pinnedMemoryIds: string[];
-  /** Currently selected memory ID for detail view. */
   selectedMemoryId: string | null;
-  /** Active search query across memories. */
   memorySearchQuery: string;
   timeline: TimelineItem[];
   navigation: NavigationState;
@@ -94,6 +99,10 @@ export type KairosAction =
   | { type: "SET_MEMORY_SEARCH_QUERY"; payload: string }
   | { type: "PIN_MEMORY"; payload: string }
   | { type: "UNPIN_MEMORY"; payload: string }
+  | { type: "ADD_TIMELINE_EVENT"; payload: TimelineEvent }
+  | { type: "SET_TIMELINE_EVENTS"; payload: TimelineEvent[] }
+  | { type: "SELECT_TIMELINE_EVENT"; payload: string | null }
+  | { type: "SET_TIMELINE_FILTER"; payload: Partial<TimelineFilter> }
   | { type: "ADD_TIMELINE_ITEM"; payload: TimelineItem }
   | { type: "SET_ACTIVE_SURFACE"; payload: ShellSurface }
   | { type: "TOGGLE_SIDEBAR" }
@@ -120,6 +129,9 @@ const initialState: KairosState = {
   selectedMissionId: null,
   missionFilter: "all",
   missionTimeline: [],
+  timelineEvents: [],
+  timelineFilter: { types: [], missionId: null, workspaceId: null, scopes: [], minSeverity: null, query: "" },
+  selectedTimelineEventId: null,
   decisions: [],
   workspaces: [],
   memories: [],
@@ -247,6 +259,23 @@ function kairosReducer(state: KairosState, action: KairosAction): KairosState {
           m.id === action.payload ? { ...m, isPinned: false } : m,
         ),
       };
+
+    // ------ Timeline Engine ------
+
+    case "ADD_TIMELINE_EVENT":
+      return {
+        ...state,
+        timelineEvents: [action.payload, ...state.timelineEvents].slice(0, 500),
+      };
+
+    case "SET_TIMELINE_EVENTS":
+      return { ...state, timelineEvents: action.payload };
+
+    case "SELECT_TIMELINE_EVENT":
+      return { ...state, selectedTimelineEventId: action.payload };
+
+    case "SET_TIMELINE_FILTER":
+      return { ...state, timelineFilter: { ...state.timelineFilter, ...action.payload } };
 
     case "SET_DECISIONS":
       return { ...state, decisions: action.payload };

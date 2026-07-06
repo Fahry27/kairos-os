@@ -4,7 +4,7 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
-import { useMissions, useDecisions, useMissionEngine } from "../../lib/runtime";
+import { useMissions, useDecisions, useMissionEngine, useRecentTimeline } from "../../lib/runtime";
 
 /**
  * Continue Working — resume where you left off.

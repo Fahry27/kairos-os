@@ -229,40 +229,161 @@ export interface Mission {
 }
 
 // ---------------------------------------------------------------------------
-// Mission timeline events
+// Timeline Engine
 // ---------------------------------------------------------------------------
 
 /**
- * MissionTimelineEvent — a single event in the mission's history.
- * Every status transition, approval decision, and execution state change
- * produces an event.
+ * TimelineEventType — the kind of event in the unified Kairos Timeline.
+ *
+ * The Timeline is the chronological system-of-record for everything
+ * that happens in Kairos: mission transitions, memory changes,
+ * decisions, workspace activity, approvals, executions, and
+ * future provider events.
  */
+export type TimelineEventType =
+  // Mission
+  | "mission.created"
+  | "mission.status_change"
+  | "mission.plan_generated"
+  | "mission.plan_revised"
+  | "mission.outcome_recorded"
+  | "mission.archived"
+  // Approval
+  | "approval.requested"
+  | "approval.granted"
+  | "approval.rejected"
+  // Execution
+  | "execution.step_queued"
+  | "execution.step_started"
+  | "execution.step_completed"
+  | "execution.step_failed"
+  | "execution.step_retried"
+  // Memory
+  | "memory.created"
+  | "memory.pinned"
+  | "memory.archived"
+  | "memory.superseded"
+  // Decision
+  | "decision.created"
+  | "decision.resolved"
+  | "decision.status_change"
+  // Workspace
+  | "workspace.created"
+  | "workspace.session_started"
+  | "workspace.session_ended"
+  // System
+  | "system.health_check"
+  | "system.provider_status_change"
+  | "system.connector_event";
+
+/**
+ * TimelineActor — who or what initiated the event.
+ */
+export interface TimelineActor {
+  kind: "user" | "mission" | "provider" | "system" | "schedule";
+  /** Optional ID of the actor entity. */
+  id: string | null;
+  /** Human-readable label for the actor. */
+  label: string;
+}
+
+/**
+ * TimelineSource — where the event was recorded from.
+ */
+export interface TimelineSource {
+  kind: "shell" | "api" | "provider" | "scheduler" | "connector";
+  /** Optional reference for traceability. */
+  reference: string | null;
+}
+
+/**
+ * TimelineScope — who can see this event.
+ */
+export type TimelineScope = "private" | "mission" | "workspace" | "global";
+
+/**
+ * TimelineSeverity — visual weight for the timeline entry.
+ */
+export type TimelineSeverity = "info" | "success" | "warning" | "error" | "critical";
+
+/**
+ * TimelineAttachment — optional structured data attached to an event.
+ */
+export interface TimelineAttachment {
+  kind: "artifact" | "memory_ref" | "decision_ref" | "mission_ref" | "execution_ref" | "approval_ref" | "text";
+  /** Reference to the related entity. */
+  refId: string | null;
+  /** Human-readable label for display. */
+  label: string;
+  /** Optional inline data (text summary or preview). */
+  inline: string | null;
+}
+
+/**
+ * TimelineFilter — active filter state for the timeline view.
+ */
+export interface TimelineFilter {
+  /** Filter by event type. Empty = all. */
+  types: TimelineEventType[];
+  /** Filter by mission ID. Null = all. */
+  missionId: string | null;
+  /** Filter by workspace ID. Null = all. */
+  workspaceId: string | null;
+  /** Filter by scope. Empty = all. */
+  scopes: TimelineScope[];
+  /** Minimum severity to show. Null = all. */
+  minSeverity: TimelineSeverity | null;
+  /** Text search across title and description. */
+  query: string;
+}
+
+/**
+ * TimelineEvent — a single entry in the unified Kairos Timeline.
+ *
+ * This replaces the old MissionTimelineEvent with a broader model
+ * that covers missions, memories, decisions, workspaces, and
+ * system events in one chronological record.
+ */
+export interface TimelineEvent {
+  id: string;
+  /** The type of event. */
+  type: TimelineEventType;
+  /** Human-readable title. */
+  title: string;
+  /** Longer description of what happened. */
+  description: string;
+  /** When the event occurred. */
+  timestamp: string;
+  /** Who or what initiated this event. */
+  actor: TimelineActor;
+  /** Where the event was recorded from. */
+  source: TimelineSource;
+  /** Visibility scope. */
+  scope: TimelineScope;
+  /** Visual weight. */
+  severity: TimelineSeverity;
+  /** Optional related entity IDs for cross-referencing. */
+  missionId: string | null;
+  workspaceId: string | null;
+  memoryId: string | null;
+  decisionId: string | null;
+  /** Optional attachments for rich display. */
+  attachments: TimelineAttachment[];
+}
+
+// ---------------------------------------------------------------------------
+// Mission timeline events (deprecated — use TimelineEvent)
+// ---------------------------------------------------------------------------
+
+/** @deprecated Use TimelineEvent with type starting with "mission." instead. */
 export interface MissionTimelineEvent {
   id: string;
   missionId: string;
-  /** Time the event occurred. */
   timestamp: string;
-  kind:
-    | "created"
-    | "status_change"
-    | "plan_generated"
-    | "plan_revised"
-    | "approval_requested"
-    | "approval_granted"
-    | "approval_rejected"
-    | "step_queued"
-    | "step_started"
-    | "step_completed"
-    | "step_failed"
-    | "step_retried"
-    | "artifact_created"
-    | "outcome_recorded"
-    | "archived";
+  kind: string;
   title: string;
   description: string;
-  /** The status after this event, if applicable. */
   resultingStatus: MissionStatus | null;
-  /** Related entity reference. */
   relatedId: string | null;
 }
 

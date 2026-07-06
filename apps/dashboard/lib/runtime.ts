@@ -30,6 +30,9 @@ import type {
   Mission,
   MissionStatus,
   MissionTimelineEvent,
+  TimelineEvent,
+  TimelineEventType,
+  TimelineFilter,
   Memory,
   MemoryCollection,
   MemoryReference,
@@ -779,4 +782,131 @@ export interface KnowledgeEngine {
 export function useKnowledgeEngine(): KnowledgeEngine | null {
   // Future: wire to actual knowledge index
   return null;
+}
+
+
+// ---------------------------------------------------------------------------
+// Timeline Engine runtime
+// ---------------------------------------------------------------------------
+
+function idCounter() {
+  let n = 0;
+  return () => {
+    n += 1;
+    return `tl_${Date.now()}_${n}`;
+  };
+}
+const nextTimelineId = idCounter();
+
+/**
+ * useTimelineEngine — full Timeline Engine runtime.
+ *
+ * Provides filtered timeline access, event recording, and
+ * per-entity timeline slices for missions, memories, workspaces,
+ * and decisions.
+ */
+export function useTimelineEngine() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const selectEvent = useCallback(
+    (id: string | null) => {
+      dispatch({ type: "SELECT_TIMELINE_EVENT", payload: id });
+    },
+    [dispatch],
+  );
+
+  const setFilter = useCallback(
+    (filter: Partial<TimelineFilter>) => {
+      dispatch({ type: "SET_TIMELINE_FILTER", payload: filter });
+    },
+    [dispatch],
+  );
+
+  const recordEvent = useCallback(
+    (event: Omit<TimelineEvent, "id">) => {
+      const full: TimelineEvent = { ...event, id: nextTimelineId() };
+      dispatch({ type: "ADD_TIMELINE_EVENT", payload: full });
+      return full;
+    },
+    [dispatch],
+  );
+
+  const { timelineEvents: all, timelineFilter: filter, selectedTimelineEventId } = state;
+
+  const filtered = all.filter((e) => {
+    if (filter.types.length > 0 && !filter.types.includes(e.type)) return false;
+    if (filter.missionId && e.missionId !== filter.missionId) return false;
+    if (filter.workspaceId && e.workspaceId !== filter.workspaceId) return false;
+    if (filter.scopes.length > 0 && !filter.scopes.includes(e.scope)) return false;
+    if (filter.query) {
+      const q = filter.query.toLowerCase();
+      if (!e.title.toLowerCase().includes(q) && !e.description.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const selectedEvent = all.find((e) => e.id === selectedTimelineEventId) ?? null;
+
+  return {
+    events: filtered,
+    allEvents: all,
+    selectedEvent,
+    selectEvent,
+    filter,
+    setFilter,
+    recordEvent,
+  };
+}
+
+/**
+ * useMissionTimeline — returns timeline events for a specific mission.
+ */
+export function useMissionTimeline(missionId: string | null) {
+  const state = useKairosState();
+  if (!missionId) return [];
+  return state.timelineEvents.filter((e) => e.missionId === missionId);
+}
+
+/**
+ * useMemoryTimeline — returns timeline events for a specific memory.
+ */
+export function useMemoryTimeline(memoryId: string | null) {
+  const state = useKairosState();
+  if (!memoryId) return [];
+  return state.timelineEvents.filter((e) => e.memoryId === memoryId);
+}
+
+/**
+ * useWorkspaceTimeline — returns timeline events for a specific workspace.
+ */
+export function useWorkspaceTimeline(workspaceId: string | null) {
+  const state = useKairosState();
+  if (!workspaceId) return [];
+  return state.timelineEvents.filter((e) => e.workspaceId === workspaceId);
+}
+
+/**
+ * useDecisionTimeline — returns timeline events for a specific decision.
+ */
+export function useDecisionTimeline(decisionId: string | null) {
+  const state = useKairosState();
+  if (!decisionId) return [];
+  return state.timelineEvents.filter((e) => e.decisionId === decisionId);
+}
+
+/**
+ * useRecentTimeline — returns the most recent N timeline events.
+ */
+export function useRecentTimeline(limit = 20) {
+  const state = useKairosState();
+  return state.timelineEvents.slice(0, limit);
+}
+
+/**
+ * useTodayTimeline — returns timeline events from today only.
+ */
+export function useTodayTimeline() {
+  const state = useKairosState();
+  return state.timelineEvents.filter((e) => e.timestamp.startsWith(state.todayDate));
 }
