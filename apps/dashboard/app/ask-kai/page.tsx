@@ -4,7 +4,7 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
-import { useConversation } from "../../lib/runtime";
+import { useConversation, useKnowledgeForMission } from "../../lib/runtime";
 
 const SUGGESTION_CHIPS = [
   "What's on my schedule today?",
@@ -42,6 +42,8 @@ export default function AskKaiPage() {
     sendError,
     abortSending,
   } = useConversation();
+
+  const missionKnowledge = useKnowledgeForMission(state.assistant.activeMissionId);
 
   const handleSend = () => {
     sendMessage(draft);

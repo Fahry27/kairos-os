@@ -527,6 +527,134 @@ export interface MemoryReference {
 }
 
 // ---------------------------------------------------------------------------
+// Knowledge Engine
+// ---------------------------------------------------------------------------
+
+/**
+ * The Knowledge Engine sits above Memory and below the AI Router.
+ *
+ * Memory stores raw knowledge units. The Knowledge Engine structures them
+ * into queryable, contextual knowledge that AI providers can consume.
+ *
+ * No embeddings. No vector DB. No AI calls. This is the architecture layer.
+ */
+
+export type KnowledgeType =
+  | "fact"
+  | "insight"
+  | "procedure"
+  | "decision_rationale"
+  | "reflection"
+  | "context";
+
+export type KnowledgeStatus = "active" | "archived" | "superseded" | "draft";
+
+export type KnowledgeConfidence = "low" | "medium" | "high" | "validated";
+
+export interface KnowledgeSource {
+  /** What kind of entity produced this knowledge. */
+  kind: "memory" | "mission" | "provider" | "user" | "system";
+  /** ID of the source entity. */
+  sourceId: string | null;
+  /** Human-readable label. */
+  label: string;
+}
+
+/**
+ * KnowledgeRelationship — links knowledge items to other entities.
+ */
+export interface KnowledgeRelationship {
+  kind: "derived_from" | "supports" | "contradicts" | "extends" | "references";
+  targetKind: "knowledge" | "memory" | "mission" | "decision" | "workspace";
+  targetId: string;
+  label: string | null;
+}
+
+export interface KnowledgeCollection {
+  id: string;
+  name: string;
+  description: string | null;
+  knowledgeIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * KnowledgeItem — the core entity of the Knowledge Engine.
+ *
+ * A KnowledgeItem is structured understanding, derived from Memory,
+ * Missions, or provider analysis. It is indexed and queryable.
+ */
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  /** The structured knowledge content. */
+  content: string;
+  type: KnowledgeType;
+  status: KnowledgeStatus;
+  confidence: KnowledgeConfidence;
+  /** Where this knowledge came from. */
+  source: KnowledgeSource;
+  /** Relationships to other entities. */
+  relationships: KnowledgeRelationship[];
+  /** Tags for organization. */
+  tags: string[];
+  /** Optional collection membership. */
+  collectionId: string | null;
+  /** The mission context this knowledge is most relevant to. */
+  missionId: string | null;
+  /** The workspace context this knowledge is most relevant to. */
+  workspaceId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * KnowledgeQuery — a structured query against the Knowledge Engine.
+ */
+export interface KnowledgeQuery {
+  /** Freeform query text. */
+  query: string;
+  /** Filter by knowledge types. */
+  types: KnowledgeType[];
+  /** Filter by minimum confidence. */
+  minConfidence: KnowledgeConfidence | null;
+  /** Scope to a specific mission. */
+  missionId: string | null;
+  /** Scope to a specific workspace. */
+  workspaceId: string | null;
+  /** Maximum results to return. */
+  limit: number;
+}
+
+/**
+ * KnowledgeResult — a single result from a knowledge query.
+ */
+export interface KnowledgeResult {
+  item: KnowledgeItem;
+  /** Relevance score (future: from similarity search). */
+  relevance: number;
+  /** Why this item was included in results. */
+  rationale: string | null;
+}
+
+/**
+ * KnowledgeContext — a collection of knowledge items assembled for a
+ * specific purpose (e.g., providing context to an AI provider, informing
+ * a mission plan, populating a workspace panel).
+ */
+export interface KnowledgeContext {
+  /** The query that produced this context. */
+  query: KnowledgeQuery;
+  /** The knowledge items assembled. */
+  items: KnowledgeItem[];
+  /** Results from the last search (if query-based). */
+  results: KnowledgeResult[];
+  /** When this context was assembled. */
+  assembledAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Timeline + Brief
 // ---------------------------------------------------------------------------
 

@@ -33,6 +33,11 @@ import type {
   TimelineEvent,
   TimelineEventType,
   TimelineFilter,
+  KnowledgeItem,
+  KnowledgeContext,
+  KnowledgeQuery,
+  KnowledgeType,
+  KnowledgeConfidence,
   Memory,
   MemoryCollection,
   MemoryReference,
@@ -749,41 +754,134 @@ export function useMemoryForWorkspace(workspaceId: string | null) {
 }
 
 // ---------------------------------------------------------------------------
-// Knowledge Engine preparation (future interface)
+// Knowledge Engine
 // ---------------------------------------------------------------------------
 
 /**
- * KnowledgeEngine — placeholder interface for the future Knowledge Engine.
+ * useKnowledgeEngine — production Knowledge Engine runtime.
  *
- * The Knowledge Engine will:
- *   - Index memories for retrieval
- *   - Build a semantic knowledge graph
- *   - Provide context to AI providers without exposing raw memory data
- *
- * This interface exists as a clean architecture boundary. No implementation yet.
+ * Provides search, context assembly, and per-entity knowledge access.
+ * All knowledge flows through shared Kairos state. No embeddings. No AI.
  */
-export interface KnowledgeEngine {
-  /** Query memories relevant to a context. */
-  query: (context: string, limit?: number) => Memory[];
-  /** Get all knowledge relevant to a mission. */
-  forMission: (missionId: string) => Memory[];
-  /** Get all knowledge relevant to a workspace. */
-  forWorkspace: (workspaceId: string) => Memory[];
-  /** Re-index all memories (future: trigger embedding update). */
-  reindex: () => void;
+export function useKnowledgeEngine() {
+  const state = useKairosState();
+  const dispatch = useKairosDispatch();
+
+  const search = useCallback(
+    (query: Partial<KnowledgeQuery>) => {
+      dispatch({ type: "SET_KNOWLEDGE_QUERY", payload: query });
+    },
+    [dispatch],
+  );
+
+  const selectItem = useCallback(
+    (id: string | null) => {
+      dispatch({ type: "SELECT_KNOWLEDGE", payload: id });
+    },
+    [dispatch],
+  );
+
+  const assembleContext = useCallback(
+    (query: KnowledgeQuery) => {
+      const items = state.knowledgeItems
+        .filter((k) => {
+          if (query.types.length > 0 && !query.types.includes(k.type)) return false;
+          if (query.minConfidence) {
+            const levels: KnowledgeConfidence[] = ["low", "medium", "high", "validated"];
+            if (levels.indexOf(k.confidence) < levels.indexOf(query.minConfidence)) return false;
+          }
+          if (query.missionId && k.missionId !== query.missionId) return false;
+          if (query.workspaceId && k.workspaceId !== query.workspaceId) return false;
+          return true;
+        })
+        .slice(0, query.limit || 25);
+
+      const results = items.map((item, i) => ({
+        item,
+        relevance: 1 - i / Math.max(items.length, 1),
+        rationale: `Matched query "${query.query}"`,
+      }));
+
+      const context: KnowledgeContext = {
+        query,
+        items,
+        results,
+        assembledAt: new Date().toISOString(),
+      };
+
+      dispatch({ type: "SET_KNOWLEDGE_CONTEXT", payload: context });
+      return context;
+    },
+    [state.knowledgeItems, dispatch],
+  );
+
+  const filteredItems = state.knowledgeQuery.query
+    ? state.knowledgeItems.filter(
+        (k) =>
+          k.title.toLowerCase().includes(state.knowledgeQuery.query.toLowerCase()) ||
+          k.content.toLowerCase().includes(state.knowledgeQuery.query.toLowerCase()),
+      )
+    : state.knowledgeItems;
+
+  const selectedItem =
+    state.knowledgeItems.find((k) => k.id === state.selectedKnowledgeId) ?? null;
+
+  return {
+    items: filteredItems,
+    selectedItem,
+    selectItem,
+    collections: state.knowledgeCollections,
+    query: state.knowledgeQuery,
+    search,
+    context: state.knowledgeContext,
+    assembleContext,
+  };
 }
 
 /**
- * useKnowledgeEngine — placeholder hook returning null.
- *
- * Architecture boundary for future Knowledge Engine integration.
- * No implementation. No embeddings. No AI calls.
+ * useKnowledgeForMission — returns knowledge items scoped to a mission.
  */
-export function useKnowledgeEngine(): KnowledgeEngine | null {
-  // Future: wire to actual knowledge index
-  return null;
+export function useKnowledgeForMission(missionId: string | null) {
+  const state = useKairosState();
+  if (!missionId) return [];
+  return state.knowledgeItems.filter(
+    (k) =>
+      k.missionId === missionId ||
+      k.relationships.some((r) => r.targetKind === "mission" && r.targetId === missionId),
+  );
 }
 
+/**
+ * useKnowledgeForWorkspace — returns knowledge items scoped to a workspace.
+ */
+export function useKnowledgeForWorkspace(workspaceId: string | null) {
+  const state = useKairosState();
+  if (!workspaceId) return [];
+  return state.knowledgeItems.filter(
+    (k) =>
+      k.workspaceId === workspaceId ||
+      k.relationships.some((r) => r.targetKind === "workspace" && r.targetId === workspaceId),
+  );
+}
+
+/**
+ * useKnowledgeForMemory — returns knowledge items derived from a specific memory.
+ */
+export function useKnowledgeForMemory(memoryId: string | null) {
+  const state = useKairosState();
+  if (!memoryId) return [];
+  return state.knowledgeItems.filter((k) =>
+    k.relationships.some((r) => r.kind === "derived_from" && r.targetKind === "memory" && r.targetId === memoryId),
+  );
+}
+
+/**
+ * useKnowledgeCollections — returns knowledge collections.
+ */
+export function useKnowledgeCollections() {
+  const state = useKairosState();
+  return state.knowledgeCollections;
+}
 
 // ---------------------------------------------------------------------------
 // Timeline Engine runtime

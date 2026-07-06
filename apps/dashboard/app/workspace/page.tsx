@@ -4,7 +4,7 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
-import { useWorkspaceRuntime } from "../../lib/runtime";
+import { useWorkspaceRuntime, useKnowledgeForWorkspace } from "../../lib/runtime";
 
 /**
  * Workspace — production planning and execution surface with runtime.
@@ -28,6 +28,8 @@ export default function WorkspacePage() {
     setActivePanel,
     pendingApprovals,
   } = useWorkspaceRuntime();
+
+  const workspaceKnowledge = useKnowledgeForWorkspace(activeWorkspaceId);
 
   const activeWorkspace = state.workspaces.find((w) => w.id === activeWorkspaceId) ?? null;
 
@@ -139,6 +141,13 @@ export default function WorkspacePage() {
                   commands, connectors, and safety notes.
                 </p>
               </div>
+              {workspaceKnowledge.length > 0 && (
+                <div className="record">
+                  <p className="stateText">
+                    {workspaceKnowledge.length} knowledge items available for this workspace.
+                  </p>
+                </div>
+              )}
               <div className="record">
                 <p className="stateText">
                   Each step requires approval before execution. Nothing runs without

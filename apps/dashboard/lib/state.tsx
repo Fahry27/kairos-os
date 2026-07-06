@@ -35,6 +35,10 @@ import type {
   MissionTimelineEvent,
   TimelineEvent,
   TimelineFilter,
+  KnowledgeItem,
+  KnowledgeCollection,
+  KnowledgeContext,
+  KnowledgeQuery,
   Decision,
   Workspace,
   Memory,
@@ -63,6 +67,16 @@ export interface KairosState {
   timelineFilter: TimelineFilter;
   /** Selected timeline event ID for detail view. */
   selectedTimelineEventId: string | null;
+  /** Knowledge Engine items. */
+  knowledgeItems: KnowledgeItem[];
+  /** Named collections of knowledge items. */
+  knowledgeCollections: KnowledgeCollection[];
+  /** Selected knowledge item ID for detail view. */
+  selectedKnowledgeId: string | null;
+  /** Active knowledge query state. */
+  knowledgeQuery: KnowledgeQuery;
+  /** Last assembled knowledge context. */
+  knowledgeContext: KnowledgeContext | null;
   decisions: Decision[];
   workspaces: Workspace[];
   memories: Memory[];
@@ -103,6 +117,11 @@ export type KairosAction =
   | { type: "SET_TIMELINE_EVENTS"; payload: TimelineEvent[] }
   | { type: "SELECT_TIMELINE_EVENT"; payload: string | null }
   | { type: "SET_TIMELINE_FILTER"; payload: Partial<TimelineFilter> }
+  | { type: "SET_KNOWLEDGE_ITEMS"; payload: KnowledgeItem[] }
+  | { type: "SET_KNOWLEDGE_COLLECTIONS"; payload: KnowledgeCollection[] }
+  | { type: "SELECT_KNOWLEDGE"; payload: string | null }
+  | { type: "SET_KNOWLEDGE_QUERY"; payload: Partial<KnowledgeQuery> }
+  | { type: "SET_KNOWLEDGE_CONTEXT"; payload: KnowledgeContext | null }
   | { type: "ADD_TIMELINE_ITEM"; payload: TimelineItem }
   | { type: "SET_ACTIVE_SURFACE"; payload: ShellSurface }
   | { type: "TOGGLE_SIDEBAR" }
@@ -132,6 +151,11 @@ const initialState: KairosState = {
   timelineEvents: [],
   timelineFilter: { types: [], missionId: null, workspaceId: null, scopes: [], minSeverity: null, query: "" },
   selectedTimelineEventId: null,
+  knowledgeItems: [],
+  knowledgeCollections: [],
+  selectedKnowledgeId: null,
+  knowledgeQuery: { query: "", types: [], minConfidence: null, missionId: null, workspaceId: null, limit: 25 },
+  knowledgeContext: null,
   decisions: [],
   workspaces: [],
   memories: [],
@@ -276,6 +300,23 @@ function kairosReducer(state: KairosState, action: KairosAction): KairosState {
 
     case "SET_TIMELINE_FILTER":
       return { ...state, timelineFilter: { ...state.timelineFilter, ...action.payload } };
+
+    // ------ Knowledge Engine ------
+
+    case "SET_KNOWLEDGE_ITEMS":
+      return { ...state, knowledgeItems: action.payload };
+
+    case "SET_KNOWLEDGE_COLLECTIONS":
+      return { ...state, knowledgeCollections: action.payload };
+
+    case "SELECT_KNOWLEDGE":
+      return { ...state, selectedKnowledgeId: action.payload };
+
+    case "SET_KNOWLEDGE_QUERY":
+      return { ...state, knowledgeQuery: { ...state.knowledgeQuery, ...action.payload } };
+
+    case "SET_KNOWLEDGE_CONTEXT":
+      return { ...state, knowledgeContext: action.payload };
 
     case "SET_DECISIONS":
       return { ...state, decisions: action.payload };
