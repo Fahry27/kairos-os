@@ -13,10 +13,10 @@ services:
     environment:
       APP_NAME: Kairos API
       APP_VERSION: 3.4.0
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-development}
       API_V1_PREFIX: /api/v1
-      DATABASE_URL: sqlite:////app/data/kairos-local.sqlite3
-      CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost:3000","http://127.0.0.1:3000"]'}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/kairos-local.sqlite3}
+      CORS_ORIGINS: ${CORS_ORIGINS:-'["http://localhost:3000","http://127.0.0.1:3000","https://kairosos.xyz","https://www.kairosos.xyz"]'}
       CREATE_TABLES_ON_STARTUP: "true"
       USE_MOCK_DATA: "false"
       N8N_WEBHOOK_TRIGGER_ENABLED: ${N8N_WEBHOOK_TRIGGER_ENABLED:-false}
@@ -67,7 +67,7 @@ services:
       context: ./apps/dashboard
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_KAIROS_API_URL: ${NEXT_PUBLIC_KAIROS_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_KAIROS_API_URL: ${NEXT_PUBLIC_KAIROS_API_URL:-}
     container_name: kairos-dashboard
     restart: unless-stopped
     # Uncomment to load configurations from a local .env file:

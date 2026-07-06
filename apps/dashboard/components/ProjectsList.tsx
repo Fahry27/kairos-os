@@ -250,8 +250,7 @@ export function ProjectsList() {
     <section className="card">
       <div className="sectionHeader">
         <div>
-          <p className="eyebrow">Active Mission</p>
-          <h2>Mission Control</h2>
+          <h2 style={{ margin: 0 }}>Missions</h2>
         </div>
       </div>
 

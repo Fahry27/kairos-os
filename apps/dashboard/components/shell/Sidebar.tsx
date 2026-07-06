@@ -1,75 +1,53 @@
 import NavItem, { type NavItemDef } from "./NavItem";
 
-const SHELL_SURFACES: NavItemDef[] = [
-  { label: "Good Morning", href: "/good-morning" },
-  { label: "Continue Working", href: "/continue-working" },
-  { label: "Ask Kai", href: "/ask-kai" },
-  { label: "Today's Brief", href: "/todays-brief" },
-  { label: "Workspace", href: "/workspace" },
-];
-
-const ADMIN_ROUTES: NavItemDef[] = [
-  { label: "Decisions", href: "/decisions" },
-  { label: "Missions", href: "/missions" },
+const NAV_ITEMS: NavItemDef[] = [
+  { label: "Home", href: "/home" },
+  { label: "Kai", href: "/kai" },
+  { label: "Work", href: "/work" },
   { label: "Settings", href: "/settings" },
-  { label: "Home", href: "/" },
 ];
 
-/**
- * Sidebar — permanent Kairos Shell navigation.
- *
- * Group 1 (top):   Shell surfaces — the primary Kairos interface.
- * Group 2 (bottom): Administration routes, preserved during Shell rollout.
- */
 export default function Sidebar() {
   return (
-    <nav aria-label="Kairos Shell" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ marginBottom: 16 }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 12,
-            fontWeight: 700,
-            color: "var(--muted)",
-            textTransform: "uppercase",
-            padding: "0 12px",
-            marginBottom: 6,
-          }}
-        >
-          Kairos
-        </span>
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-          {SHELL_SURFACES.map((item) => (
-            <NavItem key={item.href} {...item} />
-          ))}
-        </ul>
+    <nav aria-label="Kairos" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div
+        style={{
+          fontSize: 22,
+          fontWeight: 720,
+          color: "var(--accent)",
+          padding: "0 12px 20px",
+          letterSpacing: "-0.5px",
+        }}
+      >
+        Kairos
       </div>
+
+      <ul
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
+        {NAV_ITEMS.map((item) => (
+          <NavItem key={item.href} {...item} />
+        ))}
+      </ul>
 
       <div
         style={{
           marginTop: "auto",
+          paddingTop: 16,
           borderTop: "1px solid var(--panel-border)",
-          paddingTop: 12,
+          fontSize: 11,
+          color: "var(--muted)",
+          padding: "16px 12px 0",
         }}
       >
-        <span
-          style={{
-            display: "block",
-            fontSize: 11,
-            fontWeight: 700,
-            color: "var(--muted)",
-            textTransform: "uppercase",
-            padding: "0 12px",
-            marginBottom: 4,
-          }}
-        >
-          Administration
-        </span>
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-          {ADMIN_ROUTES.map((item) => (
-            <NavItem key={item.href} {...item} />
-          ))}
-        </ul>
+        v3.4
       </div>
     </nav>
   );

@@ -153,7 +153,7 @@ function TaskRow({
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             aria-label={`Plan task ${task.title}`}
           >
-            Plan Decision
+            Open
           </Link>
           <button className="btnSmall btnOutline" onClick={startEditing} type="button" aria-label={`Edit task ${task.title}`}>
             Edit
@@ -252,8 +252,7 @@ export function TasksList() {
     <section className="card">
       <div className="sectionHeader">
         <div>
-          <p className="eyebrow">Current Decision</p>
-          <h2>Decisions Queue</h2>
+          <h2>Tasks</h2>
         </div>
       </div>
       <form className="resourceForm" onSubmit={handleSubmit}>

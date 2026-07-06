@@ -9,7 +9,7 @@
   --accent-soft: #e0f3f0;
   --amber: #8a5a00;
   --amber-soft: #fff1cf;
-  --shadow: 0 1px 2px rgba(24, 32, 47, 0.08);
+  --shadow: 0 1px 3px rgba(24, 32, 47, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,11 +20,11 @@
     --panel-border: #30363d;
     --text: #e6edf3;
     --muted: #8b949e;
-    --accent: #238636;
+    --accent: #3fb950;
     --accent-soft: #143d22;
     --amber: #d29922;
     --amber-soft: #42300b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   /* Form overrides for dark mode */
@@ -185,7 +185,7 @@ textarea {
   border-radius: 8px;
   box-shadow: var(--shadow);
   min-width: 0;
-  padding: 18px;
+  padding: 24px;
 }
 
 .cardWide {
