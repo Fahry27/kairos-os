@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     kairos_ollama_tags_path: str = Field(default="/api/tags", validation_alias="KAIROS_OLLAMA_TAGS_PATH")
     kairos_ollama_timeout_seconds: int = Field(default=2, validation_alias="KAIROS_OLLAMA_TIMEOUT_SECONDS")
     
+    # Cloud provider health checks (v3.4.0 — disabled by default; when disabled,
+    # non-Ollama providers return metadata-only health stubs without network calls)
+    kairos_cloud_provider_health_enabled: bool = Field(
+        default=False,
+        validation_alias="KAIROS_CLOUD_PROVIDER_HEALTH_ENABLED",
+    )
+
     # Ollama Local Dispatch (v2.4.0)
     kairos_ollama_dispatch_enabled: bool = Field(default=False, validation_alias="KAIROS_OLLAMA_DISPATCH_ENABLED")
     kairos_ollama_generate_path: str = Field(default="/api/generate", validation_alias="KAIROS_OLLAMA_GENERATE_PATH")

@@ -3,10 +3,10 @@ import { TasksList } from "../../components/TasksList";
 
 export default function DecisionsPage() {
   return (
-    <main className="page">
+    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
       <header className="topBar">
         <div>
-          <p className="eyebrow">Kairos OS</p>
+          <p className="eyebrow">Kairos</p>
           <h1>Manage Decisions</h1>
         </div>
       </header>
@@ -16,6 +16,6 @@ export default function DecisionsPage() {
           <TasksList />
         </Suspense>
       </div>
-    </main>
+    </div>
   );
 }

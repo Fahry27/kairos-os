@@ -1,147 +1,215 @@
-# Kairos OS Architecture
+# Kairos Architecture
 
-## Overview
+> Architecture overview for Kairos — Your AI Operating System.
+> Last updated: Sprint 11 (Production Hardening)
 
-Kairos OS is planned as a modular system with an API service, a dashboard
-experience, shared documentation, and supporting infrastructure. Kairos Core API
-v3.3.0 adds an AI provider router so workspace provider selection stays behind
-a backend abstraction.
+---
 
-## Repository Boundaries
+## 1. System Layers
 
-```text
-apps/api/        FastAPI service code.
-apps/dashboard/  Next.js dashboard code.
-data/            Reserved data workspace.
-docs/            Architecture, development, and product documentation.
-infra/           Infrastructure definitions and local service orchestration.
-infra/config/    Portable infrastructure configuration.
-scripts/         Development and operations helper scripts.
+Kairos is structured in concentric layers. Each layer depends only on layers
+below it. No circular dependencies.
+
+```
+┌─────────────────────────────────────────┐
+│              Shell Surfaces              │
+│  GoodMorning / ContinueWorking / AskKai  │
+│       Today'sBrief / Workspace           │
+├─────────────────────────────────────────┤
+│             Runtime Hooks                │
+│    useApi / useMissions / useConversation│
+├─────────────────────────────────────────┤
+│            Application State             │
+│     Context + useReducer (state.tsx)     │
+├─────────────────────────────────────────┤
+│           Domain Models (types.ts)        │
+│   Mission, Memory, Timeline, Knowledge,  │
+│   AI Router, Command, Plugin, Connector  │
+├─────────────────────────────────────────┤
+│            Transport (api.ts)            │
+│    fetchFromApi / postToApi / endpoints  │
+├─────────────────────────────────────────┤
+│          Kairos Core API (FastAPI)       │
+│   apps/api/ — backend services           │
+└─────────────────────────────────────────┘
 ```
 
-The `apps/dashboard/` directory contains the dashboard application.
+---
 
-## Planned Components
+## 2. The Seven Engines
 
-### API
+### Mission Engine
+**File:** `lib/types.ts` (Mission, MissionPlan, MissionStep, MissionApproval, etc.)
+**State:** `missions`, `selectedMissionId`, `missionFilter`, `missionTimeline`
+**Runtime:** `useMissions()`, `useMissionEngine()`, `usePlanningRuntime()`, `useExecutionRuntime()`
 
-The API is implemented with FastAPI and SQLAlchemy. It exposes health checks,
-basic CRUD modules for Projects, Tasks, and Memories, approval management, one
-controlled n8n webhook trigger endpoint tied to approved workflow approval
-requests, and read-only workflow run history endpoints. Direct local
-development uses persistent SQLite storage in the
-repository `data/` workspace. Docker Compose runs use PostgreSQL through
-environment-based configuration.
+Missions are the primary unit of work. Full lifecycle from `draft` through
+`executing` to `completed`/`failed`/`cancelled` and finally `archived`.
+Every mission has a plan (versioned steps), approvals, execution records,
+and artifacts.
 
-### Dashboard
+### Memory Engine
+**File:** `lib/types.ts` (Memory, MemoryReference, MemoryCollection, etc.)
+**State:** `memories`, `memoryRefs`, `pinnedMemoryIds`, `memorySearchQuery`
+**Runtime:** `useMemories()`, `useMemoryEngine()`, `useMemoryForMission()`, `useMemoryForWorkspace()`
 
-The dashboard is implemented with Next.js as a local interface for Kairos Core
-API health, projects, tasks, memories, registries, AI runtime status, AI
-Workspace planning through the provider router, approval management, controlled n8n workflow triggering,
-retry of failed n8n triggers, and workflow run history.
+Memories are durable units of knowledge. They have types (note, decision,
+reflection, insight, reference, procedure, fact), visibility scopes,
+and structured relationships to other entities.
 
-### Controlled n8n Trigger
+### Timeline Engine
+**File:** `lib/types.ts` (TimelineEvent, TimelineFilter, TimelineActor, etc.)
+**State:** `timelineEvents`, `timelineFilter`, `selectedTimelineEventId`
+**Runtime:** `useTimelineEngine()`, `useRecentTimeline()`, `useTodayTimeline()`, per-entity hooks
 
-Kairos v2.8.0 uses the existing Approval Gate as the single source of truth.
-Approving an `ApprovalRequest` only changes status to `approved`; it does not
-execute anything. A separate `POST /api/v1/approvals/{approval_id}/trigger-n8n`
-call may trigger one configured n8n webhook only when the approval is approved,
-has `action_type=workflow`, and is marked as `n8n_webhook`.
+The Timeline is the chronological system-of-record. 40+ event types covering
+missions, memory, decisions, workspaces, approvals, executions, system health,
+plugins, connectors, and automations.
 
-Trigger attempts are recorded as sanitized `WorkflowRun` history. The history
-does not store webhook URLs, tokens, credentials, environment values, raw n8n
-response bodies, or raw LLM responses. No connector fan-out, local command
-execution, Hermes/OpenClaw trigger, cloud provider call, background worker,
-automatic retry, or autonomous agent loop is introduced.
+### Knowledge Engine
+**File:** `lib/types.ts` (KnowledgeItem, KnowledgeQuery, KnowledgeContext, etc.)
+**State:** `knowledgeItems`, `knowledgeCollections`, `knowledgeQuery`, `knowledgeContext`
+**Runtime:** `useKnowledgeEngine()`, `useKnowledgeForMission()`, `useKnowledgeForWorkspace()`, `useKnowledgeForMemory()`
 
-### Workflow Run Audit Trail
+Knowledge sits above Memory and below the AI Router. It structures raw memories
+into queryable, contextual knowledge that AI providers consume.
+`assembleContext()` builds a KnowledgeContext from filtered items.
 
-Kairos v2.9.0 added sanitized `WorkflowRun` history through read-only API
-endpoints and a dashboard audit card. Operators can filter by status, approval
-ID, and target type, then inspect request and response summaries.
+### AI Router
+**File:** `lib/types.ts` (AIProvider, AIRequest, AIResponse, AIRoutePolicy, etc.)
+**State:** `aiProviders`, `aiRoutePolicy`, `aiRequest`, `aiResponse`, `aiExecutionContext`
+**Runtime:** `useAIRouter()`, `useAIProviderHealth()`, `useAIModelSelection()`
 
-Kairos v3.1.0 exposes the existing protected approve, reject, and trigger-n8n
-actions in the dashboard. The operator token is stored only in browser
-`localStorage`; trigger and retry buttons are shown only for approved n8n
-workflow approvals when no succeeded or running n8n run already exists.
+Centralized provider routing. Budget tiers (`free`/`cheap`/`quality`),
+fallback order, offline mode. Provider health aggregation.
+`assembleExecutionContext()` builds the full pre-request context.
 
-### AI Workspace
+### Command & Automation Engine
+**File:** `lib/types.ts` (Command, Automation, AutomationPolicy, etc.)
+**State:** `commands`, `commandCapabilities`, `automations`, `automationRuns`
+**Runtime:** `useCommandEngine()`, `useCommandApproval()`, `useAutomationEngine()`, `useAutomationRuns()`
 
-Kairos v3.2.0 adds `/workspace`, a dashboard page over the existing AI runtime
-APIs. It supports goal and context entry, local model selection, prompt dry-run,
-optional local Ollama dispatch, parse-plan display, and explicit approval
-request creation from parsed command suggestions. It does not add chat,
-autonomous agents, backend execution logic, local command execution, connector
-fan-out, or cloud provider calls.
+Every action is a governed Command. The pipeline:
+`Command → Approval → Execution → Timeline → Memory/Knowledge`.
+Automations define triggers, conditions, actions, and safety policies.
 
-### AI Provider Router
+### Plugin & Connector Foundation
+**File:** `lib/types.ts` (Plugin, Connector, RegisteredCapability, etc.)
+**State:** `plugins`, `connectors`, `registeredCapabilities`, `capabilityPolicy`
+**Runtime:** `usePluginRegistry()`, `useConnectorRegistry()`, `useCapabilityRegistry()`
 
-Kairos v3.3.0 adds provider registry and router components under the API core.
-The router owns provider metadata, auto/manual selection policy, fallback order,
-model discovery, and dispatch routing. Ollama is the only functional provider.
-OpenAI, Gemini, and Claude are metadata-only stubs and are never called
-externally. The Workspace uses the router interface instead of provider-specific
-implementation endpoints.
+Extensions register capabilities into the Command Engine.
+`Plugin/Connector → Capability Registry → Command → Approval → Execution`.
 
-### Production Acceptance Baseline
+---
 
-Kairos v3.0.0 promotes the verified v2.9.0 deployment without changing the
-runtime contract. The accepted end-to-end production flow is:
-`Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.
-The Zima OS acceptance run verified API and dashboard availability, Swagger
-dual auth with `X-Kairos-API-Key` and `X-Kairos-Operator-Token`, n8n
-environment wiring, production webhook reachability, and sanitized
-`WorkflowRun` audit status.
+## 3. Data Flow
 
-### Infrastructure
+### Read Path
+```
+Surface → useApi() → fetchFromApi() → Kairos Core API → SQLite
+                                              ↓
+                              dispatch(action) → state update → re-render
+```
 
-Infrastructure starts with Docker Compose definitions for services that future
-application code is likely to need:
+### Write Path
+```
+Surface → action handler → postToApi() → Kairos Core API → SQLite
+                               ↓
+                    dispatch(action) → state update → re-render
+```
 
-- PostgreSQL for relational persistence.
-- Redis for caching, queues, or coordination.
+### AI Request Path
+```
+User → Mission → Knowledge Context → AI Router → Provider
+                                                    ↓
+                        AI Response → Timeline → Memory/Knowledge
+```
 
-These services are available for development convenience and as a portable base
-for production-style home-server deployment.
+---
 
-The `infra/config/` directory is reserved for host-portable configuration that
-can be shared across MacBook development, ZimaOS hosting, and a possible Ubuntu
-Server LTS migration.
+## 4. Governance Flow
 
-### Data
+Every action that modifies state or calls external systems must pass through:
 
-The `data/` directory is reserved for seed data, fixtures, exports, and local
-runtime data workflows. Direct local API runs store the SQLite database there by
-default. Runtime database files are local-only and ignored by Git.
+```
+Capability Registry (what can be done)
+        ↓
+Command Creation (what will be done)
+        ↓
+Risk Assessment (is it safe?)
+        ↓
+Approval Gate (who approves?)
+        ↓
+Execution (do it)
+        ↓
+Audit (record in Timeline)
+```
 
-### Scripts
+Nothing executes outside this pipeline.
 
-The `scripts/` directory is reserved for future helper scripts that make
-development, maintenance, backup, restore, or deployment tasks repeatable. No
-scripts have been added in this foundation phase.
+---
 
-## Host Strategy
+## 5. File Organization
 
-- Development machine: MacBook.
-- Initial production/home-server host: ZimaOS.
-- Optional long-term migration target: Ubuntu Server LTS.
+```
+apps/dashboard/
+├── app/                          # Next.js app router pages
+│   ├── layout.tsx                # Root layout (KairosProvider + ShellLayout)
+│   ├── page.tsx                  # Home / legacy dashboard
+│   ├── good-morning/             # Morning briefing
+│   ├── continue-working/         # Resume surface
+│   ├── ask-kai/                  # Chat interface
+│   ├── todays-brief/             # Daily digest
+│   ├── workspace/                # Planning & execution
+│   ├── decisions/                # Legacy decisions
+│   ├── missions/                 # Legacy missions
+│   └── settings/                 # Legacy settings
+├── components/
+│   ├── shell/                    # Shell components (layout, sidebar, nav)
+│   ├── ApprovalsCard.tsx         # Legacy approval management
+│   ├── AIWorkspace.tsx           # Legacy AI workspace
+│   └── ...                       # Other legacy components
+├── lib/
+│   ├── types.ts                  # Domain model (1155 lines, 80+ types)
+│   ├── state.tsx                 # Application state (548 lines, 60+ actions)
+│   ├── runtime.ts                # Runtime hooks (1313 lines, 40+ hooks)
+│   └── api.ts                    # API transport layer (885 lines)
+└── tests/
+    └── workspace-decision-planner.test.mjs
+```
 
-ZimaOS is the initial host layer, not the Kairos core. Kairos should remain
-Docker Compose based and independent from host-specific features as much as
-possible. Services should be containerized and configured through portable
-Compose files so the system can move from ZimaOS to Ubuntu Server later if
-needed.
+---
 
-## Architectural Principles
+## 6. Key Design Decisions
 
-- Keep application boundaries explicit.
-- Keep services containerized and portable across supported hosts.
-- Prefer documented decisions over implicit conventions.
-- Separate local development infrastructure from application implementation.
+1. **No external state library.** React Context + useReducer is sufficient
+   for the current scale. If performance becomes an issue, the state can be
+   split into domain-specific contexts without changing the API.
 
-## Open Decisions
+2. **Type-only domain model.** All types are in `types.ts` with `type` imports.
+   Zero runtime dependency between domain modules and UI.
 
-- Next.js package manager and project layout.
-- Authentication and authorization model.
-- API migration strategy.
-- Production backup, restore, and update strategy.
+3. **API transport decoupled.** `api.ts` defines wire format types.
+   `runtime.ts` maps wire types to domain types before dispatching into state.
+   No component imports API types directly.
+
+4. **Runtime is large by design.** All 40+ hooks live in `runtime.ts` to keep
+   imports simple (one import = all hooks). When the file becomes unwieldy,
+   split into `runtime/mission.ts`, `runtime/memory.ts`, etc. — not yet needed.
+
+5. **ShellLayout is permanent.** Every route renders inside it. The Sidebar
+   has two groups: Kairos Shell surfaces (top) and legacy routes (bottom).
+
+---
+
+## 7. Future Architecture Considerations
+
+- **Runtime split:** When `runtime.ts` exceeds ~2000 lines, split into domain files.
+- **State split:** If re-render performance degrades, create `MissionContext`,
+  `MemoryContext`, etc. instead of one monolithic context.
+- **Streaming:** AI Router is ready for `ReadableStream` integration.
+- **Knowledge Indexing:** Knowledge Engine is ready for vector/embedding
+  integration without changing consumers.
+- **Plugin Sandbox:** PluginExecutionBoundary defines the isolation contract.
+  Implementation requires a runtime sandbox (Web Worker or server-side).

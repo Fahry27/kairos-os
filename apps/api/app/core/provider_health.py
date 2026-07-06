@@ -64,35 +64,45 @@ class HealthMonitor:
                         status = "healthy"
                     else:
                         error_msg = f"HTTP {resp.status}"
-            elif provider_id == "ai.openai":
-                import os
-                api_key = os.environ.get("OPENAI_API_KEY")
-                if not api_key:
-                    error_msg = "Missing credentials"
+            elif provider_id in ("ai.openai", "ai.gemini", "ai.claude", "ai.openrouter"):
+                if not self.settings.kairos_cloud_provider_health_enabled:
+                    reachable = False
+                    status = "unhealthy"
+                    error_msg = (
+                        "Cloud provider health checks are disabled. "
+                        "Set KAIROS_CLOUD_PROVIDER_HEALTH_ENABLED=true to enable."
+                    )
+                elif provider_id == "ai.openai":
+                    import os
+                    api_key = os.environ.get("OPENAI_API_KEY")
+                    if not api_key:
+                        error_msg = "Missing credentials"
+                    else:
+                        url = "https://api.openai.com/v1/models"
+                        req = urllib.request.Request(url, method="GET")
+                        req.add_header("Authorization", f"Bearer {api_key}")
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            if resp.status == 200:
+                                reachable = True
+                                status = "healthy"
+                            else:
+                                error_msg = f"HTTP {resp.status}"
+                elif provider_id == "ai.gemini":
+                    import os
+                    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("KAIROS_GEMINI_API_KEY")
+                    if not api_key:
+                        error_msg = "Missing credentials"
+                    else:
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+                        req = urllib.request.Request(url, method="GET")
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            if resp.status == 200:
+                                reachable = True
+                                status = "healthy"
+                            else:
+                                error_msg = f"HTTP {resp.status}"
                 else:
-                    url = "https://api.openai.com/v1/models"
-                    req = urllib.request.Request(url, method="GET")
-                    req.add_header("Authorization", f"Bearer {api_key}")
-                    with urllib.request.urlopen(req, timeout=5) as resp:
-                        if resp.status == 200:
-                            reachable = True
-                            status = "healthy"
-                        else:
-                            error_msg = f"HTTP {resp.status}"
-            elif provider_id == "ai.gemini":
-                import os
-                api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("KAIROS_GEMINI_API_KEY")
-                if not api_key:
-                    error_msg = "Missing credentials"
-                else:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-                    req = urllib.request.Request(url, method="GET")
-                    with urllib.request.urlopen(req, timeout=5) as resp:
-                        if resp.status == 200:
-                            reachable = True
-                            status = "healthy"
-                        else:
-                            error_msg = f"HTTP {resp.status}"
+                    error_msg = "Cloud provider health not implemented"
             else:
                 error_msg = "Unsupported provider"
         except urllib.error.URLError as e:

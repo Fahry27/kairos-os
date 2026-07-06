@@ -1,42 +1,24 @@
 # Agent Guidelines
 
-These guidelines apply to AI and human-assisted development work in this
-repository.
+Authoritative sources for all future agent sessions:
 
-## Project State
-
-Kairos OS now includes Kairos Core API under `apps/api/` and Kairos Dashboard
-under `apps/dashboard/`.
+- **[KAIROS_CONSTITUTION.md](KAIROS_CONSTITUTION.md)** — product vision, engineering constitution, agent behavior rules, sprint roadmap, stop conditions
+- **[ROADMAP.md](ROADMAP.md)** — completed sprints, current sprint, upcoming sprints, post-v1 roadmap
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — system layers, seven engines, data flow, governance flow, file organization, key design decisions
 
 ## Working Principles
 
-- Preserve the current repository boundaries.
-- Keep foundation changes small, explicit, and easy to review.
-- Prefer documentation and configuration over speculative implementation.
-- Do not add production services, frameworks, or generated application files
-  without a clear task.
-- Keep secrets out of Git. Add required variables to `.env.example` with safe
-  placeholder values.
+- Follow the Kairos Constitution. Architecture first, Mission first, AI second.
+- No fake backend. No fake AI. No mock data. Everything production-quality.
+- Keep changes small, explicit, and easy to review.
+- Prefer deleting dead code over preserving it.
+- Keep secrets out of Git.
 
-## Expected Layout
+## Repository Layout
 
-- `apps/api/` contains the FastAPI service.
-- `apps/dashboard/` contains the Next.js dashboard.
-- `data/` is reserved for local seed data, fixtures, exports, and generated
-  runtime data that should be reviewed before committing.
-- `docs/` contains product, architecture, and development documentation.
-- `infra/` contains local and deployable infrastructure definitions.
-- `infra/config/` is reserved for portable infrastructure configuration.
-- `scripts/` is reserved for development, maintenance, and deployment helper
-  scripts.
-
-## Verification
-
-Before handing off foundation work, confirm that:
-
-- Required files exist.
-- `apps/api/` contains only API implementation code.
-- `apps/dashboard/` contains only dashboard implementation code.
-- Reserved data, scripts, and infrastructure configuration directories exist.
-- Docker Compose configuration is syntactically valid when Docker is available.
-- Documentation reflects the actual repository state.
+- `apps/api/` — FastAPI backend (Kairos Core API)
+- `apps/dashboard/` — Next.js frontend (Kairos Shell)
+- `data/` — seed data, fixtures, exports, runtime data
+- `docs/` — product, architecture, development documentation
+- `infra/` — Docker Compose, Caddy, Postgres, Qdrant, Redis configs
+- `scripts/` — development, maintenance, deployment helpers

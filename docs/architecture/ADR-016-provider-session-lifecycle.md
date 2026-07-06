@@ -1,7 +1,7 @@
 # ADR 016: Provider Session Lifecycle
 
 ## Status
-Proposed
+**SUPERSEDED** — Phase B of the Genesis Migration removed the `AuthPlatform` session lifecycle manager upon which this ADR depended. The `ProviderSession` model itself remains in `app/core/provider_session.py`, but the full state machine, concurrency locks, and audit logging described here were never implemented. This ADR is superseded until Sprint 1 (Kairos Shell) defines a concrete session lifecycle. (2026-07-06)
 
 ## Context
 ADR 015 introduced the `ProviderSession` abstraction to decouple credential validation from AI provider routing. To guarantee system stability, prevent security vulnerabilities (such as session hijacking or race conditions during token refreshes), and ensure clear debugging, we must formally define the lifecycle and state transitions of a `ProviderSession`.
