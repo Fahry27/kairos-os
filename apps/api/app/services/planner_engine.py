@@ -187,19 +187,10 @@ class PlannerEngine:
         }
 
     def _parse_provider_output(self, response_text: str, settings) -> dict[str, Any]:
-        logger.info(f"Raw provider output:\n{response_text}")
         max_chars = getattr(settings, "kairos_planner_max_provider_response_chars", 8000)
+        logger.info("Parsing provider output (%d bytes, max %d)", len(response_text), max_chars)
         if len(response_text) > max_chars:
             raise PlannerOutputError("Provider planning output exceeded configured size limit")
-
-        # Save raw output to a temporary file in the workspace
-        try:
-            temp_path = "raw_provider_output.json"
-            with open(temp_path, "w") as f:
-                f.write(response_text)
-            logger.info(f"Saved raw provider output to {temp_path}")
-        except Exception as e:
-            logger.error(f"Failed to save raw provider output: {e}")
 
         text = response_text.strip()
 

@@ -43,3 +43,4 @@ tmp/
 
 # Docker
 *.local.yml
+.commandcode/

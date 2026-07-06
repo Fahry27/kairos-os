@@ -85,6 +85,7 @@ def test_health_monitor_openai_success(mock_urlopen, monkeypatch):
     mock_urlopen.return_value.__enter__.return_value = mock_resp
 
     settings = MagicMock()
+    settings.kairos_cloud_provider_health_enabled = True
     monitor = HealthMonitor(settings)
     health = monitor.check_health("ai.openai")
 
@@ -95,12 +96,25 @@ def test_health_monitor_openai_success(mock_urlopen, monkeypatch):
 def test_health_monitor_openai_no_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     settings = MagicMock()
+    settings.kairos_cloud_provider_health_enabled = True
     monitor = HealthMonitor(settings)
     health = monitor.check_health("ai.openai")
 
     assert health.reachable is False
     assert health.status == "unhealthy"
     assert "Missing credentials" in health.error_message
+
+
+def test_health_monitor_cloud_disabled_by_default():
+    """Cloud provider health checks return metadata-only stub when disabled."""
+    settings = MagicMock()
+    settings.kairos_cloud_provider_health_enabled = False
+    monitor = HealthMonitor(settings)
+    health = monitor.check_health("ai.openai")
+
+    assert health.reachable is False
+    assert health.status == "unhealthy"
+    assert "disabled" in health.error_message.lower()
 
 
 def test_background_polling():
