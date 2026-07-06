@@ -44,3 +44,4 @@ tmp/
 # Docker
 *.local.yml
 .commandcode/
+apps/dashboard/tsconfig.tsbuildinfo
