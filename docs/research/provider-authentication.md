@@ -1,4 +1,7 @@
 # Provider Authentication Research
+
+> **SUPERSEDED** — Phase B of the Genesis Migration removed the `auth_platform` scaffold. The BYOK analysis and provider security profiles remain useful reference material, but the recommended architecture (session manager, credential store, proxy integration) referenced code that no longer exists. Revisit this research when designing auth for Kairos Shell in Sprint 1. (2026-07-06)
+
 **Sprint 6 — Research & Architecture Document**
 
 This document details the authentication models, limitations, security profiles, and recommended integration architecture for integrating primary AI providers (**OpenAI**, **Google Gemini**, and **Ollama**) into Kairos OS.

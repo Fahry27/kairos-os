@@ -1,7 +1,7 @@
 # ADR 015: Authentication Platform Architecture
 
 ## Status
-Proposed
+**SUPERSEDED** — Phase B of the Genesis Migration removed the unused `auth_platform.py` scaffold (`AuthenticationManager`, `CredentialProvider`, `SessionStore`, `TokenStore`). Only the base `AuthenticationAdapter` interface and `ProviderSession` model survive. This ADR no longer reflects active implementation guidance. See Sprint 1 (Kairos Shell) for current auth approach. (2026-07-06)
 
 ## Context
 Kairos is a Decision Operating System where AI providers (OpenAI, Google Gemini, Ollama) are treated as pluggable implementation details. While the `AIProviderRouter` (ADR 014) abstracts vendor-specific API request/response translation, it currently lacks a unified, secure foundation to manage authentication. 
