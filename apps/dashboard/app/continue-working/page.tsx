@@ -4,6 +4,8 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
+import { useMissions, useDecisions } from "../../lib/runtime";
+import { useMissionRuntime } from "../../lib/runtime";
 
 /**
  * Continue Working — resume where you left off.
@@ -14,10 +16,14 @@ import { useKairosState } from "../../lib/state";
  *   - Pending approvals
  *   - Recent AI sessions
  *
- * All data flows through useKairosState(). No fake values.
+ * Connected to runtime via useMissions(), useDecisions(),
+ * and useMissionRuntime() for selection.
  */
 export default function ContinueWorkingPage() {
   const state = useKairosState();
+  const missions = useMissions();
+  const decisions = useDecisions();
+  const { selectedMissionId, selectMission } = useMissionRuntime();
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -28,11 +34,32 @@ export default function ContinueWorkingPage() {
         description="Resume active missions, decisions, and workspace sessions."
       />
 
-      <SurfaceCard title="Recent Missions" badge={state.missions.length > 0 ? `${state.missions.length} active` : undefined}>
-        {state.missions.length > 0 ? (
+      <SurfaceCard
+        title="Recent Missions"
+        badge={state.missions.length > 0 ? `${state.missions.length} active` : undefined}
+      >
+        {missions.loading ? (
+          <p className="stateText">Loading missions…</p>
+        ) : missions.error ? (
+          <p className="errorText">{missions.error}</p>
+        ) : state.missions.length > 0 ? (
           <div className="stack">
             {state.missions.map((m) => (
-              <div key={m.id} className="record">
+              <div
+                key={m.id}
+                className="record"
+                style={{
+                  cursor: "pointer",
+                  borderLeft: selectedMissionId === m.id ? "3px solid var(--accent)" : "3px solid transparent",
+                }}
+                onClick={() => selectMission(m.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") selectMission(m.id);
+                }}
+                aria-pressed={selectedMissionId === m.id}
+              >
                 <div className="recordHeader">
                   <h3 style={{ fontSize: 16 }}>{m.name}</h3>
                   <span className="pill" style={{ fontSize: 11 }}>{m.status}</span>
@@ -54,7 +81,11 @@ export default function ContinueWorkingPage() {
 
       <div className="dashboardGrid" style={{ marginTop: 24 }}>
         <SurfaceCard title="Open Decisions">
-          {state.decisions.length > 0 ? (
+          {decisions.loading ? (
+            <p className="stateText">Loading decisions…</p>
+          ) : decisions.error ? (
+            <p className="errorText">{decisions.error}</p>
+          ) : state.decisions.length > 0 ? (
             <div className="stack">
               {state.decisions.slice(0, 3).map((d) => (
                 <div key={d.id} className="record">

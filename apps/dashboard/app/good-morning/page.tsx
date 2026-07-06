@@ -4,6 +4,7 @@ import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
+import { useMissions, useDecisions } from "../../lib/runtime";
 
 /**
  * Good Morning — production morning dashboard.
@@ -15,10 +16,16 @@ import { useKairosState } from "../../lib/state";
  *   - Mission overview
  *   - Important reminders
  *
- * All data flows through useKairosState(). No fake values.
+ * Connected to runtime via useMissions() and useDecisions(),
+ * which fetch live API data and dispatch into shared state.
  */
 export default function GoodMorningPage() {
   const state = useKairosState();
+
+  // Runtime hooks — fetch API data and populate state on mount
+  useMissions();
+  useDecisions();
+
   const missionCount = state.missions.length;
   const decisionCount = state.decisions.length;
   const hasData = missionCount > 0 || decisionCount > 0;
@@ -93,7 +100,7 @@ export default function GoodMorningPage() {
           </div>
         </div>
         <p className="stateText" style={{ marginTop: 12 }}>
-          Connect to the Kairos Core API to populate your morning dashboard with live data.
+          Connect to the Kairos Core API to see live data populate your morning dashboard.
         </p>
       </SurfaceCard>
     </div>

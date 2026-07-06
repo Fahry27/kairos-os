@@ -5,9 +5,10 @@ import SurfaceCard from "../../components/shell/SurfaceCard";
 import SurfaceSection from "../../components/shell/SurfaceSection";
 import FoundationNotice from "../../components/shell/FoundationNotice";
 import { useKairosState } from "../../lib/state";
+import { useBriefRuntime } from "../../lib/runtime";
 
 /**
- * Today's Brief — production daily digest.
+ * Today's Brief — production daily digest with runtime refresh.
  *
  * Sections:
  *   - Priorities
@@ -17,10 +18,11 @@ import { useKairosState } from "../../lib/state";
  *   - System Health
  *   - Memory
  *
- * All data flows through useKairosState(). No fake values.
+ * useBriefRuntime() provides refresh coordination across all sections.
  */
 export default function TodaysBriefPage() {
   const state = useKairosState();
+  const brief = useBriefRuntime();
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -29,7 +31,21 @@ export default function TodaysBriefPage() {
       <SurfacePageHeader
         title="Today's Brief"
         description={`${new Date(state.todayDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`}
-      />
+      >
+        <button
+          className="btnOutline btnSmall"
+          onClick={brief.refresh}
+          style={{ borderColor: "var(--panel-border)" }}
+        >
+          Refresh
+        </button>
+      </SurfacePageHeader>
+
+      {brief.lastRefreshed && (
+        <p className="stateText" style={{ marginTop: -20, marginBottom: 24 }}>
+          Last refreshed: {new Date(brief.lastRefreshed).toLocaleTimeString()}
+        </p>
+      )}
 
       <div className="dashboardGrid" style={{ marginBottom: 24 }}>
         <SurfaceCard eyebrow="Today" title="Priorities">
