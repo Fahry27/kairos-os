@@ -67,7 +67,7 @@ services:
       context: ./apps/dashboard
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_KAIROS_API_URL: ${NEXT_PUBLIC_KAIROS_API_URL:-}
+        NEXT_PUBLIC_KAIROS_API_URL: ${NEXT_PUBLIC_KAIROS_API_URL:-http://localhost:8000}
     container_name: kairos-dashboard
     restart: unless-stopped
     # Uncomment to load configurations from a local .env file:

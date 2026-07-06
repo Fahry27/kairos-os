@@ -2,9 +2,7 @@ const LOCAL_DEV_API_URL = "http://localhost:8000";
 const configuredApiUrl = process.env.NEXT_PUBLIC_KAIROS_API_URL?.trim();
 
 export const KAIROS_API_URL =
-  (configuredApiUrl ||
-    (typeof window !== "undefined" ? window.location.origin : "http://localhost:8000")
-  ).replace(/\/$/, "");
+  (configuredApiUrl || LOCAL_DEV_API_URL).replace(/\/$/, "");
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -162,18 +160,39 @@ function getHeaders(
 }
 
 async function formatApiError(response: Response): Promise<string> {
+  const contentType = response.headers.get("content-type") || "";
+
   let detail = "";
-  try {
-    const payload = (await response.clone().json()) as { detail?: unknown };
-    if (typeof payload.detail === "string") {
-      detail = payload.detail;
-    }
-  } catch {
+  if (contentType.includes("application/json")) {
     try {
-      detail = await response.clone().text();
+      const payload = (await response.clone().json()) as { detail?: unknown };
+      if (typeof payload.detail === "string") {
+        detail = payload.detail;
+      }
     } catch {
-      detail = "";
+      // ignore parse failure
     }
+  }
+
+  if (!detail) {
+    try {
+      const text = await response.clone().text();
+      if (text && !text.startsWith("<!") && !text.startsWith("<html")) {
+        detail = text.slice(0, 200);
+      }
+    } catch {
+      // ignore parse failure
+    }
+  }
+
+  if (!detail) {
+    const statusMessages: Record<number, string> = {
+      404: "not found — is the backend running?",
+      502: "backend unavailable",
+      503: "backend unavailable",
+      504: "backend timed out",
+    };
+    detail = statusMessages[response.status] || "";
   }
 
   return detail

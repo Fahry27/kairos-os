@@ -49,13 +49,28 @@ function AiSection() {
 
     // Fetch providers
     fetch(`${KAIROS_API_URL}/api/v1/ai/provider-router/providers`)
-      .then((res) => res.json())
+      .then((res) => {
+        const contentType = res.headers.get("content-type") || "";
+        if (!res.ok) {
+          throw new Error(`Backend unavailable (${res.status})`);
+        }
+        if (!contentType.includes("application/json")) {
+          throw new Error("Backend returned unexpected response");
+        }
+        return res.json();
+      })
       .then((data) => {
         setProviders(data);
         setLoading(false);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Could not load providers");
+        setError(
+          err instanceof Error
+            ? err.message === "Failed to fetch"
+              ? "Kairos backend is not running"
+              : err.message
+            : "Could not load providers"
+        );
         setLoading(false);
       });
   }, []);
