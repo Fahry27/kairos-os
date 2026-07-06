@@ -83,15 +83,24 @@ MEMORIES = [
     {
         "id": KAIROS_MEMORY_ID,
         "project_id": KAIROS_PROJECT_ID,
-        "type": "technical_context",
+        "title": "Kairos Dashboard API Context",
+        "type": "reference",
         "content": (
             "Kairos Dashboard v0.2 reads health, projects, tasks, and memories "
             "from the local FastAPI service."
         ),
-        "source": "kairos-api",
+        "source_kind": "system",
+        "source_id": None,
+        "source_label": "kairos-api",
         "tags": ["kairos", "dashboard", "api"],
         "importance": "high",
+        "visibility": "mission",
+        "status": "active",
+        "is_pinned": True,
         "created_at": MOCK_TIMESTAMP,
         "updated_at": MOCK_TIMESTAMP,
     }
 ]
+
+TIMELINE_EVENTS: list[dict[str, object]] = []
+WORKSPACES: list[dict[str, object]] = []

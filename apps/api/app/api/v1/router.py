@@ -11,7 +11,9 @@ from app.api.v1.endpoints import (
     plugins,
     projects,
     tasks,
+    timeline,
     workflow_runs,
+    workspaces,
     auth,
 )
 
@@ -22,6 +24,8 @@ api_router.include_router(projects.router, dependencies=[Depends(verify_api_key)
 api_router.include_router(tasks.router, dependencies=[Depends(verify_api_key)])
 api_router.include_router(memories.router, dependencies=[Depends(verify_api_key)])
 api_router.include_router(decision_plans.router, dependencies=[Depends(verify_api_key)])
+api_router.include_router(timeline.router, dependencies=[Depends(verify_api_key)])
+api_router.include_router(workspaces.router, dependencies=[Depends(verify_api_key)])
 api_router.include_router(plugins.router, prefix="/plugins")
 api_router.include_router(commands.router, prefix="/commands")
 api_router.include_router(connectors.router, prefix="/connectors")
