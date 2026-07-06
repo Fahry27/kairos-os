@@ -1,19 +1,35 @@
+"use client";
+
 import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
+import { useKairosState } from "../../lib/state";
+
+const SUGGESTION_CHIPS = [
+  "What's on my schedule today?",
+  "Review my open decisions.",
+  "Summarize this week's progress.",
+  "Plan my next mission.",
+  "What should I focus on right now?",
+];
 
 /**
- * Ask Kai — your conversational interface to the AI Operating System.
+ * Ask Kai — production chat architecture.
  *
- * Architecture:
- *   - Message thread area (top)
- *   - Context / session info bar
- *   - Prompt input area (bottom, sticky)
+ * Sections:
+ *   - Context bar (active mission, workspace, recent context)
+ *   - Message thread area
+ *   - Empty state
+ *   - Suggestion chips
+ *   - Prompt input (sticky bottom)
  *
- * Foundation state: static layout showing the chat structure.
- * AI backend and message state are not yet wired.
+ * No API calls. No mock messages. Pure architecture.
  */
 export default function AskKaiPage() {
+  const state = useKairosState();
+  const activeMission = state.missions.find((m) => m.id === state.assistant.activeMissionId);
+  const activeWorkspace = state.workspaces.find((w) => w.id === state.assistant.activeWorkspaceId);
+
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
       <FoundationNotice label="Ask Kai" />
@@ -24,40 +40,78 @@ export default function AskKaiPage() {
       />
 
       {/* Context bar */}
-      <SurfaceCard eyebrow="Session" badge="Foundation">
-        <p className="stateText">
-          Ask Kai lets you talk to your AI Operating System in natural language.
-          Ask questions, give instructions, plan work, or reflect on your week.
-          The conversation will be saved and searchable in your Timeline.
-        </p>
-      </SurfaceCard>
+      {(activeMission || activeWorkspace) && (
+        <SurfaceCard eyebrow="Active Context" badge="Session">
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {activeMission && (
+              <div>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                  Mission
+                </span>
+                <p style={{ margin: "4px 0 0", fontWeight: 600 }}>{activeMission.name}</p>
+              </div>
+            )}
+            {activeWorkspace && (
+              <div>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                  Workspace
+                </span>
+                <p style={{ margin: "4px 0 0", fontWeight: 600 }}>{activeWorkspace.goal}</p>
+              </div>
+            )}
+          </div>
+        </SurfaceCard>
+      )}
 
-      {/* Message area — flex-grow to push prompt to bottom */}
+      {/* Message area */}
       <div
         style={{
           flex: 1,
-          marginTop: 24,
+          marginTop: activeMission || activeWorkspace ? 16 : 0,
           background: "var(--panel)",
           border: "1px solid var(--panel-border)",
           borderRadius: "8px",
-          padding: "24px",
+          padding: "32px 24px",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          minHeight: 300,
+          minHeight: 320,
         }}
       >
-        <p className="stateText" style={{ textAlign: "center", maxWidth: 400 }}>
-          Your conversation with Kairos will appear here.
-          <br />
-          Ask anything — plan a project, review decisions,
-          <br />
-          or reflect on what you&apos;ve accomplished.
-        </p>
+        {/* Empty state */}
+        <div style={{ textAlign: "center", maxWidth: 480, marginBottom: 28 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 720, margin: "0 0 8px" }}>
+            Ask Kai anything
+          </h2>
+          <p className="stateText" style={{ lineHeight: 1.6 }}>
+            Your conversation with Kairos will appear here.
+            Ask questions, give instructions, plan work, or reflect on what you&apos;ve accomplished.
+          </p>
+        </div>
+
+        {/* Suggestion chips */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 520 }}>
+          {SUGGESTION_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              disabled
+              className="btnOutline btnSmall"
+              style={{
+                color: "var(--muted)",
+                borderColor: "var(--panel-border)",
+                cursor: "default",
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Prompt input — sticky at bottom */}
+      {/* Prompt input */}
       <div style={{ marginTop: 16, marginBottom: 16 }}>
         <div
           style={{

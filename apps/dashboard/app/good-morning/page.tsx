@@ -1,72 +1,100 @@
+"use client";
+
 import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
+import { useKairosState } from "../../lib/state";
 
 /**
- * Good Morning — your morning briefing surface.
+ * Good Morning — production morning dashboard.
  *
- * Architecture:
- *   - Time-based greeting header
- *   - Status overview cards (calendar, tasks, priorities)
- *   - Quick-glance memory / note section
+ * Sections:
+ *   - Greeting & today's date
+ *   - Focus (top 3 priorities from missions/decisions)
+ *   - Daily goals
+ *   - Mission overview
+ *   - Important reminders
  *
- * Foundation state: static layout ready for live API wiring.
+ * All data flows through useKairosState(). No fake values.
  */
 export default function GoodMorningPage() {
+  const state = useKairosState();
+  const missionCount = state.missions.length;
+  const decisionCount = state.decisions.length;
+  const hasData = missionCount > 0 || decisionCount > 0;
+
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <FoundationNotice label="Good Morning" />
 
       <SurfacePageHeader
         title="Good Morning"
-        description="Your morning briefing, calendar overview, and priority summary."
+        description={`${new Date(state.todayDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`}
       />
 
       <div className="dashboardGrid" style={{ marginBottom: 24 }}>
-        <SurfaceCard eyebrow="Today" title="Calendar">
-          <div className="stack">
-            <div className="record">
-              <p className="stateText">
-                Calendar integration will show your upcoming events and
-                meetings here.
-              </p>
+        <SurfaceCard eyebrow="Focus" title="Top Priorities">
+          {hasData ? (
+            <div className="stack">
+              {state.missions.slice(0, 2).map((m) => (
+                <div key={m.id} className="record" style={{ borderLeft: "3px solid var(--accent)" }}>
+                  <div className="recordHeader">
+                    <h3 style={{ fontSize: 16 }}>{m.name}</h3>
+                    <span className={`pill ${m.priority === "critical" ? "approvalBadge-rejected" : ""}`}>
+                      {m.priority}
+                    </span>
+                  </div>
+                  {m.description && <p className="stateText">{m.description}</p>}
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p className="stateText">
+              No active missions yet. Create a mission to see your top priorities here each morning.
+            </p>
+          )}
         </SurfaceCard>
 
-        <SurfaceCard eyebrow="Priority" title="Tasks">
-          <div className="stack">
-            <div className="record">
-              <p className="stateText">
-                Your highest-priority tasks and deadlines will appear here
-                each morning.
-              </p>
+        <SurfaceCard eyebrow="Today" title="Daily Goals">
+          {decisionCount > 0 ? (
+            <div className="stack">
+              {state.decisions.slice(0, 3).map((d) => (
+                <div key={d.id} className="record">
+                  <p style={{ fontWeight: 600, margin: 0 }}>{d.title}</p>
+                  {d.description && <p className="stateText" style={{ marginTop: 4 }}>{d.description}</p>}
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p className="stateText">
+              Set goals and open decisions to populate your daily focus.
+            </p>
+          )}
         </SurfaceCard>
       </div>
 
-      <SurfaceCard title="Morning Briefing">
-        <div className="stack">
-          <div className="record">
-            <div className="recordHeader">
-              <h3 style={{ fontSize: 16 }}>While you were away</h3>
-            </div>
-            <p className="stateText">
-              Kairos will summarize decisions, mission updates, and
-              notifications that arrived since you last logged in.
-            </p>
+      <SurfaceCard title="Mission Overview">
+        <div className="statGrid">
+          <div>
+            <dt>Active Missions</dt>
+            <dd>{missionCount}</dd>
           </div>
-          <div className="record">
-            <div className="recordHeader">
-              <h3 style={{ fontSize: 16 }}>Today&apos;s focus</h3>
-            </div>
-            <p className="stateText">
-              Your top three priorities for the day, drawn from active
-              missions and open decisions.
-            </p>
+          <div>
+            <dt>Open Decisions</dt>
+            <dd>{decisionCount}</dd>
+          </div>
+          <div>
+            <dt>Memories</dt>
+            <dd>{state.memories.length}</dd>
+          </div>
+          <div>
+            <dt>Workspaces</dt>
+            <dd>{state.workspaces.length}</dd>
           </div>
         </div>
+        <p className="stateText" style={{ marginTop: 12 }}>
+          Connect to the Kairos Core API to populate your morning dashboard with live data.
+        </p>
       </SurfaceCard>
     </div>
   );

@@ -1,19 +1,25 @@
+"use client";
+
 import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import FoundationNotice from "../../components/shell/FoundationNotice";
+import { useKairosState } from "../../lib/state";
 
 /**
- * Workspace — your primary surface for planning and executing work.
+ * Workspace — production planning and execution surface.
  *
- * Architecture:
- *   - Goal input area
+ * Panels:
+ *   - Goal input
  *   - Planning canvas (steps, commands, connectors)
- *   - Results / response panel
+ *   - Approval panel
+ *   - Execution panel
+ *   - History / results panel
  *
- * Foundation state: static layout with planning structure.
- * No AI dispatch or decision plan generation yet.
+ * All data flows through useKairosState(). No backend. No fake execution.
  */
 export default function WorkspacePage() {
+  const state = useKairosState();
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto" }}>
       <FoundationNotice label="Workspace" />
@@ -23,7 +29,7 @@ export default function WorkspacePage() {
         description="Your primary surface for planning and executing work."
       />
 
-      {/* Goal input */}
+      {/* Goal panel */}
       <SurfaceCard title="What do you want to accomplish?">
         <div style={{ display: "flex", gap: 8 }}>
           <input
@@ -43,66 +49,106 @@ export default function WorkspacePage() {
         </div>
       </SurfaceCard>
 
-      {/* Planning canvas */}
+      {/* Planning canvas + Results */}
       <div className="dashboardGrid" style={{ marginTop: 24, marginBottom: 24 }}>
-        <SurfaceCard title="Plan">
-          <div className="stack">
-            <div className="record" style={{ borderLeft: "3px solid var(--accent)" }}>
-              <div className="recordHeader">
-                <h3 style={{ fontSize: 16 }}>Steps will appear here</h3>
-                <span className="pill" style={{ fontSize: 11 }}>
-                  Approval Required
-                </span>
+        <SurfaceCard title="Planning Canvas" badge="No AI yet">
+          {state.workspaces.length > 0 ? (
+            <div className="stack">
+              {state.workspaces.map((w) => (
+                <div key={w.id} className="record" style={{ borderLeft: "3px solid var(--accent)" }}>
+                  <div className="recordHeader">
+                    <h3 style={{ fontSize: 16 }}>{w.goal}</h3>
+                    <span className="pill" style={{ fontSize: 11 }}>{w.status}</span>
+                  </div>
+                  <p className="stateText">
+                    Steps and commands will be generated for this goal when the AI router is connected.
+                  </p>
+                  <div className="metaRow">
+                    <span>Created: {w.createdAt}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="stack">
+              <div className="record" style={{ borderLeft: "3px solid var(--accent)" }}>
+                <div className="recordHeader">
+                  <h3 style={{ fontSize: 16 }}>Plan steps will appear here</h3>
+                  <span className="pill" style={{ fontSize: 11 }}>Approval Required</span>
+                </div>
+                <p className="stateText">
+                  Kairos will break down your goal into actionable steps with
+                  commands, connectors, and safety notes. Each step requires
+                  approval before execution.
+                </p>
               </div>
-              <p className="stateText">
-                Kairos will break down your goal into actionable steps with
-                commands, connectors, and safety notes.
-              </p>
+              <div className="record">
+                <p className="stateText">
+                  Execution is gated behind approval. Nothing runs without explicit confirmation.
+                </p>
+              </div>
             </div>
-            <div className="record">
-              <p className="stateText">
-                Each step includes a rationale, required capabilities, and
-                an approval gate before execution.
-              </p>
-            </div>
-          </div>
+          )}
         </SurfaceCard>
 
-        <SurfaceCard title="Results">
+        <SurfaceCard title="Approval Panel">
           <div className="record">
             <p className="stateText">
-              Plan results and execution feedback will appear in this panel.
-              Shows parsed steps, command suggestions, and safety analysis.
+              Pending approvals for steps, commands, and actions will appear here.
+              Approve or reject each item individually.
             </p>
           </div>
         </SurfaceCard>
       </div>
 
-      {/* Capabilities summary */}
-      <SurfaceCard title="Available Capabilities">
-        <div className="statGrid">
-          <div>
-            <dt>Commands</dt>
-            <dd>--</dd>
+      {/* Capabilities + History */}
+      <div className="dashboardGrid">
+        <SurfaceCard title="Available Capabilities">
+          <div className="statGrid">
+            <div>
+              <dt>Commands</dt>
+              <dd>--</dd>
+            </div>
+            <div>
+              <dt>Plugins</dt>
+              <dd>--</dd>
+            </div>
+            <div>
+              <dt>Connectors</dt>
+              <dd>--</dd>
+            </div>
+            <div>
+              <dt>Workflows</dt>
+              <dd>--</dd>
+            </div>
           </div>
-          <div>
-            <dt>Plugins</dt>
-            <dd>--</dd>
-          </div>
-          <div>
-            <dt>Connectors</dt>
-            <dd>--</dd>
-          </div>
-          <div>
-            <dt>Workflows</dt>
-            <dd>--</dd>
-          </div>
-        </div>
-        <p className="stateText" style={{ marginTop: 12 }}>
-          Available commands, plugins, and connectors will be listed here
-          once the provider router is wired to this surface.
-        </p>
-      </SurfaceCard>
+          <p className="stateText" style={{ marginTop: 12 }}>
+            Available commands, plugins, and connectors will be listed here
+            once the provider router is wired to this surface.
+          </p>
+        </SurfaceCard>
+
+        <SurfaceCard title="History">
+          {state.workspaces.length > 0 ? (
+            <div className="stack">
+              {state.workspaces.map((w) => (
+                <div key={w.id} className="record">
+                  <p style={{ fontWeight: 600, margin: 0 }}>{w.goal}</p>
+                  <div className="metaRow" style={{ marginTop: 4 }}>
+                    <span>{w.status} &middot; {w.createdAt}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="record">
+              <p className="stateText">
+                Previous workspace sessions and their outcomes will appear here.
+              </p>
+            </div>
+          )}
+        </SurfaceCard>
+      </div>
     </div>
   );
 }

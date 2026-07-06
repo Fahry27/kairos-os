@@ -1,64 +1,133 @@
+"use client";
+
 import SurfacePageHeader from "../../components/shell/SurfacePageHeader";
 import SurfaceCard from "../../components/shell/SurfaceCard";
 import SurfaceSection from "../../components/shell/SurfaceSection";
 import FoundationNotice from "../../components/shell/FoundationNotice";
+import { useKairosState } from "../../lib/state";
 
 /**
- * Today's Brief — your daily digest.
+ * Today's Brief — production daily digest.
  *
- * Architecture:
- *   - Decisions pending review
- *   - Mission status changes
- *   - Memory / knowledge updates
- *   - System notifications
+ * Sections:
+ *   - Priorities
+ *   - Calendar (placeholder for future integration)
+ *   - Mission Summary
+ *   - Pending Decisions
+ *   - System Health
+ *   - Memory
  *
- * Foundation state: static layout with section structure.
+ * All data flows through useKairosState(). No fake values.
  */
 export default function TodaysBriefPage() {
+  const state = useKairosState();
+
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <FoundationNotice label="Today's Brief" />
 
       <SurfacePageHeader
         title="Today's Brief"
-        description="Your daily digest: decisions, mission updates, and system notifications."
+        description={`${new Date(state.todayDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`}
       />
 
+      <div className="dashboardGrid" style={{ marginBottom: 24 }}>
+        <SurfaceCard eyebrow="Today" title="Priorities">
+          {state.missions.length > 0 ? (
+            <div className="stack">
+              {state.missions.slice(0, 3).map((m) => (
+                <div key={m.id} className="record">
+                  <p style={{ fontWeight: 600, margin: 0 }}>{m.name}</p>
+                  <span className={`pill ${m.priority === "critical" ? "approvalBadge-rejected" : ""}`} style={{ marginTop: 6 }}>
+                    {m.priority}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="stateText">Priorities will appear here once you create missions and decisions.</p>
+          )}
+        </SurfaceCard>
+
+        <SurfaceCard eyebrow="Upcoming" title="Calendar">
+          <p className="stateText">
+            Calendar integration coming in a future sprint. Your daily schedule,
+            deadlines, and reminders will appear here.
+          </p>
+        </SurfaceCard>
+      </div>
+
       <SurfaceCard>
-        <SurfaceSection title="Decisions Pending Review">
+        <SurfaceSection title="Mission Summary">
+          {state.missions.length > 0 ? (
+            <div className="statGrid" style={{ marginBottom: 12 }}>
+              <div>
+                <dt>Active Missions</dt>
+                <dd>{state.missions.filter((m) => m.status === "active").length}</dd>
+              </div>
+              <div>
+                <dt>Completed</dt>
+                <dd>{state.missions.filter((m) => m.status === "completed").length}</dd>
+              </div>
+              <div>
+                <dt>Paused</dt>
+                <dd>{state.missions.filter((m) => m.status === "paused").length}</dd>
+              </div>
+            </div>
+          ) : (
+            <div className="record">
+              <p className="stateText">No mission data available. Connect the API to see your mission summary.</p>
+            </div>
+          )}
+        </SurfaceSection>
+
+        <SurfaceSection title="Pending Decisions">
+          {state.decisions.length > 0 ? (
+            <div className="stack">
+              {state.decisions.slice(0, 3).map((d) => (
+                <div key={d.id} className="record">
+                  <div className="recordHeader">
+                    <p style={{ fontWeight: 600, margin: 0 }}>{d.title}</p>
+                    <span className="pill" style={{ fontSize: 11 }}>{d.priority}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="record">
+              <p className="stateText">Pending decisions and approvals will appear here.</p>
+            </div>
+          )}
+        </SurfaceSection>
+
+        <SurfaceSection title="System Health">
           <div className="record">
             <p className="stateText">
-              Decisions that need your attention today will appear here with
-              context, risk level, and recommended action.
+              Provider health, connector status, and infrastructure notifications.
+              Kairos will alert you if anything needs attention.
             </p>
           </div>
         </SurfaceSection>
 
-        <SurfaceSection title="Mission Updates">
-          <div className="record">
-            <p className="stateText">
-              Status changes and progress updates from active missions
-              across all your projects.
-            </p>
-          </div>
-        </SurfaceSection>
-
-        <SurfaceSection title="Memory &amp; Knowledge">
-          <div className="record">
-            <p className="stateText">
-              New memories, knowledge entries, and notable reflections
-              captured since your last brief.
-            </p>
-          </div>
-        </SurfaceSection>
-
-        <SurfaceSection title="System">
-          <div className="record">
-            <p className="stateText">
-              Provider health, connector status, and infrastructure
-              notifications. Kairos will alert you if anything needs attention.
-            </p>
-          </div>
+        <SurfaceSection title="Memory">
+          {state.memories.length > 0 ? (
+            <div className="stack">
+              {state.memories.slice(0, 3).map((m) => (
+                <div key={m.id} className="record">
+                  <p className="stateText">{m.snippet}</p>
+                  <div className="metaRow" style={{ marginTop: 6 }}>
+                    {m.tags.map((tag) => (
+                      <span key={tag} className="pill" style={{ fontSize: 11 }}>{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="record">
+              <p className="stateText">Recent memories and knowledge entries will appear here.</p>
+            </div>
+          )}
         </SurfaceSection>
       </SurfaceCard>
     </div>

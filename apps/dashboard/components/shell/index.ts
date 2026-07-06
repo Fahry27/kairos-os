@@ -4,6 +4,7 @@
  * The Shell is Kairos's permanent application frame.
  * It wraps every route and provides:
  *
+ *   KairosProvider      — React Context + useReducer state provider (client boundary)
  *   ShellLayout         — root layout with sidebar + error/suspense boundaries
  *   Sidebar             — two-group navigation (Shell surfaces + legacy routes)
  *   NavItem             — single sidebar link with active-state highlighting
@@ -20,6 +21,7 @@
  *
  * Each surface under app/ renders inside ShellLayout via the root layout.
  */
+export { default as KairosProvider } from "./KairosProvider";
 export { default as ShellLayout } from "./ShellLayout";
 export { default as Sidebar } from "./Sidebar";
 export { default as NavItem } from "./NavItem";

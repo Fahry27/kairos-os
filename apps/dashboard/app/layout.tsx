@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import KairosProvider from "../components/shell/KairosProvider";
 import ShellLayout from "../components/shell/ShellLayout";
 import "./globals.css";
 
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ShellLayout>{children}</ShellLayout>
+        <KairosProvider>
+          <ShellLayout>{children}</ShellLayout>
+        </KairosProvider>
       </body>
     </html>
   );
