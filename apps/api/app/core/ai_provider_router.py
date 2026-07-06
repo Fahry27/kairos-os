@@ -465,7 +465,7 @@ class AIProviderRouter:
         selected, policy = self.select_provider(settings, requested_provider_id)
         providers = [self._provider_with_config(provider, settings) for provider in self.registry.list()]
         dispatch_enabled = bool(
-            selected and selected.functional and settings.kairos_ollama_dispatch_enabled
+            selected and selected.functional and self._can_dispatch(selected, settings)
         )
         return AIProviderRouteResponse(
             providers=providers,
@@ -529,8 +529,10 @@ class AIProviderRouter:
 
     def _can_dispatch(self, provider: AIProviderMetadata, settings) -> bool:
         """Check if a provider can actually dispatch requests."""
-        if provider.id in ("ai.ollama", "ai.codex"):
-            return True
+        if provider.id == "ai.ollama":
+            return self._ollama_is_reachable(settings)
+        if provider.id == "ai.codex":
+            return self._codex_is_reachable()
         if provider.id in ("ai.openai", "ai.deepseek", "ai.9router"):
             import os
             if provider.id == "ai.deepseek":
@@ -556,6 +558,28 @@ class AIProviderRouter:
                 )
                 return bool(key)
         return False
+
+    @staticmethod
+    def _ollama_is_reachable(settings) -> bool:
+        """Check if Ollama is running and reachable."""
+        import urllib.request
+        base = getattr(settings, "kairos_ollama_base_url", "http://localhost:11434")
+        timeout = getattr(settings, "kairos_ollama_timeout_seconds", 2)
+        try:
+            req = urllib.request.Request(
+                f"{base.rstrip('/')}/api/tags",
+                headers={"Accept": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                resp.read()
+                return resp.status == 200
+        except Exception:
+            return False
+
+    @staticmethod
+    def _codex_is_reachable() -> bool:
+        import shutil
+        return shutil.which("codex") is not None
 
     def _dispatch_to_provider(
         self,
@@ -636,7 +660,7 @@ class AIProviderRouter:
                     attempts.append(a)
 
             if selected is None:
-                err_msg = f"Dispatch failed: {last_exception}" if last_exception else "No functional provider is available."
+                err_msg = f"Dispatch failed: {last_exception}" if last_exception else "No AI provider is available. Install Ollama or configure an API key in Settings."
                 return self._router_error_response(request, policy, err_msg, provider_attempts=attempts)
 
             if not self._can_dispatch(selected, settings):
@@ -651,7 +675,7 @@ class AIProviderRouter:
                     return self._router_error_response(
                         request,
                         policy,
-                        f"Provider {selected.id} is not configured for dispatch. Check API keys and environment variables.",
+                        f"{selected.name} is not configured. Connect it in Settings to use AI.",
                         selected,
                         provider_attempts=attempts,
                     )

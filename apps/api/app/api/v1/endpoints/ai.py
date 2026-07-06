@@ -272,11 +272,6 @@ def provider_router_dispatch(
         raise HTTPException(status_code=422, detail="user_goal cannot be empty")
     if not settings.kairos_ai_enabled:
         raise HTTPException(status_code=503, detail="AI runtime is disabled.")
-    if not settings.kairos_ollama_dispatch_enabled:
-        raise HTTPException(
-            status_code=403,
-            detail="AI dispatch is disabled. Enable KAIROS_OLLAMA_DISPATCH_ENABLED.",
-        )
     if not body.model:
         body.model = settings.kairos_ai_model
     if not body.model:

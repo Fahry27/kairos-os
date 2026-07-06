@@ -51,8 +51,9 @@ def test_retry_policy():
     assert policy.backoff_factor == 2.0
 
 
+@patch.object(AIProviderRouter, "_ollama_is_reachable", return_value=True)
 @patch.object(ai_runtime, "dispatch_to_ollama")
-def test_router_dispatch_success(mock_dispatch):
+def test_router_dispatch_success(mock_dispatch, _mock_reachable):
     # Setup registry with Ollama functional
     registry = AIProviderRegistry()
     router = AIProviderRouter(registry)
@@ -86,8 +87,9 @@ def test_router_dispatch_success(mock_dispatch):
     assert mock_dispatch.call_count == 1
 
 
+@patch.object(AIProviderRouter, "_ollama_is_reachable", return_value=True)
 @patch.object(ai_runtime, "dispatch_to_ollama")
-def test_router_dispatch_retries_and_trips(mock_dispatch):
+def test_router_dispatch_retries_and_trips(mock_dispatch, _mock_reachable):
     registry = AIProviderRegistry()
     router = AIProviderRouter(registry)
 
