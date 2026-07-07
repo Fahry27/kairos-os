@@ -312,6 +312,35 @@ class AIProviderRegistry:
                 external_api_calls_enabled=False,
             )
         )
+        self.register(
+            AIProviderMetadata(
+                id="ai.commandcode",
+                name="Command Code",
+                provider_type="cloud",
+                functional=True,
+                status="functional",
+                auth_type="api_key",
+                default_model="mimo-v2.5",
+                supports_chat=True,
+                supports_tools=True,
+                supports_vision=False,
+                priority=20,
+                capabilities=["chat", "dispatch", "openai_compatible"],
+                notes=[
+                    "OpenAI-compatible provider at https://api.commandcode.ai/provider.",
+                    "Set COMMANDCODE_API_KEY to enable.",
+                    "Supported models: mimo-v2.5, mimo-v2.5-pro, deepseek-v4-pro, minimax-m3.",
+                ],
+                priority_metadata=ProviderPriorityMetadata(default_priority=20),
+                cost=ProviderCostMetadata(tier="low"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=False),
+                },
+                external_api_calls_enabled=True,
+            )
+        )
 
     def register(self, provider: AIProviderMetadata) -> None:
         self._providers[provider.id] = provider
@@ -557,6 +586,13 @@ class AIProviderRouter:
                     os.environ.get("OPENAI_API_KEY")
                 )
                 return bool(key)
+        if provider.id == "ai.commandcode":
+            import os
+            key = (
+                getattr(settings, "commandcode_api_key", None) or
+                os.environ.get("COMMANDCODE_API_KEY")
+            )
+            return bool(key)
         return False
 
     @staticmethod
@@ -631,6 +667,31 @@ class AIProviderRouter:
                 connector_registry=connector_registry,
                 provider_id="ai.9router",
                 base_url=base or None,
+            )
+        if provider.id == "ai.commandcode":
+            import os
+            api_key = (
+                getattr(settings, "commandcode_api_key", None)
+                or os.environ.get("COMMANDCODE_API_KEY")
+            )
+            base_url = (
+                getattr(settings, "commandcode_base_url", None)
+                or os.environ.get("COMMANDCODE_BASE_URL")
+                or "https://api.commandcode.ai/provider"
+            )
+            commandcode_model = getattr(settings, "commandcode_model", None) or "mimo-v2.5"
+            dispatch_request = AIOllamaDispatchRequest(
+                **ollama_request.model_dump(),
+            )
+            dispatch_request = dispatch_request.model_copy(update={"model": commandcode_model})
+            return ai_runtime.dispatch_to_openai_compatible(
+                request=dispatch_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+                provider_id="ai.commandcode",
+                api_key=api_key,
+                base_url=base_url,
             )
         raise ValueError(f"Unknown dispatch provider: {provider.id}")
 

@@ -172,4 +172,20 @@ def get_session_for_provider(provider_id: str, settings) -> Optional[ProviderSes
                 state="active"
             )
 
+    # 7. Environment fallback sessions for Command Code
+    if provider_id == "ai.commandcode":
+        import os
+        api_key = os.environ.get("COMMANDCODE_API_KEY")
+        if api_key:
+            return ProviderSession(
+                session_id="session.commandcode.auto",
+                provider_id="ai.commandcode",
+                identity=ProviderIdentity(user_id="auto_operator", username="auto"),
+                credential=ProviderCredential(
+                    auth_type="api_key",
+                    secret_ref=SecretReference(secret_key="COMMANDCODE_API_KEY")
+                ),
+                state="active"
+            )
+
     return None

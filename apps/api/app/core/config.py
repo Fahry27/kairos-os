@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         validation_alias="KAIROS_AI_PROVIDER_FALLBACK_ENABLED",
     )
     kairos_ai_provider_fallback_order: str = Field(
-        default="ai.ollama,ai.codex,ai.openai,ai.deepseek,ai.9router,ai.gemini,ai.claude",
+        default="ai.ollama,ai.codex,ai.commandcode,ai.openai,ai.deepseek,ai.9router,ai.gemini,ai.claude",
         validation_alias="KAIROS_AI_PROVIDER_FALLBACK_ORDER",
     )
     kairos_ai_model: str = Field(default="", validation_alias="KAIROS_AI_MODEL")
@@ -86,6 +86,14 @@ class Settings(BaseSettings):
     kairos_ai_response_parser_enabled: bool = Field(default=True, validation_alias="KAIROS_AI_RESPONSE_PARSER_ENABLED")
     kairos_ai_max_parsed_steps: int = Field(default=10, validation_alias="KAIROS_AI_MAX_PARSED_STEPS")
     kairos_ai_max_parsed_commands: int = Field(default=10, validation_alias="KAIROS_AI_MAX_PARSED_COMMANDS")
+
+    # Command Code Provider (OpenAI-compatible)
+    commandcode_api_key: str | None = Field(default=None, validation_alias="COMMANDCODE_API_KEY")
+    commandcode_base_url: str = Field(
+        default="https://api.commandcode.ai/provider",
+        validation_alias="COMMANDCODE_BASE_URL",
+    )
+    commandcode_model: str = Field(default="mimo-v2.5", validation_alias="COMMANDCODE_MODEL")
 
     # Decision Planner (v3.4.0)
     kairos_planner_enabled: bool = Field(default=True, validation_alias="KAIROS_PLANNER_ENABLED")
