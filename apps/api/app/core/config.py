@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     )
     commandcode_model: str = Field(default="mimo-v2.5", validation_alias="COMMANDCODE_MODEL")
 
+    # OpenRouter Provider (OpenAI-compatible multi-model router)
+    openrouter_api_key: str | None = Field(default=None, validation_alias="OPENROUTER_API_KEY")
+    kairos_openrouter_api_key: str | None = Field(
+        default=None, validation_alias="KAIROS_OPENROUTER_API_KEY"
+    )
+
     # Decision Planner (v3.4.0)
     kairos_planner_enabled: bool = Field(default=True, validation_alias="KAIROS_PLANNER_ENABLED")
     kairos_planner_max_provider_response_chars: int = Field(

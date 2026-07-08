@@ -185,7 +185,7 @@ class AIProviderRegistry:
                 supports_vision=True,
                 priority=10,
                 capabilities=["models", "prompt_dry_run", "dispatch", "parse_plan"],
-                notes=["Only functional provider in v3.3.0."],
+                notes=["Primary local-first LLM engine."],
                 priority_metadata=ProviderPriorityMetadata(default_priority=10),
                 cost=ProviderCostMetadata(tier="free"),
                 capability_registry={
@@ -337,6 +337,35 @@ class AIProviderRegistry:
                     "chat": ProviderCapability(name="chat", enabled=True),
                     "tools": ProviderCapability(name="tools", enabled=True),
                     "vision": ProviderCapability(name="vision", enabled=False),
+                },
+                external_api_calls_enabled=True,
+            )
+        )
+        self.register(
+            AIProviderMetadata(
+                id="ai.openrouter",
+                name="OpenRouter",
+                provider_type="router",
+                functional=True,
+                status="functional",
+                auth_type="api_key",
+                default_model="anthropic/claude-sonnet-4",
+                supports_chat=True,
+                supports_tools=True,
+                supports_vision=True,
+                priority=15,
+                capabilities=["chat", "dispatch", "openai_compatible"],
+                notes=[
+                    "OpenAI-compatible multi-model router at https://openrouter.ai/api/v1.",
+                    "Set OPENROUTER_API_KEY to enable.",
+                    "Access 300+ models via a single API key.",
+                ],
+                priority_metadata=ProviderPriorityMetadata(default_priority=15),
+                cost=ProviderCostMetadata(tier="low"),
+                capability_registry={
+                    "chat": ProviderCapability(name="chat", enabled=True),
+                    "tools": ProviderCapability(name="tools", enabled=True),
+                    "vision": ProviderCapability(name="vision", enabled=True),
                 },
                 external_api_calls_enabled=True,
             )
@@ -593,6 +622,15 @@ class AIProviderRouter:
                 os.environ.get("COMMANDCODE_API_KEY")
             )
             return bool(key)
+        if provider.id == "ai.openrouter":
+            import os
+            key = (
+                getattr(settings, "openrouter_api_key", None) or
+                getattr(settings, "kairos_openrouter_api_key", None) or
+                os.environ.get("OPENROUTER_API_KEY") or
+                os.environ.get("KAIROS_OPENROUTER_API_KEY")
+            )
+            return bool(key)
         return False
 
     @staticmethod
@@ -690,6 +728,25 @@ class AIProviderRouter:
                 plugin_registry=plugin_registry,
                 connector_registry=connector_registry,
                 provider_id="ai.commandcode",
+                api_key=api_key,
+                base_url=base_url,
+            )
+        if provider.id == "ai.openrouter":
+            import os
+            api_key = (
+                getattr(settings, "openrouter_api_key", None)
+                or getattr(settings, "kairos_openrouter_api_key", None)
+                or os.environ.get("OPENROUTER_API_KEY")
+                or os.environ.get("KAIROS_OPENROUTER_API_KEY")
+            )
+            base_url = "https://openrouter.ai/api/v1"
+            dispatch_request = AIOllamaDispatchRequest(**ollama_request.model_dump())
+            return ai_runtime.dispatch_to_openai_compatible(
+                request=dispatch_request,
+                settings=settings,
+                plugin_registry=plugin_registry,
+                connector_registry=connector_registry,
+                provider_id="ai.openrouter",
                 api_key=api_key,
                 base_url=base_url,
             )

@@ -435,6 +435,7 @@ def test_dispatch_includes_parsed_plan_when_enabled(mock_urlopen):
     override = original.model_copy(update={
         "kairos_ollama_dispatch_enabled": True,
         "kairos_ai_response_parser_enabled": True,
+        "kairos_ai_provider": "ollama",
     })
     app.dependency_overrides[get_settings] = lambda: override
 
@@ -473,6 +474,7 @@ def test_dispatch_omits_parsed_plan_when_disabled(mock_urlopen):
     override = original.model_copy(update={
         "kairos_ollama_dispatch_enabled": True,
         "kairos_ai_response_parser_enabled": True,
+        "kairos_ai_provider": "ollama",
     })
     app.dependency_overrides[get_settings] = lambda: override
 

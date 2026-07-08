@@ -16,7 +16,7 @@ through multiple provider definitions without knowing implementation details.
 - **Workspace Router Dependency:** The Workspace now uses provider-router model and dispatch APIs instead of Ollama-specific dispatch calls.
 
 ### Safety Guarantees
-- Ollama remains the only functional provider in v3.3.0.
+- Ollama, OpenRouter, and Command Code are functional providers in v3.3.0.
 - OpenAI, Gemini, and Claude are metadata-only stubs with no OAuth, token storage, or external API calls.
 - No approval, workflow, backend execution, local command execution, connector fan-out, chat, or autonomous agent logic is changed.
 

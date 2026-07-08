@@ -14,9 +14,9 @@ def test_dispatch_disabled_returns_403():
 
 @patch("app.core.ai_runtime.urllib.request.urlopen")
 def test_dispatch_success(mock_urlopen):
-    # Enable dispatch
+    # Enable dispatch with Ollama provider
     app.dependency_overrides[get_settings] = lambda: get_settings().model_copy(
-        update={"kairos_ollama_dispatch_enabled": True}
+        update={"kairos_ollama_dispatch_enabled": True, "kairos_ai_provider": "ollama"}
     )
     
     mock_response = MagicMock()
@@ -59,6 +59,7 @@ def test_dispatch_truncation(mock_urlopen):
     app.dependency_overrides[get_settings] = lambda: get_settings().model_copy(
         update={
             "kairos_ollama_dispatch_enabled": True,
+            "kairos_ai_provider": "ollama",
             "kairos_ollama_max_response_chars": 10
         }
     )
@@ -82,7 +83,7 @@ def test_dispatch_truncation(mock_urlopen):
 @patch("app.core.ai_runtime.urllib.request.urlopen")
 def test_dispatch_timeout(mock_urlopen):
     app.dependency_overrides[get_settings] = lambda: get_settings().model_copy(
-        update={"kairos_ollama_dispatch_enabled": True}
+        update={"kairos_ollama_dispatch_enabled": True, "kairos_ai_provider": "ollama"}
     )
     mock_urlopen.side_effect = TimeoutError("Timeout")
 
@@ -97,6 +98,7 @@ def test_dispatch_missing_model():
     app.dependency_overrides[get_settings] = lambda: get_settings().model_copy(
         update={
             "kairos_ollama_dispatch_enabled": True,
+            "kairos_ai_provider": "ollama",
             "kairos_ai_model": ""
         }
     )

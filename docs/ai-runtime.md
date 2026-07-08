@@ -64,12 +64,15 @@ This contract enforces:
 
 | ID | Name | Type | Enabled | Notes |
 |----|------|------|---------|-------|
-| `ai.ollama` | Ollama (Local LLM Engine) | `local` | ✅ **true** | Primary local-first provider. Not called in v2.0. |
+| `ai.openrouter` | OpenRouter (Multi-Model Router) | `router` | ✅ **true** | **Default provider.** OpenAI-compatible API with 300+ models. Set `OPENROUTER_API_KEY`. |
+| `ai.ollama` | Ollama (Local LLM Engine) | `local` | ✅ **true** | Primary local-first provider. |
+| `ai.commandcode` | Command Code | `cloud` | ✅ **true** | OpenAI-compatible provider. Set `COMMANDCODE_API_KEY`. |
 | `ai.openai_codex` | OpenAI Codex (Code Generation) | `cloud` | ❌ false | User has Codex access. No OAuth, no tokens, no calls. |
 | `ai.openai` | OpenAI (GPT) | `cloud` | ❌ false | Metadata stub. No tokens or calls. |
-| `ai.openrouter` | OpenRouter (Multi-Model Router) | `router` | ❌ false | Metadata stub. No tokens or calls. |
+| `ai.gemini` | Gemini | `cloud` | ❌ false | Metadata stub. No tokens or calls. |
+| `ai.claude` | Claude | `cloud` | ❌ false | Metadata stub. No tokens or calls. |
 
-> **Anthropic is not included** in the provider registry by design.
+> **Anthropic is not included** in the provider registry by design (accessible via OpenRouter).
 
 > **OpenClaw** remains a [`ConnectorManifest`](connectors.md) — it is a metadata-only agent-runtime candidate, not an AI provider or OAuth bridge.
 
@@ -94,9 +97,9 @@ This contract enforces:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `KAIROS_AI_ENABLED` | `true` | Master switch. Set `false` to disable all AI endpoints. |
-| `KAIROS_AI_PROVIDER` | `ollama` | Active provider identifier. Used in capability summary. |
-| `KAIROS_AI_MODEL` | *(empty)* | Model name to display (e.g. `llama3.2`). Not used to call any API. |
-| `KAIROS_AI_BASE_URL` | *(empty)* | Provider base URL override. Not used to make calls in v2.1. |
+| `KAIROS_AI_PROVIDER` | `openrouter` | Active provider identifier. Used in capability summary. |
+| `KAIROS_AI_MODEL` | `anthropic/claude-sonnet-4` | Model name for display and dispatch (e.g. `anthropic/claude-sonnet-4`). |
+| `KAIROS_AI_BASE_URL` | `https://openrouter.ai/api/v1` | Provider base URL override. Used for OpenRouter dispatch. |
 | `KAIROS_AI_PLANNING_ENABLED` | `true` | Enables the `POST /api/v1/ai/plan` endpoint. |
 | `KAIROS_AI_EXECUTION_ENABLED` | `false` | Reserved for future milestone. **Planner ignores this and always returns `false`**. |
 | `KAIROS_OLLAMA_READINESS_ENABLED` | `true` | Enables the safe Ollama readiness and model discovery checks. |
@@ -169,9 +172,10 @@ backend execution logic.
 
 Kairos v3.3.0 adds the AI Provider Router. The Workspace uses router endpoints
 for provider selection, model discovery, and dispatch. The router supports auto
-provider mode, manual selection, fallback policy, and provider metadata. Ollama
-is the only functional provider. OpenAI, Gemini, and Claude are metadata-only
-stubs with no OAuth, token storage, or external API calls.
+provider mode, manual selection, fallback policy, and provider metadata. OpenRouter
+is the default cloud provider. Ollama and Command Code are also functional. OpenAI,
+Gemini, and Claude are metadata-only stubs with no OAuth, token storage, or external
+API calls.
 
 Kairos v3.0.0 promotes the accepted production baseline after verifying:
 `Approval approved -> trigger-n8n -> n8n webhook -> WorkflowRun succeeded`.

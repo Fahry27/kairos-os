@@ -50,7 +50,7 @@ approval review and controlled n8n workflow triggering.
 - **Plugins & Extensions**: See [Plugin Framework](docs/plugins.md) for extension manifests layout and registry routes.
 - **Service Connectors**: See [Connector Registry](docs/connectors.md) for external homelab integrations metadata templates.
 - **AI Runtime**: See [AI Runtime Interface](docs/ai-runtime.md) for AI provider registry, capability summary, planning endpoint, and safety model.
-- **AI Provider Router**: Workspace provider selection goes through a router abstraction with auto mode, fallback policy, and metadata-only OpenAI, Gemini, and Claude stubs. Ollama remains the only functional provider.
+- **AI Provider Router**: Workspace provider selection goes through a router abstraction with auto mode, fallback policy, and metadata-only stubs. OpenRouter is the default cloud provider with 300+ models. Ollama and Command Code are also functional providers.
 - **AI Workspace**: Use `/workspace` to enter a goal, add optional context, choose a provider/model, generate an advisory plan, parse the response, and optionally create metadata-only approval requests.
 - **Approval Management**: View, inspect, approve, and reject approval requests from the dashboard. Approval remains metadata-only; approving does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
 - **Controlled n8n Trigger**: Trigger approved n8n workflow approvals from the dashboard or `POST /api/v1/approvals/{approval_id}/trigger-n8n`. Failed runs require an explicit retry action.

@@ -84,8 +84,9 @@ def test_provider_router_models_use_selected_functional_provider(mock_check):
         app.dependency_overrides.pop(get_settings, None)
 
 
+@patch("app.core.ai_provider_router.AIProviderRouter._codex_is_reachable", return_value=True)
 @patch("app.core.codex_runtime.CodexCliRuntime.dispatch")
-def test_provider_router_dispatch_falls_back_to_codex_from_openai_stub(mock_dispatch):
+def test_provider_router_dispatch_falls_back_to_codex_from_openai_stub(mock_dispatch, mock_reachable):
     _settings_override(kairos_ollama_dispatch_enabled=True)
     from app.core.ai_runtime import AIOllamaDispatchResponse
     mock_dispatch.return_value = AIOllamaDispatchResponse(

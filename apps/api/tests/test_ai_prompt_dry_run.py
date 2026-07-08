@@ -21,7 +21,7 @@ def test_prompt_dry_run_success():
     assert data["network_call_performed"] is False
     assert data["user_goal"] == "Turn on the living room lights"
     assert data["model"] == "llama3:latest"
-    assert data["provider_id"] == "ai.ollama"
+    assert data["provider_id"] == "ai.openrouter"
     
     assert isinstance(data["system_instructions"], list)
     assert len(data["system_instructions"]) > 0

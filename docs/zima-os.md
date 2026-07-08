@@ -51,7 +51,7 @@ Kairos v3.3.0 includes a production-leaning `docker-compose.yml` file located at
     - **Check Containers**: `docker compose ps`
     - **Check API Health**: From another device on your network, open `http://<ZIMA_IP>:8000/health`. You should see version `3.3.0` in the returned JSON.
     - **Open Dashboard**: From another device, open `http://<ZIMA_IP>:3000`.
-    - **Open AI Workspace**: From another device, open `http://<ZIMA_IP>:3000/workspace` for goal-based advisory planning through the AI provider router. Ollama remains the only functional provider.
+    - **Open AI Workspace**: From another device, open `http://<ZIMA_IP>:3000/workspace` for goal-based advisory planning through the AI provider router. OpenRouter is the default cloud provider; Ollama and Command Code are also functional.
     - **Review Approvals**: Use the Approval Management card to view and inspect approval requests. Approving requests remains metadata-only and does not execute commands, call connectors, trigger n8n/Hermes/OpenClaw, call cloud providers, or mutate domain data.
     - **Controlled n8n Trigger**: If enabled privately, save the operator token in the dashboard's browser-local token field, then trigger only approved n8n workflow approvals from the approval detail pane or `POST /api/v1/approvals/{approval_id}/trigger-n8n`. Do not place operator tokens or webhook URLs in dashboard variables.
     - **Workflow Run History**: Use the Workflow Runs card to inspect sanitized trigger history and latest run status.

@@ -54,7 +54,7 @@ def test_ai_providers_list_disabled_by_default():
     ids = [p["id"] for p in data]
     assert "ai.openai_codex" not in ids
     assert "ai.openai" not in ids
-    assert "ai.openrouter" not in ids
+    assert "ai.openrouter" in ids
 
 
 def test_ai_providers_list_include_disabled():

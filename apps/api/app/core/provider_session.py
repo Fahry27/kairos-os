@@ -188,4 +188,21 @@ def get_session_for_provider(provider_id: str, settings) -> Optional[ProviderSes
                 state="active"
             )
 
+    # 8. Environment fallback sessions for OpenRouter
+    if provider_id == "ai.openrouter":
+        import os
+        api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("KAIROS_OPENROUTER_API_KEY")
+        if api_key:
+            key_name = "OPENROUTER_API_KEY" if os.environ.get("OPENROUTER_API_KEY") else "KAIROS_OPENROUTER_API_KEY"
+            return ProviderSession(
+                session_id="session.openrouter.auto",
+                provider_id="ai.openrouter",
+                identity=ProviderIdentity(user_id="auto_operator", username="auto"),
+                credential=ProviderCredential(
+                    auth_type="api_key",
+                    secret_ref=SecretReference(secret_key=key_name)
+                ),
+                state="active"
+            )
+
     return None

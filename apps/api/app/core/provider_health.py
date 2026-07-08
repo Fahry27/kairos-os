@@ -87,6 +87,21 @@ class HealthMonitor:
                                 status = "healthy"
                             else:
                                 error_msg = f"HTTP {resp.status}"
+                elif provider_id == "ai.openrouter":
+                    import os
+                    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("KAIROS_OPENROUTER_API_KEY")
+                    if not api_key:
+                        error_msg = "Missing credentials"
+                    else:
+                        url = "https://openrouter.ai/api/v1/models"
+                        req = urllib.request.Request(url, method="GET")
+                        req.add_header("Authorization", f"Bearer {api_key}")
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            if resp.status == 200:
+                                reachable = True
+                                status = "healthy"
+                            else:
+                                error_msg = f"HTTP {resp.status}"
                 elif provider_id == "ai.gemini":
                     import os
                     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("KAIROS_GEMINI_API_KEY")
@@ -132,7 +147,7 @@ class HealthMonitor:
 
     def poll_all(self) -> dict[str, ProviderHealth]:
         results = {}
-        for provider_id in ["ai.ollama", "ai.openai", "ai.gemini"]:
+        for provider_id in ["ai.ollama", "ai.openai", "ai.gemini", "ai.openrouter"]:
             results[provider_id] = self.check_health(provider_id)
         return results
 

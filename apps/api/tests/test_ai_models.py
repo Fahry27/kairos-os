@@ -47,7 +47,7 @@ def test_get_ollama_models_success(mock_urlopen):
     
     mock_urlopen.return_value.__enter__.return_value = mock_response
 
-    response = client.get("/api/v1/ai/models")
+    response = client.get("/api/v1/ai/providers/ai.ollama/models")
     assert response.status_code == 200
     data = response.json()
     assert data["provider_id"] == "ai.ollama"
@@ -67,7 +67,7 @@ def test_get_ollama_models_timeout(mock_urlopen):
     
     mock_urlopen.side_effect = TimeoutError("Connection timed out")
 
-    response = client.get("/api/v1/ai/models")
+    response = client.get("/api/v1/ai/providers/ai.ollama/models")
     assert response.status_code == 200
     data = response.json()
     assert data["checked"] is True
@@ -87,7 +87,7 @@ def test_get_ollama_models_http_error(mock_urlopen):
     mock_response.status = 500
     mock_urlopen.return_value.__enter__.return_value = mock_response
 
-    response = client.get("/api/v1/ai/models")
+    response = client.get("/api/v1/ai/providers/ai.ollama/models")
     assert response.status_code == 200
     data = response.json()
     assert data["checked"] is True
@@ -101,7 +101,7 @@ def test_get_ollama_models_http_error(mock_urlopen):
 def test_get_ollama_models_readiness_disabled():
     app.dependency_overrides[get_settings] = override_settings_disabled
 
-    response = client.get("/api/v1/ai/models")
+    response = client.get("/api/v1/ai/providers/ai.ollama/models")
     assert response.status_code == 200
     data = response.json()
     assert data["checked"] is False

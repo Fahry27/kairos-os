@@ -237,7 +237,7 @@ API logs are formatted as standard log strings: `[TIMESTAMP] [LEVEL] [LOGGER] ME
 
 ### Approval Management Dashboard
 
-- The AI Workspace page at `/workspace` uses provider-router endpoints for provider selection, model discovery, and dispatch. Ollama is the only functional provider; OpenAI, Gemini, and Claude are metadata-only stubs.
+- The AI Workspace page at `/workspace` uses provider-router endpoints for provider selection, model discovery, and dispatch. OpenRouter is the default cloud provider; Ollama and Command Code are also functional. OpenAI, Gemini, and Claude are metadata-only stubs.
 - Workspace planning still uses existing AI runtime endpoints for goal/context planning, prompt dry-run, parse-plan display, and explicit approval request creation.
 - The workspace does not add chat, autonomous agents, backend execution logic, local command execution, connector fan-out, cloud provider calls, or automatic approval creation.
 - The dashboard includes an Approval Management card for viewing pending, approved, rejected, expired, or all approval requests.
